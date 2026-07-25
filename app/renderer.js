@@ -601,13 +601,13 @@ function drawDecisionConnectors() {
     const start = point(control, 'bottom');
     const entry = point(entryNode(body), 'top');
     const bodyExit = point(exitNode(body), 'bottom');
-    const exitTop = point(exit, 'top');
+    const exitBottom = point(exit, 'bottom');
     const splitY = start.y + 20;
     const returnY = bodyExit.y + 22;
     const returnX = start.x + 25;
 
     path(`M ${start.x} ${start.y} V ${splitY} H ${entry.x} V ${entry.y}`, true);
-    path(`M ${start.x} ${splitY} V ${exitTop.y}`, true);
+    path(`M ${start.x} ${splitY} V ${exitBottom.y}`);
     path(`M ${bodyExit.x} ${bodyExit.y} V ${returnY} H ${returnX} V ${start.y}`, true);
   });
   host.prepend(svg);
@@ -1329,7 +1329,7 @@ function makeFlowchartSVG() {
           <path d="M0,0 L9,4.5 L0,9 Z" fill="#30455f"></path>
         </marker>
       </defs>
-      <g fill="none" stroke="#30455f" stroke-width="3.25" stroke-linecap="round" stroke-linejoin="round">${connectorPaths}</g>
+      <g fill="none" stroke="#30455f" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">${connectorPaths}</g>
       <foreignObject width="100%" height="100%">
         <div xmlns="http://www.w3.org/1999/xhtml" style="width:${width}px;height:${height}px;background:transparent">
           <style>${styles}</style>${markup}
