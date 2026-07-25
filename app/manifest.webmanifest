@@ -1,0 +1,19 @@
+{
+  "name": "Augorithm",
+  "short_name": "Augorithm",
+  "description": "Write pseudocode notes, build flowcharts, and run algorithms.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#fbfaf5",
+  "theme_color": "#071f40",
+  "icons": [
+    {
+      "src": "assets/icon.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

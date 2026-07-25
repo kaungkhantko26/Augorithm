@@ -1,6 +1,6 @@
 # Augorithm
 
-Augorithm is a desktop pseudocode-to-flowchart learning environment for macOS and Windows. It converts beginner-friendly pseudocode into connected flowcharts, validates syntax, executes algorithms with interactive input, and exports flowcharts as PNG or SVG.
+Augorithm is a pseudocode-to-flowchart learning environment for macOS, Windows, and iPad. It converts beginner-friendly pseudocode into connected flowcharts, validates syntax, executes algorithms with interactive input, and exports flowcharts as PNG or SVG.
 
 Built by **Kaung Khant Ko**.
 
@@ -8,12 +8,12 @@ Built by **Kaung Khant Ko**.
 
 Get the newest packages from [GitHub Releases](https://github.com/kaungkhantko26/Augorithm/releases/latest):
 
-- Windows 10/11 x64: `Augorithm-1.3.5-x64.exe`
-- Apple-silicon macOS: `Augorithm-1.3.5-arm64.zip`
+- Windows 10/11 x64: `Augorithm-1.3.6-x64.exe`
+- Apple-silicon macOS: `Augorithm-1.3.6-arm64.zip`
 
 ## Install on Windows
 
-1. Download `Augorithm-1.3.5-x64.exe` from Releases.
+1. Download `Augorithm-1.3.6-x64.exe` from Releases.
 2. Double-click the installer.
 3. If Microsoft Defender SmartScreen appears, review the unknown-publisher warning before deciding whether to continue.
 4. Select the installation folder and choose **Install**.
@@ -23,13 +23,22 @@ The installer is not Authenticode-signed, so Windows may report an unknown publi
 
 ## Install on macOS
 
-1. Download `Augorithm-1.3.5-arm64.zip` from Releases.
+1. Download `Augorithm-1.3.6-arm64.zip` from Releases.
 2. Double-click the ZIP file.
 3. Drag **Augorithm.app** into **Applications**.
 4. Control-click Augorithm in Applications and choose **Open**.
 5. Confirm **Open** if macOS displays an unidentified-developer warning.
 
 The macOS build is ad-hoc signed but not Apple-notarized.
+
+## Use on iPad
+
+1. Open the Augorithm web app in Safari at `https://kaungkhantko26.github.io/Augorithm/`.
+2. Tap **Share**, then **Add to Home Screen**.
+3. Open Augorithm from the Home Screen for a full-screen app experience.
+4. Tap the **✎ Note Mode** button for a focused, touch-friendly pseudocode notebook.
+
+The iPad app works offline after its first successful load. Projects can be opened from Files and saved as `.augo` downloads. Source code and flowcharts can also be exported directly from Safari.
 
 ## Open and save projects
 
@@ -40,6 +49,7 @@ Use **File → Save As…** for a new project and **File → Save** afterward. A
 ## Features
 
 - Flexible pseudocode parser with common classroom formats
+- Quote-aware inline statements: forms such as `Output "Fail" End If` are separated safely without changing quoted text
 - IDE-style pseudocode editor with an active-line gutter, cursor position, and problem markers
 - Persistent light/dark theme toggle with high-contrast editor and flowchart colors
 - Fully closed two-layer outlines for decision, input/output, and loop symbols
@@ -53,11 +63,13 @@ Use **File → Save As…** for a new project and **File → Save** afterward. A
 - Flowchart zoom, fit, and pan
 - PNG and editable SVG export
 - Guided console input and executable expressions
+- Extended functions: `Round`, `Floor`, `Ceiling`, `Pow`, `Upper`, `Lower`, `Trim`, `Substring`, `Min`, `Max`, trigonometry, and type conversion
 - Variables inspector and line-level validation
 - Pseudocode, Python, Swift, and JavaScript source views
 - English and Burmese interface modes
 - `.augo` save, open, recovery, and double-click support
 - Native Windows x64 and Apple-silicon macOS packages
+- Installable, offline-capable iPad web app with touch controls and focused Note Mode
 
 ## Build from source
 
@@ -68,7 +80,7 @@ npm install
 npm start
 ```
 
-Build packages:
+Build desktop packages:
 
 ```bash
 npm run windows
@@ -76,6 +88,14 @@ npm run pack
 ```
 
 Build output is written to `dist/`.
+
+To test the iPad/web app locally:
+
+```bash
+python3 -m http.server 4173 --directory app
+```
+
+Then open `http://localhost:4173`. The GitHub Pages workflow deploys the same `app/` directory whenever its files change on `main`.
 
 ## Project structure
 

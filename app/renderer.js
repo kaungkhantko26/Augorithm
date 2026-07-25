@@ -1,14 +1,80 @@
 const $ = selector => document.querySelector(selector);
 const $$ = selector => [...document.querySelectorAll(selector)];
 
-// Browser-preview fallback; Electron replaces this with the secure preload bridge.
+// Browser/iPad fallback; Electron replaces this with the secure preload bridge.
 if (!window.augorithm) {
+  const downloadBlob = (blob, name) => {
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.href = url;
+    link.download = name;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    return name;
+  };
+  const safeDownloadName = (name, extension) => {
+    const base = String(name || 'Augorithm').trim()
+      .replace(/[^\p{L}\p{N}_-]+/gu, '-').replace(/^-+|-+$/g, '') || 'Augorithm';
+    return `${base}.${extension}`;
+  };
+  const openBrowserProject = () => new Promise(resolve => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.augo,application/json';
+    input.addEventListener('change', async () => {
+      const file = input.files?.[0];
+      if (!file) return resolve(null);
+      try {
+        const project = JSON.parse(await file.text());
+        resolve(typeof project?.code === 'string' ? { filePath: file.name, project } : null);
+      } catch {
+        resolve(null);
+      }
+    }, { once: true });
+    input.click();
+  });
+  const exportBrowserFlowchart = async ({ name, format, data, width, height }) => {
+    const extension = String(format || 'svg').toLowerCase();
+    const targetName = safeDownloadName(`${name || 'Augorithm'}-flowchart`, extension);
+    if (extension === 'svg') {
+      return downloadBlob(new Blob([data], { type: 'image/svg+xml;charset=utf-8' }), targetName);
+    }
+    const url = URL.createObjectURL(new Blob([data], { type: 'image/svg+xml;charset=utf-8' }));
+    try {
+      const image = new Image();
+      await new Promise((resolve, reject) => {
+        image.onload = resolve;
+        image.onerror = reject;
+        image.src = url;
+      });
+      const scale = Math.max(1, Math.min(3, window.devicePixelRatio || 2));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.ceil(width * scale);
+      canvas.height = Math.ceil(height * scale);
+      const context = canvas.getContext('2d');
+      context.scale(scale, scale);
+      context.drawImage(image, 0, 0, width, height);
+      const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+      return blob ? downloadBlob(blob, targetName) : null;
+    } finally {
+      URL.revokeObjectURL(url);
+    }
+  };
+  const isIPad = /iPad/.test(navigator.userAgent) ||
+    (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
   window.augorithm = {
-    platform: 'browser',
-    saveProject: async () => null,
-    openProject: async () => null,
-    exportSource: async () => null,
-    exportFlowchart: async () => null,
+    platform: isIPad ? 'ipad' : 'browser',
+    saveProject: async project => {
+      const filePath = safeDownloadName(project?.name, 'augo');
+      downloadBlob(new Blob([JSON.stringify(project, null, 2)], { type: 'application/json' }), filePath);
+      return { filePath, project };
+    },
+    openProject: openBrowserProject,
+    exportSource: async ({ name, content, extension }) =>
+      downloadBlob(new Blob([content], { type: 'text/plain;charset=utf-8' }), safeDownloadName(name, extension)),
+    exportFlowchart: exportBrowserFlowchart,
     onMenuAction: () => {},
     onOpenProjectFile: () => {}
   };
@@ -50,7 +116,8 @@ const translations = {
     fixErrors: 'Fix errors', editorReady: 'IDE editing enabled',
     formatted: 'Pseudocode formatted', fixedCount: 'Fixed {count} syntax issue(s)',
     noSafeFix: 'No safe automatic fixes found', tabHint: 'Tab indents · Shift+Tab outdents',
-    darkMode: 'Switch to dark mode', lightMode: 'Switch to light mode'
+    darkMode: 'Switch to dark mode', lightMode: 'Switch to light mode',
+    noteMode: 'Note mode', exitNoteMode: 'Exit note mode'
   },
   my: {
     build: 'တည်ဆောက်', run: 'လုပ်ဆောင်', symbols: 'သင်္ကေတများ', inputOutput: 'အဝင် / အထွက်',
@@ -98,12 +165,15 @@ const translations = {
     formatted: 'အကြမ်းကုဒ်ကို ပုံစံချပြီးပါပြီ', fixedCount: 'ကုဒ်အမှား {count} ခု ပြင်ပြီးပါပြီ',
     noSafeFix: 'ဘေးကင်းစွာ အလိုအလျောက်ပြင်နိုင်သော အမှားမတွေ့ပါ',
     tabHint: 'Tab ဖြင့်အတွင်းရွှေ့ · Shift+Tab ဖြင့်အပြင်ရွှေ့',
-    darkMode: 'အမှောင်ပုံစံသို့ ပြောင်းမည်', lightMode: 'အလင်းပုံစံသို့ ပြောင်းမည်'
+    darkMode: 'အမှောင်ပုံစံသို့ ပြောင်းမည်', lightMode: 'အလင်းပုံစံသို့ ပြောင်းမည်',
+    noteMode: 'မှတ်စုစနစ်', exitNoteMode: 'မှတ်စုစနစ်မှ ထွက်မည်'
   }
 };
 
 let uiLanguage = localStorage.getItem('augorithm.uiLanguage') === 'my' ? 'my' : 'en';
 let uiTheme = localStorage.getItem('augorithm.theme') === 'dark' ? 'dark' : 'light';
+const storedNoteMode = localStorage.getItem('augorithm.noteMode');
+let noteMode = storedNoteMode === 'true';
 const t = key => translations[uiLanguage][key] || translations.en[key] || key;
 const tf = (key, values = {}) => Object.entries(values)
   .reduce((text, [name, value]) => text.replaceAll(`{${name}}`, value), t(key));
@@ -159,6 +229,7 @@ function applyUILanguage(language) {
   $$('[data-i18n]').forEach(element => { element.textContent = t(element.dataset.i18n); });
   $('#consoleInput').placeholder = t('runToEnter');
   updateThemeButton();
+  updateNoteModeButton();
   renderTemplateGrid();
   if (state.items.length) build();
 }
@@ -184,6 +255,30 @@ function applyTheme(theme) {
 
 function toggleTheme() {
   applyTheme(uiTheme === 'dark' ? 'light' : 'dark');
+}
+
+function updateNoteModeButton() {
+  const button = $('#noteModeToggle');
+  if (!button) return;
+  button.textContent = noteMode ? '↙' : '✎';
+  button.title = t(noteMode ? 'exitNoteMode' : 'noteMode');
+  button.setAttribute('aria-label', button.title);
+}
+
+function applyNoteMode(enabled) {
+  noteMode = Boolean(enabled);
+  localStorage.setItem('augorithm.noteMode', String(noteMode));
+  document.body.classList.toggle('note-mode', noteMode);
+  updateNoteModeButton();
+  if (noteMode) {
+    activateTab('pseudo');
+    $('#codeEditor').focus();
+  }
+  requestAnimationFrame(drawDecisionConnectors);
+}
+
+function toggleNoteMode() {
+  applyNoteMode(!noteMode);
 }
 
 const templates = [
@@ -401,6 +496,62 @@ function normalizeStatement(raw) {
   return text;
 }
 
+function quoteMask(text) {
+  let quote = null;
+  let escaped = false;
+  return [...text].map(character => {
+    if (escaped) {
+      escaped = false;
+      return quote ? ' ' : character;
+    }
+    if (character === '\\' && quote) {
+      escaped = true;
+      return ' ';
+    }
+    if (quote) {
+      if (character === quote) quote = null;
+      return ' ';
+    }
+    if (character === '"' || character === "'") {
+      quote = character;
+      return ' ';
+    }
+    return character;
+  }).join('');
+}
+
+function splitInlineStatements(raw) {
+  const text = String(raw || '').trim();
+  if (!text) return [''];
+  const mask = quoteMask(text);
+  const opener = mask.match(/^(?:(?:else\s+)?if\b[\s\S]*?\bthen\b)/i);
+  if (opener && /\S/.test(text.slice(opener[0].length))) {
+    return [
+      text.slice(0, opener[0].length).trim(),
+      ...splitInlineStatements(text.slice(opener[0].length))
+    ].filter(Boolean);
+  }
+  const elseOnly = mask.match(/^else\b/i);
+  if (elseOnly && /\S/.test(text.slice(elseOnly[0].length))) {
+    return ['Else', ...splitInlineStatements(text.slice(elseOnly[0].length))].filter(Boolean);
+  }
+  const boundaryPattern = /\b(?:else\s+if|else|end\s+if|endif|end_if|fi|end\s+while|endwhile|end_while|wend|end\s+for|endfor|end_for|next(?:\s+[A-Za-z_]\w*)?|end\s+program)\b/gi;
+  const boundary = [...mask.matchAll(boundaryPattern)]
+    .find(match => match.index > 0 && /\S/.test(mask.slice(0, match.index)));
+  if (boundary) {
+    return [
+      text.slice(0, boundary.index).trim(),
+      ...splitInlineStatements(text.slice(boundary.index))
+    ].filter(Boolean);
+  }
+  return [text];
+}
+
+function logicalSourceLines(source) {
+  return String(source || '').split(/\r?\n/).flatMap((raw, index) =>
+    splitInlineStatements(raw).map(part => ({ raw: part, line: index + 1 })));
+}
+
 function parseForHeader(text) {
   const match = text.match(/^for\s+([A-Za-z_]\w*)\s*=\s*(.+?)\s+to\s+(.+?)(?:\s+step\s+(.+))?$/i);
   return match ? {
@@ -472,7 +623,7 @@ function formatPseudocodeSource(source) {
   const output = [];
   let depth = 0;
   let previousBlank = false;
-  source.split(/\r?\n/).forEach(raw => {
+  logicalSourceLines(source).forEach(({ raw }) => {
     const statement = canonicalStatement(raw);
     if (!statement) {
       if (output.length && !previousBlank) output.push('');
@@ -491,7 +642,7 @@ function formatPseudocodeSource(source) {
 
 function safelyRepairStructure(source) {
   let fixes = 0;
-  const canonical = source.split(/\r?\n/).map(canonicalStatement);
+  const canonical = logicalSourceLines(source).map(({ raw }) => canonicalStatement(raw));
   const meaningful = canonical.filter(Boolean);
   if (!meaningful.some(line => line.toLowerCase() === 'start' || line.toLowerCase().startsWith('program '))) {
     canonical.unshift('Program Main', '');
@@ -696,15 +847,16 @@ function updateEditorCursor() {
 }
 
 function parse(source) {
-  const lines = source.split(/\r?\n/);
+  const lines = logicalSourceLines(source);
+  const physicalLineCount = String(source || '').split(/\r?\n/).length;
   const items = [];
   const diagnostics = [];
   const stack = [];
   let depth = 0;
   let branch = null;
 
-  lines.forEach((raw, index) => {
-    const line = index + 1;
+  lines.forEach((entry, index) => {
+    const { raw, line } = entry;
     const text = normalizeStatement(raw);
     if (!text) return;
     const lower = text.toLowerCase();
@@ -737,13 +889,13 @@ function parse(source) {
       kind = 'if'; title = 'Else If';
       detail = text.replace(/^else\s+if\s+|\s+then$/gi, '');
       if (stack.at(-1)?.type !== 'if') diagnostics.push({ line, type: 'error', message: 'Else If has no matching If.' });
-      items.push({ line, kind, title, detail, depth, branch: 'False', closing: false });
+      items.push({ line, logicalIndex: index, kind, title, detail, depth, branch: 'False', closing: false });
       branch = 'True';
       return;
     } else if (lower === 'else') {
       kind = 'if'; title = 'Else'; detail = 'False branch';
       if (stack.at(-1)?.type !== 'if') diagnostics.push({ line, type: 'error', message: 'Else has no matching If.' });
-      items.push({ line, kind, title, detail, depth, branch: 'False', closing: false });
+      items.push({ line, logicalIndex: index, kind, title, detail, depth, branch: 'False', closing: false });
       branch = null;
       return;
     } else if (lower === 'start' || lower.startsWith('program ')) {
@@ -764,16 +916,16 @@ function parse(source) {
       if (!assignment) diagnostics.push({ line, type: 'error', message: 'Assignment needs =, ←, <-, or :=.' });
     } else if (lower.startsWith('if ')) {
       kind = 'if'; detail = text.replace(/^if\s+|\s+then$/gi, ''); branch = 'True';
-      items.push({ line, kind, title: 'If', detail, depth, branch: null, closing: false });
+      items.push({ line, logicalIndex: index, kind, title: 'If', detail, depth, branch: null, closing: false });
       stack.push({ type: 'if', line }); depth++; return;
     } else if (lower.startsWith('while ')) {
       kind = 'while'; detail = text.slice(6);
-      items.push({ line, kind, title: 'While', detail, depth, branch: null, closing: false });
+      items.push({ line, logicalIndex: index, kind, title: 'While', detail, depth, branch: null, closing: false });
       stack.push({ type: 'while', line }); depth++; return;
     } else if (lower.startsWith('for ')) {
       const header = parseForHeader(text);
       kind = 'for'; detail = header ? `${header.variable} = ${header.start} to ${header.end}, step ${header.step}` : text.slice(4);
-      items.push({ line, kind, title: 'For', detail, depth, branch: null, closing: false });
+      items.push({ line, logicalIndex: index, kind, title: 'For', detail, depth, branch: null, closing: false });
       stack.push({ type: 'for', line, variable: header?.variable || null }); depth++;
       if (!header) diagnostics.push({ line, type: 'error', message: 'Use: For index = 1 To 10 Step 1.' });
       return;
@@ -782,7 +934,7 @@ function parse(source) {
     } else {
       diagnostics.push({ line, type: 'error', message: `Unknown statement: ${text}` });
     }
-    items.push({ line, kind, title: title || kindInfo[kind].title, detail, depth, branch, closing });
+    items.push({ line, logicalIndex: index, kind, title: title || kindInfo[kind].title, detail, depth, branch, closing });
   });
   stack.forEach(entry => diagnostics.push({
     line: entry.line,
@@ -792,7 +944,7 @@ function parse(source) {
   if (!items.some(item => item.kind === 'start')) diagnostics.push({ line: 1, type: 'warning', message: 'Add “START” or “Program Main” at the beginning.' });
   if (items.some(item => item.kind === 'start') && !items.some(item => item.kind === 'end')) {
     items.push({
-      line: lines.length + 1, kind: 'end', title: 'End', detail: 'Program exit',
+      line: physicalLineCount + 1, logicalIndex: lines.length, kind: 'end', title: 'End', detail: 'Program exit',
       depth: 0, branch: null, closing: false, virtual: true
     });
   }
@@ -943,8 +1095,8 @@ function drawDecisionConnectors() {
 }
 
 function buildVisualProgram() {
-  const lines = $('#codeEditor').value.split(/\r?\n/).map(normalizeStatement);
-  const byLine = new Map(state.items.map(item => [item.line, item]));
+  const lines = logicalSourceLines($('#codeEditor').value).map(entry => normalizeStatement(entry.raw));
+  const byLine = new Map(state.items.map(item => [item.logicalIndex, item]));
   let cursor = 0;
 
   function nextMeaningful() {
@@ -963,7 +1115,7 @@ function buildVisualProgram() {
       } else if (lower.startsWith('for ')) {
         nodes.push(loop());
       } else {
-        const item = byLine.get(cursor + 1);
+        const item = byLine.get(cursor);
         if (item) nodes.push({ type: 'node', item });
         cursor++;
       }
@@ -973,14 +1125,14 @@ function buildVisualProgram() {
 
   function decision() {
     const branches = [];
-    let conditionItem = byLine.get(cursor + 1);
+    let conditionItem = byLine.get(cursor);
     cursor++;
     let body = sequence(lower => lower.startsWith('else if ') || lower === 'else' || lower.startsWith('end if'));
     branches.push({ item: conditionItem, body });
 
     nextMeaningful();
     while (cursor < lines.length && lines[cursor].trim().toLowerCase().startsWith('else if ')) {
-      conditionItem = byLine.get(cursor + 1);
+      conditionItem = byLine.get(cursor);
       cursor++;
       body = sequence(lower => lower.startsWith('else if ') || lower === 'else' || lower.startsWith('end if'));
       branches.push({ item: conditionItem, body });
@@ -994,18 +1146,18 @@ function buildVisualProgram() {
       nextMeaningful();
     }
     const endItem = cursor < lines.length && lines[cursor].trim().toLowerCase().startsWith('end if')
-      ? byLine.get(cursor + 1) : null;
+      ? byLine.get(cursor) : null;
     if (endItem) cursor++;
     return { type: 'decision', branches, elseBody, endItem };
   }
 
   function loop() {
-    const item = byLine.get(cursor + 1);
+    const item = byLine.get(cursor);
     cursor++;
     const body = sequence(lower => lower.startsWith('end for'));
     nextMeaningful();
     const endItem = cursor < lines.length && lines[cursor].trim().toLowerCase().startsWith('end for')
-      ? byLine.get(cursor + 1) : null;
+      ? byLine.get(cursor) : null;
     if (endItem) cursor++;
     return { type: 'loop', item, body, endItem };
   }
@@ -1205,7 +1357,11 @@ function evaluate(expression, variables) {
     .replace(/\bToString\s*\(/gi, 'toStringValue(').replace(/\bSin\s*\(/gi, 'sin(')
     .replace(/\bCos\s*\(/gi, 'cos(').replace(/\bTan\s*\(/gi, 'tan(')
     .replace(/\bLog\s*\(/gi, 'log(').replace(/\bMin\s*\(/gi, 'min(')
-    .replace(/\bMax\s*\(/gi, 'max(').replace(/\bPi\b/gi, 'pi');
+    .replace(/\bMax\s*\(/gi, 'max(').replace(/\bRound\s*\(/gi, 'round(')
+    .replace(/\bFloor\s*\(/gi, 'floor(').replace(/\bCeiling\s*\(/gi, 'ceiling(')
+    .replace(/\bPow\s*\(/gi, 'pow(').replace(/\bUpper\s*\(/gi, 'upper(')
+    .replace(/\bLower\s*\(/gi, 'lower(').replace(/\bTrim\s*\(/gi, 'trim(')
+    .replace(/\bSubstring\s*\(/gi, 'substring(').replace(/\bPi\b/gi, 'pi');
   const scope = {
     abs: Math.abs, sqrt: Math.sqrt,
     random: maximum => Math.floor(Math.random() * Math.max(1, Number(maximum))),
@@ -1214,7 +1370,12 @@ function evaluate(expression, variables) {
     toReal: value => Number(value) || 0,
     toStringValue: value => String(value),
     sin: Math.sin, cos: Math.cos, tan: Math.tan, log: Math.log,
-    min: Math.min, max: Math.max, pi: Math.PI,
+    min: Math.min, max: Math.max, round: Math.round, floor: Math.floor,
+    ceiling: Math.ceil, pow: Math.pow, upper: value => String(value).toUpperCase(),
+    lower: value => String(value).toLowerCase(), trim: value => String(value).trim(),
+    substring: (value, start, length) =>
+      String(value).substring(Number(start), Number(start) + Number(length)),
+    pi: Math.PI,
     ...variables
   };
   const withoutStrings = js.replace(/(["']).*?\1/g, '');
@@ -1344,7 +1505,8 @@ function runProgram(resuming = false) {
     showRuntime([], t('fixSyntax'));
     return;
   }
-  const lines = $('#codeEditor').value.split(/\r?\n/).map(normalizeStatement);
+  const logicalLines = logicalSourceLines($('#codeEditor').value);
+  const lines = logicalLines.map(entry => normalizeStatement(entry.raw));
   const variables = {};
   lines.forEach(text => {
     const assignment = assignmentFrom(text);
@@ -1370,13 +1532,13 @@ function runProgram(resuming = false) {
       const text = lines[pc], lower = text.toLowerCase();
       if (!text || lower.startsWith('//') || lower.startsWith('#') || lower.startsWith('program ') ||
           lower === 'start' || lower === 'end program' || lower === 'end') { pc++; continue; }
-      trace.push(pc + 1);
+      trace.push(logicalLines[pc]?.line || pc + 1);
       if (lower.startsWith('declare ')) {
         const body = text.slice(8), name = body.split(/\s+/)[0];
         variables[name] = /\bas\s+string/i.test(body) ? '' : /\bas\s+boolean/i.test(body) ? false : 0;
       } else if (lower.startsWith('set ') || assignmentFrom(text)) {
         const assignment = assignmentFrom(text);
-        if (!assignment) throw new Error(`Line ${pc + 1}: assignment needs =, ←, <-, or :=`);
+        if (!assignment) throw new Error(`Line ${logicalLines[pc]?.line || pc + 1}: assignment needs =, ←, <-, or :=`);
         variables[assignment.name] = evaluate(assignment.expression, variables);
       } else if (lower.startsWith('output ')) {
         output.push(evaluateOutput(text.slice(7), variables));
@@ -1419,7 +1581,7 @@ function runProgram(resuming = false) {
         pc = (control.loops[pc] ?? pc) - 1;
       } else if (lower.startsWith('for ')) {
         const header = parseForHeader(text);
-        if (!header) throw new Error(`Line ${pc + 1}: invalid For loop.`);
+        if (!header) throw new Error(`Line ${logicalLines[pc]?.line || pc + 1}: invalid For loop.`);
         if (!forStates[pc]) {
           const step = Number(evaluate(header.step, variables)) || 1;
           forStates[pc] = { variable: header.variable, end: Number(evaluate(header.end, variables)), step };
@@ -1480,7 +1642,7 @@ function sourceFor(language) {
   if (language === 'python') out.push('# Generated by Augorithm');
   if (language === 'javascript') out.push('// Generated by Augorithm');
   if (language === 'swift') out.push('import Foundation', '');
-  source.split(/\r?\n/).forEach(raw => {
+  logicalSourceLines(source).forEach(({ raw }) => {
     const text = normalizeStatement(raw), lower = text.toLowerCase();
     if (!text) return;
     if (lower === 'start' || lower.startsWith('program ')) {
@@ -1718,6 +1880,7 @@ function init() {
   $('#formatCodeBtn').addEventListener('click', formatPseudocode);
   $('#fixErrorsBtn').addEventListener('click', () => autoFixPseudocode());
   $('#themeToggle').addEventListener('click', toggleTheme);
+  $('#noteModeToggle').addEventListener('click', toggleNoteMode);
   $('#projectName').addEventListener('input', () => { markDirty(); updateEditorFileName(); });
   $('#buildBtn').addEventListener('click', buildAndFix);
   $('#runBtn').addEventListener('click', startProgram);
@@ -1775,6 +1938,7 @@ function init() {
   window.addEventListener('keydown', event => {
     if (!(event.metaKey || event.ctrlKey)) return;
     if (event.shiftKey && event.key.toLowerCase() === 'd') { event.preventDefault(); toggleTheme(); }
+    if (event.shiftKey && event.key.toLowerCase() === 'n') { event.preventDefault(); toggleNoteMode(); }
     if (event.key === '=' || event.key === '+') { event.preventDefault(); setZoom(state.zoom + .1); }
     if (event.key === '-') { event.preventDefault(); setZoom(state.zoom - .1); }
     if (event.key === '0') { event.preventDefault(); fitFlowchart(); }
@@ -1813,8 +1977,12 @@ function init() {
   }
   window.addEventListener('beforeunload', () => { if (state.dirty) saveRecoveryDraft(); });
   applyUILanguage(uiLanguage);
+  applyNoteMode(storedNoteMode === null && window.augorithm.platform === 'ipad' ? true : noteMode);
   build();
   updateEditorCursor();
+  if (window.augorithm.platform === 'browser' || window.augorithm.platform === 'ipad') {
+    navigator.serviceWorker?.register('./service-worker.js').catch(() => {});
+  }
 }
 
 function setZoom(value) {

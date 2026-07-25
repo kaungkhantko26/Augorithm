@@ -72,6 +72,7 @@ body[data-platform="linux"] .topbar {
 }
 .icon-button:hover { background: #ffffff1f; }
 .theme-toggle { font-size: 15px; }
+.note-toggle { font-size: 15px; }
 .secondary-button { border: 1px solid #ffffff36; background: #fff1; color: white; padding: 0 12px; }
 .run-button {
   color: var(--navy); background: var(--gold); border: 0; padding: 0 17px;
@@ -614,9 +615,91 @@ body[data-theme="dark"] dialog {
 body[data-theme="dark"] .dialog-close,
 body[data-theme="dark"] .guide pre { color: #dce6f1; background: #233246; }
 body[data-theme="dark"] .reference-card { background: #172b40; border-color: #345d84; }
+
+body.note-mode .app-shell {
+  grid-template-columns: minmax(0, 1fr);
+}
+body.note-mode .palette,
+body.note-mode .inspector,
+body.note-mode .workspace-tabs,
+body.note-mode .console {
+  display: none !important;
+}
+body.note-mode .workspace {
+  min-width: 0;
+}
+body.note-mode .tab-content,
+body.note-mode .editor-pane {
+  height: 100%;
+}
+body.note-mode .editor-toolbar {
+  padding-left: max(14px, env(safe-area-inset-left));
+  padding-right: max(14px, env(safe-area-inset-right));
+}
+body.note-mode #codeEditor {
+  padding: 20px max(22px, env(safe-area-inset-right)) 28px 22px;
+  font-size: 16px;
+  line-height: 26px;
+}
+body.note-mode .line-numbers {
+  padding-top: 21px;
+  font-size: 14px;
+  line-height: 26px;
+}
+body.note-mode .line-numbers div { height: 26px; }
+
+@media (pointer: coarse) {
+  button, select, input { min-height: 44px; }
+  .top-actions button, .icon-button, .ui-language { height: 44px; }
+  .symbol { height: 48px; }
+  .editor-actions button { min-height: 36px; height: 36px; }
+  #codeEditor { font-size: 16px; }
+}
+
+@media (max-width: 1024px) {
+  .topbar {
+    height: calc(64px + env(safe-area-inset-top));
+    padding: env(safe-area-inset-top) max(10px, env(safe-area-inset-right)) 0 max(10px, env(safe-area-inset-left));
+    grid-template-columns: auto minmax(110px, 1fr) auto;
+    gap: 8px;
+  }
+  .brand span, .brand > div:last-child { display: none; }
+  .project-title input { width: 100%; min-width: 110px; font-size: 13px; }
+  .top-actions { gap: 4px; }
+  .top-actions .secondary-button { display: none; }
+  .ui-language { width: 68px; padding: 0 4px; }
+  .app-shell { height: calc(100vh - 92px - env(safe-area-inset-top)); }
+  footer { padding-bottom: env(safe-area-inset-bottom); }
+  .app-shell { grid-template-columns: 168px minmax(0, 1fr); }
+  .inspector { display: none; }
+  .workspace-tabs { overflow-x: auto; }
+  .segmented button { width: auto; min-width: 92px; }
+  .zoom-controls { flex: 0 0 auto; }
+  .console-body { grid-template-columns: 1fr 210px; }
+}
+
+@media (max-width: 760px) {
+  .top-actions #openBtn,
+  .top-actions #helpBtn,
+  .top-actions .ui-language { display: none; }
+  .project-title span { display: none; }
+  .app-shell { grid-template-columns: minmax(0, 1fr); }
+  .palette { display: none; }
+  .console-body { grid-template-columns: 1fr; overflow: auto; }
+  .console-input { border-left: 0; border-top: 1px solid var(--line); }
+}
+
 @media (max-width: 1180px) {
   .app-shell { grid-template-columns: 190px minmax(550px, 1fr) 240px; }
   .brand span { display: none; }
   footer .creator-credit { display: none; }
   .segmented button { width: 108px; }
+}
+@media (max-width: 1024px) {
+  .app-shell { grid-template-columns: 168px minmax(0, 1fr); }
+  .inspector { display: none; }
+  .segmented button { width: auto; min-width: 92px; }
+}
+@media (max-width: 760px) {
+  .app-shell { grid-template-columns: minmax(0, 1fr); }
 }

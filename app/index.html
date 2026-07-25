@@ -2,8 +2,14 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#071f40">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Augorithm">
   <title>Augorithm</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="assets/icon.png">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -23,6 +29,7 @@
         <option value="en">English</option>
         <option value="my">မြန်မာ</option>
       </select>
+      <button class="icon-button note-toggle" id="noteModeToggle" aria-label="Note mode" title="Note mode">✎</button>
       <button class="icon-button theme-toggle" id="themeToggle" aria-label="Toggle dark mode" title="Toggle dark mode">☾</button>
       <button id="buildBtn" class="secondary-button"><span>↻</span> <span data-i18n="build">Build</span></button>
       <button id="runBtn" class="run-button"><span>▶</span> <span data-i18n="run">Run</span></button>
@@ -167,7 +174,11 @@ If score &gt;= 50 Then
     Output "Pass"
 Else
     Output "Try again"
-End If</pre>
+End If
+
+Functions: Abs, Sqrt, Round, Floor, Ceiling, Pow,
+Min, Max, Len, Upper, Lower, Trim, Substring,
+ToInteger, ToReal, ToString, Sin, Cos, Tan, Log</pre>
     </div>
   </dialog>
   <script src="renderer.js"></script>
