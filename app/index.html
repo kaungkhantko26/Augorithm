@@ -76,8 +76,22 @@
           </div>
         </div>
         <div class="tab-pane editor-pane" id="pseudoPane">
-          <div id="lineNumbers" class="line-numbers"></div>
-          <textarea id="codeEditor" spellcheck="false" aria-label="Pseudocode editor"></textarea>
+          <div class="editor-toolbar">
+            <div class="editor-language"><i></i><strong data-i18n="pseudoFile">PSEUDOCODE</strong><span>main.augo</span></div>
+            <div class="editor-actions">
+              <button id="formatCodeBtn" title="Format pseudocode (⌘⇧F)">⌘ <span data-i18n="formatCode">Format</span></button>
+              <button id="fixErrorsBtn" class="fix-button" title="Safely fix syntax errors">✦ <span data-i18n="fixErrors">Fix errors</span></button>
+            </div>
+          </div>
+          <div class="editor-surface">
+            <div id="lineNumbers" class="line-numbers"></div>
+            <textarea id="codeEditor" spellcheck="false" autocapitalize="off" autocomplete="off"
+              aria-label="Pseudocode editor" placeholder="Program Main&#10;    Output &quot;Hello!&quot;&#10;End Program"></textarea>
+          </div>
+          <div class="editor-statusbar">
+            <span id="editorMessage" data-i18n="editorReady">IDE editing enabled</span>
+            <div><span id="cursorPosition">Ln 1, Col 1</span><span>Spaces: 4</span><span>UTF-8</span></div>
+          </div>
         </div>
         <div class="tab-pane source-pane" id="sourcePane">
           <div class="source-toolbar">

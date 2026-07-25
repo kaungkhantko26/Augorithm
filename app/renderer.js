@@ -46,7 +46,10 @@ const translations = {
     referenceHint: 'Compare symbols, expressions, data types, and control structures with the original learning environment.',
     openReference: 'Open reference ↗', statement: 'STATEMENT', update: 'Update',
     delete: 'Delete', type: 'TYPE', line: 'Line', endIf: 'End If', endWhile: 'End While',
-    endFor: 'End For'
+    endFor: 'End For', pseudoFile: 'PSEUDOCODE', formatCode: 'Format',
+    fixErrors: 'Fix errors', editorReady: 'IDE editing enabled',
+    formatted: 'Pseudocode formatted', fixedCount: 'Fixed {count} syntax issue(s)',
+    noSafeFix: 'No safe automatic fixes found', tabHint: 'Tab indents · Shift+Tab outdents'
   },
   my: {
     build: 'တည်ဆောက်', run: 'လုပ်ဆောင်', symbols: 'သင်္ကေတများ', inputOutput: 'အဝင် / အထွက်',
@@ -88,7 +91,12 @@ const translations = {
     referenceHint: 'သင်္ကေတ၊ ဖော်ပြချက်၊ ဒေတာအမျိုးအစားနှင့် ထိန်းချုပ်ပုံများကို မူရင်းစနစ်နှင့် နှိုင်းယှဉ်ပါ။',
     openReference: 'ကိုးကားချက်ဖွင့်ရန် ↗', statement: 'ဖော်ပြချက်', update: 'ပြင်ဆင်မည်',
     delete: 'ဖျက်မည်', type: 'အမျိုးအစား', line: 'စာကြောင်း',
-    endIf: 'If အဆုံး', endWhile: 'While အဆုံး', endFor: 'For အဆုံး'
+    endIf: 'If အဆုံး', endWhile: 'While အဆုံး', endFor: 'For အဆုံး',
+    pseudoFile: 'ပရိုဂရမ်အကြမ်းကုဒ်', formatCode: 'ပုံစံချမည်',
+    fixErrors: 'အမှားပြင်မည်', editorReady: 'IDE စာတည်းဖြတ်စနစ် အသင့်ဖြစ်ပါပြီ',
+    formatted: 'အကြမ်းကုဒ်ကို ပုံစံချပြီးပါပြီ', fixedCount: 'ကုဒ်အမှား {count} ခု ပြင်ပြီးပါပြီ',
+    noSafeFix: 'ဘေးကင်းစွာ အလိုအလျောက်ပြင်နိုင်သော အမှားမတွေ့ပါ',
+    tabHint: 'Tab ဖြင့်အတွင်းရွှေ့ · Shift+Tab ဖြင့်အပြင်ရွှေ့'
   }
 };
 
@@ -365,6 +373,290 @@ function parseForHeader(text) {
     end: match[3],
     step: match[4] || '1'
   } : null;
+}
+
+function canonicalStatement(raw) {
+  const original = raw.trim().replace(/;\s*$/, '');
+  if (!original) return '';
+  if (/^(\/\/|#)/.test(original)) return `// ${original.replace(/^(\/\/|#)\s*/, '')}`;
+  const text = normalizeStatement(original);
+  const lower = text.toLowerCase();
+  const assignment = assignmentFrom(text);
+  const loop = parseForHeader(text);
+
+  if (lower === 'start') return 'START';
+  if (lower === 'end') return 'END';
+  if (lower.startsWith('program ')) return `Program ${text.slice(8).trim() || 'Main'}`;
+  if (lower === 'end program') return 'End Program';
+  if (lower.startsWith('end if')) return 'End If';
+  if (lower.startsWith('end while')) return 'End While';
+  if (lower.startsWith('end for')) {
+    const variable = text.slice(7).trim();
+    return `End For${variable ? ` ${variable}` : ''}`;
+  }
+  if (lower.startsWith('else if ')) {
+    return `Else If ${text.replace(/^else\s+if\s+|\s+then$/gi, '')} Then`;
+  }
+  if (lower === 'else') return 'Else';
+  if (lower.startsWith('if ')) return `If ${text.replace(/^if\s+|\s+then$/gi, '')} Then`;
+  if (lower.startsWith('while ')) return `While ${text.slice(6).trim()}`;
+  if (loop) return `For ${loop.variable} = ${loop.start} To ${loop.end}${loop.step === '1' ? '' : ` Step ${loop.step}`}`;
+  if (lower.startsWith('for ')) return `For ${text.slice(4).trim()}`;
+  if (lower.startsWith('declare ')) return `Declare ${text.slice(8).trim()}`;
+  if (lower.startsWith('input ')) return `Input ${text.slice(6).trim()}`;
+  if (lower.startsWith('output ')) return `Output ${text.slice(7).trim()}`;
+  if (assignment) return `Set ${assignment.name} = ${assignment.expression.trim()}`;
+  const missingAssignment = original.match(/^(?:set|let)\s+([A-Za-z_]\w*)\s+(.+)$/i);
+  if (missingAssignment) return `Set ${missingAssignment[1]} = ${missingAssignment[2].trim()}`;
+  return text;
+}
+
+function blockRole(statement) {
+  const lower = statement.toLowerCase();
+  if (lower === 'start' || lower.startsWith('program ')) return { action: 'open', type: 'program' };
+  if (lower === 'end' || lower === 'end program') return { action: 'close', type: 'program' };
+  if (lower.startsWith('end if')) return { action: 'close', type: 'if' };
+  if (lower.startsWith('end while')) return { action: 'close', type: 'while' };
+  if (lower.startsWith('end for')) return { action: 'close', type: 'for' };
+  if (lower.startsWith('else if ') || lower === 'else') return { action: 'branch', type: 'if' };
+  if (lower.startsWith('if ')) return { action: 'open', type: 'if' };
+  if (lower.startsWith('while ')) return { action: 'open', type: 'while' };
+  if (lower.startsWith('for ')) return { action: 'open', type: 'for' };
+  return { action: 'statement', type: null };
+}
+
+function closingStatement(block) {
+  if (block.type === 'program') return block.keyword === 'start' ? 'END' : 'End Program';
+  if (block.type === 'if') return 'End If';
+  if (block.type === 'while') return 'End While';
+  return `End For${block.variable ? ` ${block.variable}` : ''}`;
+}
+
+function formatPseudocodeSource(source) {
+  const output = [];
+  let depth = 0;
+  let previousBlank = false;
+  source.split(/\r?\n/).forEach(raw => {
+    const statement = canonicalStatement(raw);
+    if (!statement) {
+      if (output.length && !previousBlank) output.push('');
+      previousBlank = true;
+      return;
+    }
+    previousBlank = false;
+    const role = blockRole(statement);
+    if (role.action === 'close' || role.action === 'branch') depth = Math.max(0, depth - 1);
+    output.push(`${'    '.repeat(depth)}${statement}`);
+    if (role.action === 'open' || role.action === 'branch') depth++;
+  });
+  while (output.at(-1) === '') output.pop();
+  return output.join('\n');
+}
+
+function safelyRepairStructure(source) {
+  let fixes = 0;
+  const canonical = source.split(/\r?\n/).map(canonicalStatement);
+  const meaningful = canonical.filter(Boolean);
+  if (!meaningful.some(line => line.toLowerCase() === 'start' || line.toLowerCase().startsWith('program '))) {
+    canonical.unshift('Program Main', '');
+    fixes++;
+  }
+
+  const output = [];
+  const stack = [];
+  canonical.forEach(statement => {
+    if (!statement) {
+      output.push('');
+      return;
+    }
+    const role = blockRole(statement);
+    if (role.action === 'open') {
+      const loop = role.type === 'for' ? parseForHeader(statement) : null;
+      stack.push({
+        type: role.type,
+        variable: loop?.variable || null,
+        keyword: statement.toLowerCase() === 'start' ? 'start' : 'program'
+      });
+      output.push(statement);
+      return;
+    }
+    if (role.action === 'close') {
+      const matchingIndex = stack.map(block => block.type).lastIndexOf(role.type);
+      if (matchingIndex < 0) {
+        fixes++;
+        return;
+      }
+      while (stack.length - 1 > matchingIndex) {
+        output.push(closingStatement(stack.pop()));
+        fixes++;
+      }
+      const block = stack.pop();
+      if (role.type === 'for') {
+        const corrected = closingStatement(block);
+        if (statement.toLowerCase() !== corrected.toLowerCase()) fixes++;
+        output.push(corrected);
+      } else {
+        output.push(closingStatement(block));
+      }
+      return;
+    }
+    output.push(statement);
+  });
+  while (stack.length) {
+    output.push(closingStatement(stack.pop()));
+    fixes++;
+  }
+  return { source: output.join('\n'), fixes };
+}
+
+function replaceEditorText(value, message, selectionStart = null, selectionEnd = null) {
+  const editor = $('#codeEditor');
+  const changed = editor.value !== value;
+  editor.value = value;
+  const start = Math.min(selectionStart ?? editor.value.length, editor.value.length);
+  const end = Math.min(selectionEnd ?? start, editor.value.length);
+  editor.setSelectionRange(start, end);
+  if (changed) markDirty();
+  build();
+  updateEditorCursor();
+  if (message) $('#editorMessage').textContent = message;
+  return changed;
+}
+
+function formatPseudocode() {
+  const editor = $('#codeEditor');
+  const cursor = editor.selectionStart;
+  const formatted = formatPseudocodeSource(editor.value);
+  replaceEditorText(formatted, t('formatted'), cursor, cursor);
+  editor.focus();
+}
+
+function autoFixPseudocode({ quiet = false } = {}) {
+  const editor = $('#codeEditor');
+  const beforeErrors = parse(editor.value).diagnostics.length;
+  const repair = safelyRepairStructure(editor.value);
+  const formatted = formatPseudocodeSource(repair.source);
+  replaceEditorText(formatted, null, editor.selectionStart, editor.selectionEnd);
+  const fixed = Math.max(repair.fixes, beforeErrors - state.diagnostics.length);
+  $('#editorMessage').textContent = fixed
+    ? tf('fixedCount', { count: fixed })
+    : quiet ? t('tabHint') : t('noSafeFix');
+  editor.focus();
+  return fixed;
+}
+
+function indentEditorSelection(outdent = false) {
+  const editor = $('#codeEditor');
+  const value = editor.value;
+  const selectionStart = editor.selectionStart;
+  const selectionEnd = editor.selectionEnd;
+  const lineStart = value.lastIndexOf('\n', selectionStart - 1) + 1;
+  let lineEnd = value.indexOf('\n', selectionEnd);
+  if (lineEnd < 0) lineEnd = value.length;
+  const selected = value.slice(lineStart, lineEnd);
+  const singleCaret = selectionStart === selectionEnd && !selected.includes('\n');
+
+  if (singleCaret && !outdent) {
+    const column = selectionStart - lineStart;
+    const spaces = 4 - (column % 4);
+    editor.setRangeText(' '.repeat(spaces), selectionStart, selectionEnd, 'end');
+  } else {
+    const lines = selected.split('\n');
+    let removedFromFirst = 0;
+    const replacement = lines.map((line, index) => {
+      if (!outdent) return `    ${line}`;
+      const removed = Math.min(4, line.match(/^ */)?.[0].length || 0);
+      if (index === 0) removedFromFirst = removed;
+      return line.slice(removed);
+    }).join('\n');
+    editor.setRangeText(replacement, lineStart, lineEnd, 'select');
+    if (outdent) editor.setSelectionRange(
+      Math.max(lineStart, selectionStart - removedFromFirst),
+      Math.max(lineStart, selectionEnd - (selected.length - replacement.length))
+    );
+  }
+  markDirty();
+  build();
+  updateEditorCursor();
+}
+
+function expectedCloser(statement) {
+  const role = blockRole(canonicalStatement(statement));
+  if (role.action !== 'open' || role.type === 'program') return null;
+  return role.type === 'if' ? 'End If' : role.type === 'while' ? 'End While' : 'End For';
+}
+
+function handleEditorKeyDown(event) {
+  const editor = event.currentTarget;
+  if (event.key === 'Tab') {
+    event.preventDefault();
+    indentEditorSelection(event.shiftKey);
+    return;
+  }
+  if ((event.metaKey || event.ctrlKey) && event.shiftKey && event.key.toLowerCase() === 'f') {
+    event.preventDefault();
+    formatPseudocode();
+    return;
+  }
+  if ((event.metaKey || event.ctrlKey) && event.key === '.') {
+    event.preventDefault();
+    autoFixPseudocode();
+    return;
+  }
+  if (event.key === 'Backspace' && editor.selectionStart === editor.selectionEnd) {
+    const start = editor.selectionStart;
+    const lineStart = editor.value.lastIndexOf('\n', start - 1) + 1;
+    const before = editor.value.slice(lineStart, start);
+    if (before && /^ +$/.test(before)) {
+      event.preventDefault();
+      const remove = before.length % 4 || 4;
+      editor.setRangeText('', start - remove, start, 'end');
+      markDirty(); build(); updateEditorCursor();
+    }
+    return;
+  }
+  if (event.key !== 'Enter' || event.metaKey || event.ctrlKey || event.altKey) return;
+  event.preventDefault();
+  const start = editor.selectionStart;
+  const end = editor.selectionEnd;
+  const lineStart = editor.value.lastIndexOf('\n', start - 1) + 1;
+  let lineEnd = editor.value.indexOf('\n', start);
+  if (lineEnd < 0) lineEnd = editor.value.length;
+  const currentLine = editor.value.slice(lineStart, lineEnd);
+  const baseIndent = currentLine.match(/^ */)?.[0] || '';
+  const statement = currentLine.trim();
+  const role = blockRole(canonicalStatement(statement));
+  const bodyIndent = baseIndent + ((role.action === 'open' || role.action === 'branch') ? '    ' : '');
+  const closer = expectedCloser(statement);
+  const remaining = editor.value.slice(lineEnd);
+  const hasCloser = closer && remaining.split(/\r?\n/).some(line =>
+    canonicalStatement(line).toLowerCase().startsWith(closer.toLowerCase()));
+
+  if (closer && start === lineEnd && !hasCloser) {
+    const insertion = `\n${bodyIndent}\n${baseIndent}${closer}`;
+    editor.setRangeText(insertion, start, end, 'end');
+    const cursor = start + 1 + bodyIndent.length;
+    editor.setSelectionRange(cursor, cursor);
+  } else {
+    editor.setRangeText(`\n${bodyIndent}`, start, end, 'end');
+  }
+  markDirty(); build(); updateEditorCursor();
+}
+
+function currentEditorLine() {
+  const editor = $('#codeEditor');
+  return editor.value.slice(0, editor.selectionStart).split('\n').length;
+}
+
+function updateEditorCursor() {
+  const editor = $('#codeEditor');
+  if (!editor) return;
+  const before = editor.value.slice(0, editor.selectionStart);
+  const line = before.split('\n').length;
+  const column = before.length - before.lastIndexOf('\n');
+  $('#cursorPosition').textContent = `Ln ${line}, Col ${column}`;
+  $$('#lineNumbers > div').forEach((number, index) =>
+    number.classList.toggle('active-line', index + 1 === line && !number.classList.contains('error-line')));
 }
 
 function parse(source) {
@@ -785,6 +1077,7 @@ function renderDecisionLevel(decision, branchIndex) {
 
 function renderDiagnostics() {
   const host = $('#diagnostics');
+  $('#fixErrorsBtn').disabled = !state.diagnostics.length;
   if (!state.diagnostics.length) {
     host.innerHTML = `<div class="valid">● ${escapeHTML(t('readyRun'))}</div>`;
     return;
@@ -798,8 +1091,15 @@ function renderDiagnostics() {
 function renderLineNumbers() {
   const count = Math.max(1, $('#codeEditor').value.split(/\r?\n/).length);
   const errors = new Set(state.diagnostics.filter(d => d.type === 'error').map(d => d.line));
+  const warnings = new Set(state.diagnostics.filter(d => d.type !== 'error').map(d => d.line));
+  const messages = new Map();
+  state.diagnostics.forEach(d => {
+    const previous = messages.get(d.line);
+    messages.set(d.line, previous ? `${previous}\n${localizedDiagnostic(d.message)}` : localizedDiagnostic(d.message));
+  });
+  const active = currentEditorLine();
   $('#lineNumbers').innerHTML = Array.from({ length: count }, (_, i) =>
-    `<div class="${errors.has(i + 1) ? 'error-line' : ''}">${i + 1}</div>`).join('');
+    `<div class="${errors.has(i + 1) ? 'error-line' : warnings.has(i + 1) ? 'warning-line' : active === i + 1 ? 'active-line' : ''}" title="${escapeHTML(messages.get(i + 1) || '')}">${i + 1}</div>`).join('');
 }
 
 function selectLine(line) {
@@ -975,6 +1275,13 @@ function startProgram() {
   runProgram(false);
 }
 
+function buildAndFix() {
+  if (parse($('#codeEditor').value).diagnostics.some(d => d.type === 'error')) {
+    autoFixPseudocode({ quiet: true });
+  }
+  build();
+}
+
 function submitInputOrRun() {
   if (!state.awaitingInput) {
     startProgram();
@@ -991,7 +1298,11 @@ function submitInputOrRun() {
 }
 
 function runProgram(resuming = false) {
-  build();
+  if (!resuming && parse($('#codeEditor').value).diagnostics.some(d => d.type === 'error')) {
+    autoFixPseudocode({ quiet: true });
+  } else {
+    build();
+  }
   if (state.diagnostics.some(d => d.type === 'error')) {
     showRuntime([], t('fixSyntax'));
     return;
@@ -1361,10 +1672,15 @@ function init() {
   renderTemplateGrid();
   $$('.symbol').forEach(button => button.addEventListener('click', () => insertSnippet(button.dataset.kind)));
   $$('.segmented button').forEach(button => button.addEventListener('click', () => activateTab(button.dataset.tab)));
-  $('#codeEditor').addEventListener('input', () => { markDirty(); build(); });
+  $('#codeEditor').addEventListener('input', () => { markDirty(); build(); updateEditorCursor(); });
+  $('#codeEditor').addEventListener('keydown', handleEditorKeyDown);
+  ['click', 'keyup', 'select'].forEach(eventName =>
+    $('#codeEditor').addEventListener(eventName, updateEditorCursor));
   $('#codeEditor').addEventListener('scroll', event => { $('#lineNumbers').scrollTop = event.target.scrollTop; });
+  $('#formatCodeBtn').addEventListener('click', formatPseudocode);
+  $('#fixErrorsBtn').addEventListener('click', () => autoFixPseudocode());
   $('#projectName').addEventListener('input', markDirty);
-  $('#buildBtn').addEventListener('click', build);
+  $('#buildBtn').addEventListener('click', buildAndFix);
   $('#runBtn').addEventListener('click', startProgram);
   $('#runAgainBtn').addEventListener('click', submitInputOrRun);
   $('#consoleInput').addEventListener('keydown', event => {
@@ -1429,7 +1745,7 @@ function init() {
   $('#closeConsole').addEventListener('click', () => { $('#consolePanel').hidden = true; $('#showConsole').hidden = false; });
   $('#showConsole').addEventListener('click', () => { $('#consolePanel').hidden = false; $('#showConsole').hidden = true; });
   window.augorithm.onMenuAction(action => ({
-    new: newProject, open: openProject, save: () => saveProject(false), saveAs: () => saveProject(true), build, run: startProgram,
+    new: newProject, open: openProject, save: () => saveProject(false), saveAs: () => saveProject(true), build: buildAndFix, run: startProgram,
     clear: clearRuntime, help: () => $('#helpDialog').showModal()
   })[action]?.());
   window.augorithm.onOpenProjectFile(loadProject);
@@ -1450,6 +1766,7 @@ function init() {
   window.addEventListener('beforeunload', () => { if (state.dirty) saveRecoveryDraft(); });
   applyUILanguage(uiLanguage);
   build();
+  updateEditorCursor();
 }
 
 function setZoom(value) {
