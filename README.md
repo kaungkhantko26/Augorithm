@@ -8,22 +8,21 @@ Built by **Kaung Khant Ko**.
 
 Get the newest packages from [GitHub Releases](https://github.com/kaungkhantko26/Augorithm/releases/latest):
 
-- Windows 10/11 x64: `Augorithm-1.3.6-x64.exe`
-- Apple-silicon macOS: `Augorithm-1.3.6-arm64.zip`
+- Windows 10/11 x64: `Augorithm-1.3.7-windows-x64-portable.zip`
+- Apple-silicon macOS: `Augorithm-1.3.7-arm64.zip`
 
 ## Install on Windows
 
-1. Download `Augorithm-1.3.6-x64.exe` from Releases.
-2. Double-click the installer.
-3. If Microsoft Defender SmartScreen appears, review the unknown-publisher warning before deciding whether to continue.
-4. Select the installation folder and choose **Install**.
-5. Open Augorithm from the Desktop shortcut or Start menu.
+1. Download `Augorithm-1.3.7-windows-x64-portable.zip` from Releases.
+2. Right-click the ZIP and choose **Extract All**.
+3. Open the extracted folder and double-click `Augorithm.exe`.
+4. If Microsoft Defender SmartScreen appears, review the unknown-publisher warning before deciding whether to continue.
 
-The installer is not Authenticode-signed, so Windows may report an unknown publisher.
+The portable build is not Authenticode-signed, so Windows may report an unknown publisher.
 
 ## Install on macOS
 
-1. Download `Augorithm-1.3.6-arm64.zip` from Releases.
+1. Download `Augorithm-1.3.7-arm64.zip` from Releases.
 2. Double-click the ZIP file.
 3. Drag **Augorithm.app** into **Applications**.
 4. Control-click Augorithm in Applications and choose **Open**.
@@ -49,6 +48,7 @@ Use **File → Save As…** for a new project and **File → Save** afterward. A
 ## Features
 
 - Flexible pseudocode parser with common classroom formats
+- Natural classroom statements including `Set row to 1`, `Add 2 to col`, `Display value`, `Display newline`, and compact `Endwhile`
 - Quote-aware inline statements: forms such as `Output "Fail" End If` are separated safely without changing quoted text
 - IDE-style pseudocode editor with an active-line gutter, cursor position, and problem markers
 - Persistent light/dark theme toggle with high-contrast editor and flowchart colors

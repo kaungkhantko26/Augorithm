@@ -443,9 +443,27 @@ function scheduleRecoveryDraft() {
 }
 
 function assignmentFrom(text) {
-  let body = text.trim().replace(/^(?:set|let)\s+/i, '');
-  const match = body.match(/^([A-Za-z_]\w*)\s*(←|<-|:=|=(?!=))\s*(.+)$/);
-  return match ? { name: match[1], expression: match[3] } : null;
+  const source = text.trim();
+  const body = source.replace(/^(?:set|let)\s+/i, '');
+  let match = body.match(/^([A-Za-z_]\w*)\s*(←|<-|:=|=(?!=))\s*(.+)$/);
+  if (match) return { name: match[1], expression: match[3] };
+
+  match = body.match(/^([A-Za-z_]\w*)\s+(?:to|be)\s+(.+)$/i);
+  if (match) return { name: match[1], expression: match[2] };
+
+  match = source.match(/^add\s+(.+?)\s+to\s+([A-Za-z_]\w*)$/i);
+  if (match) return { name: match[2], expression: `${match[2]} + (${match[1]})` };
+  match = source.match(/^subtract\s+(.+?)\s+from\s+([A-Za-z_]\w*)$/i);
+  if (match) return { name: match[2], expression: `${match[2]} - (${match[1]})` };
+  match = source.match(/^multiply\s+([A-Za-z_]\w*)\s+by\s+(.+)$/i);
+  if (match) return { name: match[1], expression: `${match[1]} * (${match[2]})` };
+  match = source.match(/^divide\s+([A-Za-z_]\w*)\s+by\s+(.+)$/i);
+  if (match) return { name: match[1], expression: `${match[1]} / (${match[2]})` };
+  match = source.match(/^increment\s+([A-Za-z_]\w*)$/i);
+  if (match) return { name: match[1], expression: `${match[1]} + 1` };
+  match = source.match(/^decrement\s+([A-Za-z_]\w*)$/i);
+  if (match) return { name: match[1], expression: `${match[1]} - 1` };
+  return null;
 }
 
 function normalizeExpression(expression) {
@@ -472,6 +490,15 @@ function normalizeStatement(raw) {
   if (/^elif\b/i.test(text)) text = text.replace(/^elif\b/i, 'ELSE IF');
   if (/^else\s*:\s*$/i.test(text)) return 'ELSE';
 
+  const naturalAssignment = assignmentFrom(text);
+  if (naturalAssignment && /^(?:set|let|add|subtract|multiply|divide|increment|decrement)\b/i.test(text)) {
+    return `SET ${naturalAssignment.name} = ${naturalAssignment.expression}`;
+  }
+
+  if (/^(?:print|display|write)\s+(?:(?:a|the)\s+)?(?:new\s*line|newline|blank\s+line)\s*$/i.test(text)) {
+    return 'OUTPUT ""';
+  }
+  if (/^(?:print|display|write)\s*$/i.test(text)) return 'OUTPUT ""';
   let match = text.match(/^(?:print|display|write)\s*\((.*)\)\s*$/i);
   if (match) return `OUTPUT ${match[1]}`;
   match = text.match(/^(?:print|display|write)\s+(.+)$/i);
@@ -566,6 +593,22 @@ function canonicalStatement(raw) {
   const original = raw.trim().replace(/;\s*$/, '');
   if (!original) return '';
   if (/^(\/\/|#)/.test(original)) return `// ${original.replace(/^(\/\/|#)\s*/, '')}`;
+  let natural = original.match(/^(?:set|let)\s+([A-Za-z_]\w*)\s+(?:to|be)\s+(.+)$/i);
+  if (natural) return `Set ${natural[1]} to ${natural[2].trim()}`;
+  natural = original.match(/^add\s+(.+?)\s+to\s+([A-Za-z_]\w*)$/i);
+  if (natural) return `Add ${natural[1].trim()} to ${natural[2]}`;
+  natural = original.match(/^subtract\s+(.+?)\s+from\s+([A-Za-z_]\w*)$/i);
+  if (natural) return `Subtract ${natural[1].trim()} from ${natural[2]}`;
+  natural = original.match(/^multiply\s+([A-Za-z_]\w*)\s+by\s+(.+)$/i);
+  if (natural) return `Multiply ${natural[1]} by ${natural[2].trim()}`;
+  natural = original.match(/^divide\s+([A-Za-z_]\w*)\s+by\s+(.+)$/i);
+  if (natural) return `Divide ${natural[1]} by ${natural[2].trim()}`;
+  natural = original.match(/^(increment|decrement)\s+([A-Za-z_]\w*)$/i);
+  if (natural) return `${natural[1][0].toUpperCase()}${natural[1].slice(1).toLowerCase()} ${natural[2]}`;
+  natural = original.match(/^(?:print|display|write)\s+(?:(?:a|the)\s+)?(?:new\s*line|newline|blank\s+line)\s*$/i);
+  if (natural) return 'Display newline';
+  natural = original.match(/^display\s+(.+)$/i);
+  if (natural) return `Display ${natural[1].trim()}`;
   const text = normalizeStatement(original);
   const lower = text.toLowerCase();
   const assignment = assignmentFrom(text);

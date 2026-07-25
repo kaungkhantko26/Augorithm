@@ -1,4 +1,4 @@
-const CACHE_NAME = 'augorithm-1.3.6';
+const CACHE_NAME = 'augorithm-1.3.7';
 const APP_FILES = [
   './',
   './index.html',
