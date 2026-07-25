@@ -49,7 +49,8 @@ const translations = {
     endFor: 'End For', pseudoFile: 'PSEUDOCODE', formatCode: 'Format',
     fixErrors: 'Fix errors', editorReady: 'IDE editing enabled',
     formatted: 'Pseudocode formatted', fixedCount: 'Fixed {count} syntax issue(s)',
-    noSafeFix: 'No safe automatic fixes found', tabHint: 'Tab indents · Shift+Tab outdents'
+    noSafeFix: 'No safe automatic fixes found', tabHint: 'Tab indents · Shift+Tab outdents',
+    darkMode: 'Switch to dark mode', lightMode: 'Switch to light mode'
   },
   my: {
     build: 'တည်ဆောက်', run: 'လုပ်ဆောင်', symbols: 'သင်္ကေတများ', inputOutput: 'အဝင် / အထွက်',
@@ -96,11 +97,13 @@ const translations = {
     fixErrors: 'အမှားပြင်မည်', editorReady: 'IDE စာတည်းဖြတ်စနစ် အသင့်ဖြစ်ပါပြီ',
     formatted: 'အကြမ်းကုဒ်ကို ပုံစံချပြီးပါပြီ', fixedCount: 'ကုဒ်အမှား {count} ခု ပြင်ပြီးပါပြီ',
     noSafeFix: 'ဘေးကင်းစွာ အလိုအလျောက်ပြင်နိုင်သော အမှားမတွေ့ပါ',
-    tabHint: 'Tab ဖြင့်အတွင်းရွှေ့ · Shift+Tab ဖြင့်အပြင်ရွှေ့'
+    tabHint: 'Tab ဖြင့်အတွင်းရွှေ့ · Shift+Tab ဖြင့်အပြင်ရွှေ့',
+    darkMode: 'အမှောင်ပုံစံသို့ ပြောင်းမည်', lightMode: 'အလင်းပုံစံသို့ ပြောင်းမည်'
   }
 };
 
 let uiLanguage = localStorage.getItem('augorithm.uiLanguage') === 'my' ? 'my' : 'en';
+let uiTheme = localStorage.getItem('augorithm.theme') === 'dark' ? 'dark' : 'light';
 const t = key => translations[uiLanguage][key] || translations.en[key] || key;
 const tf = (key, values = {}) => Object.entries(values)
   .reduce((text, [name, value]) => text.replaceAll(`{${name}}`, value), t(key));
@@ -155,8 +158,32 @@ function applyUILanguage(language) {
   $('#uiLanguage').value = uiLanguage;
   $$('[data-i18n]').forEach(element => { element.textContent = t(element.dataset.i18n); });
   $('#consoleInput').placeholder = t('runToEnter');
+  updateThemeButton();
   renderTemplateGrid();
   if (state.items.length) build();
+}
+
+function updateThemeButton() {
+  const button = $('#themeToggle');
+  if (!button) return;
+  const isDark = uiTheme === 'dark';
+  button.textContent = isDark ? '☀' : '☾';
+  button.title = t(isDark ? 'lightMode' : 'darkMode');
+  button.setAttribute('aria-label', button.title);
+}
+
+function applyTheme(theme) {
+  uiTheme = theme === 'dark' ? 'dark' : 'light';
+  localStorage.setItem('augorithm.theme', uiTheme);
+  document.body.dataset.theme = uiTheme;
+  updateThemeButton();
+  state.flowLayoutKey = null;
+  if (state.items.length) renderFlowchart();
+  requestAnimationFrame(drawDecisionConnectors);
+}
+
+function toggleTheme() {
+  applyTheme(uiTheme === 'dark' ? 'light' : 'dark');
 }
 
 const templates = [
@@ -279,11 +306,20 @@ const state = {
   flowLayoutKey: null,
   guidedInputs: [],
   awaitingInput: null,
-  recoveryTimer: null
+  recoveryTimer: null,
+  flowObserver: null
 };
 
 const recoveryKey = 'augorithm.recovery.v1';
 const fileName = filePath => String(filePath || '').split(/[\\/]/).at(-1);
+
+function updateEditorFileName() {
+  const target = $('#editorFileName');
+  if (!target) return;
+  const name = ($('#projectName').value || 'Untitled')
+    .trim().replace(/[^\p{L}\p{N}_-]+/gu, '-').replace(/^-+|-+$/g, '') || 'Untitled';
+  target.textContent = `${name}.augo`;
+}
 
 function currentProject() {
   return {
@@ -767,6 +803,7 @@ function build() {
   const result = parse($('#codeEditor').value);
   state.items = result.items;
   state.diagnostics = result.diagnostics;
+  updateEditorFileName();
   renderFlowchart();
   renderDiagnostics();
   renderLineNumbers();
@@ -1668,6 +1705,7 @@ function escapeHTML(value) {
 
 function init() {
   document.body.dataset.platform = window.augorithm.platform || 'browser';
+  applyTheme(uiTheme);
   $('#codeEditor').value = templates[0].code;
   renderTemplateGrid();
   $$('.symbol').forEach(button => button.addEventListener('click', () => insertSnippet(button.dataset.kind)));
@@ -1679,7 +1717,8 @@ function init() {
   $('#codeEditor').addEventListener('scroll', event => { $('#lineNumbers').scrollTop = event.target.scrollTop; });
   $('#formatCodeBtn').addEventListener('click', formatPseudocode);
   $('#fixErrorsBtn').addEventListener('click', () => autoFixPseudocode());
-  $('#projectName').addEventListener('input', markDirty);
+  $('#themeToggle').addEventListener('click', toggleTheme);
+  $('#projectName').addEventListener('input', () => { markDirty(); updateEditorFileName(); });
   $('#buildBtn').addEventListener('click', buildAndFix);
   $('#runBtn').addEventListener('click', startProgram);
   $('#runAgainBtn').addEventListener('click', submitInputOrRun);
@@ -1735,6 +1774,7 @@ function init() {
   });
   window.addEventListener('keydown', event => {
     if (!(event.metaKey || event.ctrlKey)) return;
+    if (event.shiftKey && event.key.toLowerCase() === 'd') { event.preventDefault(); toggleTheme(); }
     if (event.key === '=' || event.key === '+') { event.preventDefault(); setZoom(state.zoom + .1); }
     if (event.key === '-') { event.preventDefault(); setZoom(state.zoom - .1); }
     if (event.key === '0') { event.preventDefault(); fitFlowchart(); }
@@ -1742,6 +1782,14 @@ function init() {
   window.addEventListener('resize', () => {
     if ($('#flowPane').classList.contains('active')) requestAnimationFrame(drawDecisionConnectors);
   });
+  if ('ResizeObserver' in window) {
+    state.flowObserver = new ResizeObserver(() => {
+      if ($('#flowPane').classList.contains('active')) requestAnimationFrame(drawDecisionConnectors);
+    });
+    state.flowObserver.observe($('#flowchart'));
+    state.flowObserver.observe($('#flowPane'));
+  }
+  document.fonts?.ready.then(() => requestAnimationFrame(drawDecisionConnectors));
   $('#closeConsole').addEventListener('click', () => { $('#consolePanel').hidden = true; $('#showConsole').hidden = false; });
   $('#showConsole').addEventListener('click', () => { $('#consolePanel').hidden = false; $('#showConsole').hidden = true; });
   window.augorithm.onMenuAction(action => ({
