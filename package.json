@@ -51,6 +51,7 @@
     "mac": {
       "category": "public.app-category.education",
       "icon": "app/assets/icon.png",
+      "identity": "-",
       "target": [
         {
           "target": "dmg",

@@ -27,7 +27,7 @@ The portable build is not Authenticode-signed, so Windows may report an unknown 
 3. Control-click Augorithm in Applications and choose **Open**.
 4. Confirm **Open** if macOS displays an unidentified-developer warning.
 
-The macOS build is ad-hoc signed but not Apple-notarized.
+The macOS download is not Apple-notarized. If macOS blocks the first launch, use the Control-click **Open** step above.
 
 ## Use on iPad
 
