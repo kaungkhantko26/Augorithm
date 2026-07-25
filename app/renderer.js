@@ -29,7 +29,7 @@ const translations = {
     startTemplate: 'Start with a template', templateHint: 'Learn programming logic one flowchart at a time.',
     quickGuide: 'Augorithm Quick Guide',
     quickGuideHint: 'Write beginner-friendly pseudocode and turn it into an executable flowchart.',
-    useTemplate: 'Use template →', true: 'True', false: 'False', noAction: 'No action',
+    useTemplate: 'Use template →', true: 'True', false: 'False', next: 'Next', done: 'Done', noAction: 'No action',
     readyRun: 'Ready to run', ready: 'Ready', symbolsCount: 'symbols', issue: 'issue',
     issues: 'issues', start: 'Start', end: 'End', main: 'Main', elseIf: 'Else If',
     else: 'Else', programEntry: 'Program entry', programExit: 'Program exit'
@@ -65,7 +65,8 @@ const translations = {
     templateHint: 'လုပ်ငန်းစဉ်ပုံကြမ်းများဖြင့် ပရိုဂရမ်ရေးနည်းကို လေ့လာပါ။',
     quickGuide: 'Augorithm အသုံးပြုနည်း',
     quickGuideHint: 'အကြမ်းကုဒ်ရေးပြီး လုပ်ဆောင်နိုင်သော ပုံကြမ်းအဖြစ် ပြောင်းပါ။',
-    useTemplate: 'နမူနာသုံးမည် →', true: 'မှန်', false: 'မှား', noAction: 'လုပ်ဆောင်ချက်မရှိ',
+    useTemplate: 'နမူနာသုံးမည် →', true: 'မှန်', false: 'မှား',
+    next: 'နောက်တစ်ကြိမ်', done: 'ပြီးပါပြီ', noAction: 'လုပ်ဆောင်ချက်မရှိ',
     readyRun: 'လုပ်ဆောင်ရန် အသင့်', ready: 'အသင့်', symbolsCount: 'သင်္ကေတ',
     issue: 'ပြဿနာ', issues: 'ပြဿနာများ', start: 'စတင်', end: 'ပြီးဆုံး',
     main: 'အဓိကပရိုဂရမ်', elseIf: 'မဟုတ်ပါက အကယ်၍', else: 'မဟုတ်ပါက',
@@ -234,15 +235,15 @@ End Program`
 ];
 
 const kindInfo = {
-  start: { title: 'Start', icon: '▶', color: '#071f40' },
-  end: { title: 'End', icon: '■', color: '#071f40' },
-  declare: { title: 'Declare', icon: '▣', color: '#5b4cc4' },
-  input: { title: 'Input', icon: '⌨', color: '#07847b' },
-  output: { title: 'Output', icon: '▰', color: '#146bd1' },
-  assign: { title: 'Assign', icon: '=', color: '#d58a00' },
+  start: { title: 'Start', icon: '▶', color: '#63547f' },
+  end: { title: 'End', icon: '■', color: '#63547f' },
+  declare: { title: 'Declare', icon: '▣', color: '#9b8e3f' },
+  input: { title: 'Input', icon: '⌨', color: '#4d8fb6' },
+  output: { title: 'Output', icon: '▰', color: '#5e9b69' },
+  assign: { title: 'Assign', icon: '=', color: '#b08a2d' },
   if: { title: 'If', icon: '◇', color: '#e16c17' },
   while: { title: 'While', icon: '↻', color: '#8239ac' },
-  for: { title: 'For', icon: '⟳', color: '#8239ac' },
+  for: { title: 'For', icon: '⟳', color: '#b17c2c' },
   comment: { title: 'Comment', icon: '≡', color: '#667085' }
 };
 
@@ -521,8 +522,8 @@ function drawDecisionConnectors() {
   svg.setAttribute('height', height);
   svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
   svg.innerHTML = `<defs>
-    <marker id="flow-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto" markerUnits="strokeWidth">
-      <path d="M0,0 L8,4 L0,8 Z" fill="#30455f" stroke="none"></path>
+    <marker id="flow-arrow" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L9,4.5 L0,9 Z" fill="#30455f" stroke="none"></path>
     </marker>
   </defs>`;
 
@@ -542,6 +543,7 @@ function drawDecisionConnectors() {
   const directContent = branch => [...branch.children].find(element =>
     element.classList.contains('flow-item') ||
     element.classList.contains('decision-group') ||
+    element.classList.contains('loop-group') ||
     element.classList.contains('empty-path')
   );
   const entryNode = branch => {
@@ -549,18 +551,23 @@ function drawDecisionConnectors() {
     if (!content) return branch;
     if (content.classList.contains('flow-item')) return content.querySelector('.node') || content;
     if (content.classList.contains('decision-group')) return content.querySelector(':scope > .node') || content;
+    if (content.classList.contains('loop-group')) return content.querySelector(':scope > .node') || content;
     return content;
   };
   const exitNode = branch => {
     const content = [...branch.children].reverse().find(element =>
       element.classList.contains('flow-item') ||
       element.classList.contains('decision-group') ||
+      element.classList.contains('loop-group') ||
       element.classList.contains('empty-path')
     );
     if (!content) return branch;
     if (content.classList.contains('flow-item')) return content.querySelector('.node') || content;
     if (content.classList.contains('decision-group')) {
       return content.querySelector(':scope > .decision-merge') || content;
+    }
+    if (content.classList.contains('loop-group')) {
+      return content.querySelector(':scope > .loop-exit') || content;
     }
     return content;
   };
@@ -584,6 +591,25 @@ function drawDecisionConnectors() {
     path(`M ${exits[1].x} ${exits[1].y} V ${mergeTop.y} H ${start.x}`);
     path(`M ${start.x} ${mergeTop.y} V ${point(merge, 'bottom').y}`);
   });
+
+  [...host.querySelectorAll('.loop-group')].forEach(group => {
+    const control = group.querySelector(':scope > .node');
+    const body = group.querySelector(':scope > .loop-layout > .loop-body');
+    const exit = group.querySelector(':scope > .loop-exit');
+    if (!control || !body || !exit) return;
+
+    const start = point(control, 'bottom');
+    const entry = point(entryNode(body), 'top');
+    const bodyExit = point(exitNode(body), 'bottom');
+    const exitTop = point(exit, 'top');
+    const splitY = start.y + 20;
+    const returnY = bodyExit.y + 22;
+    const returnX = start.x + 25;
+
+    path(`M ${start.x} ${start.y} V ${splitY} H ${entry.x} V ${entry.y}`, true);
+    path(`M ${start.x} ${splitY} V ${exitTop.y}`, true);
+    path(`M ${bodyExit.x} ${bodyExit.y} V ${returnY} H ${returnX} V ${start.y}`, true);
+  });
   host.prepend(svg);
 }
 
@@ -605,6 +631,8 @@ function buildVisualProgram() {
       if (shouldStop(lower)) break;
       if (lower.startsWith('if ')) {
         nodes.push(decision());
+      } else if (lower.startsWith('for ')) {
+        nodes.push(loop());
       } else {
         const item = byLine.get(cursor + 1);
         if (item) nodes.push({ type: 'node', item });
@@ -642,6 +670,17 @@ function buildVisualProgram() {
     return { type: 'decision', branches, elseBody, endItem };
   }
 
+  function loop() {
+    const item = byLine.get(cursor + 1);
+    cursor++;
+    const body = sequence(lower => lower.startsWith('end for'));
+    nextMeaningful();
+    const endItem = cursor < lines.length && lines[cursor].trim().toLowerCase().startsWith('end for')
+      ? byLine.get(cursor + 1) : null;
+    if (endItem) cursor++;
+    return { type: 'loop', item, body, endItem };
+  }
+
   const program = sequence();
   const virtualEnd = state.items.find(item => item.virtual && item.kind === 'end');
   if (virtualEnd) program.push({ type: 'node', item: virtualEnd });
@@ -670,6 +709,8 @@ function appendVisualSequence(container, nodes, connectorBeforeFirst = false) {
     }
     if (entry.type === 'decision') {
       container.appendChild(renderDecisionLevel(entry, 0));
+    } else if (entry.type === 'loop') {
+      container.appendChild(renderLoop(entry));
     } else {
       const wrap = document.createElement('div');
       wrap.className = 'flow-item';
@@ -677,6 +718,33 @@ function appendVisualSequence(container, nodes, connectorBeforeFirst = false) {
       container.appendChild(wrap);
     }
   });
+}
+
+function renderLoop(loop) {
+  const group = document.createElement('div');
+  group.className = 'loop-group';
+
+  const control = createFlowNode(loop.item);
+  control.classList.add('loop-control');
+  group.appendChild(control);
+
+  const layout = document.createElement('div');
+  layout.className = 'loop-layout';
+  layout.innerHTML = `<span class="loop-path-label done">${escapeHTML(t('done'))}</span>`;
+
+  const body = document.createElement('div');
+  body.className = 'loop-body';
+  body.innerHTML = `<span class="loop-path-label next">${escapeHTML(t('next'))}</span>`;
+  if (loop.body.length) appendVisualSequence(body, loop.body, false);
+  else body.insertAdjacentHTML('beforeend', `<div class="empty-path">${escapeHTML(t('noAction'))}</div>`);
+  layout.appendChild(body);
+  group.appendChild(layout);
+
+  const exit = document.createElement('div');
+  exit.className = 'loop-exit';
+  if (loop.endItem) exit.innerHTML = `<small>L${loop.endItem.line}</small>`;
+  group.appendChild(exit);
+  return group;
 }
 
 function renderDecisionLevel(decision, branchIndex) {
@@ -1257,8 +1325,8 @@ function makeFlowchartSVG() {
     svg: `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
       <rect width="100%" height="100%" fill="#fbfaf5"></rect>
       <defs>
-        <marker id="export-flow-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto" markerUnits="strokeWidth">
-          <path d="M0,0 L8,4 L0,8 Z" fill="#30455f"></path>
+        <marker id="export-flow-arrow" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto" markerUnits="userSpaceOnUse">
+          <path d="M0,0 L9,4.5 L0,9 Z" fill="#30455f"></path>
         </marker>
       </defs>
       <g fill="none" stroke="#30455f" stroke-width="3.25" stroke-linecap="round" stroke-linejoin="round">${connectorPaths}</g>

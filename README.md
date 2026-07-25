@@ -8,12 +8,12 @@ Built by **Kaung Khant Ko**.
 
 Get the newest packages from [GitHub Releases](https://github.com/kaungkhantko26/Augorithm/releases/latest):
 
-- Windows 10/11 x64: `Augorithm-1.3.1-x64.exe`
-- Apple-silicon macOS: `Augorithm-1.3.1-arm64.zip`
+- Windows 10/11 x64: `Augorithm-1.3.2-x64.exe`
+- Apple-silicon macOS: `Augorithm-1.3.2-arm64.zip`
 
 ## Install on Windows
 
-1. Download `Augorithm-1.3.1-x64.exe` from Releases.
+1. Download `Augorithm-1.3.2-x64.exe` from Releases.
 2. Double-click the installer.
 3. If Microsoft Defender SmartScreen appears, review the unknown-publisher warning before deciding whether to continue.
 4. Select the installation folder and choose **Install**.
@@ -23,7 +23,7 @@ The installer is not Authenticode-signed, so Windows may report an unknown publi
 
 ## Install on macOS
 
-1. Download `Augorithm-1.3.1-arm64.zip` from Releases.
+1. Download `Augorithm-1.3.2-arm64.zip` from Releases.
 2. Double-click the ZIP file.
 3. Drag **Augorithm.app** into **Applications**.
 4. Control-click Augorithm in Applications and choose **Open**.
@@ -40,7 +40,9 @@ Use **File → Save As…** for a new project and **File → Save** afterward. A
 ## Features
 
 - Flexible pseudocode parser with common classroom formats
+- Flowgorithm-style `For` loops with a hexagonal control node, right-side `Next` path, downward `Done` path, and body return connector
 - Connected True/False flowchart branches and bold export-safe lines
+- Flowgorithm-style declaration, assignment, input, output, start, and end symbol colors and shapes
 - Flowchart zoom, fit, and pan
 - PNG and editable SVG export
 - Guided console input and executable expressions

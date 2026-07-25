@@ -156,7 +156,7 @@ body[data-platform="linux"] .topbar {
   vector-effect: non-scaling-stroke;
 }
 .connector-layer marker path { fill: #30455f; stroke: none; }
-.flowchart > :not(.connector-layer), .decision-group > *, .decision-branch > * { z-index: 1; }
+.flowchart > :not(.connector-layer), .decision-group > *, .decision-branch > *, .loop-group > *, .loop-body > * { z-index: 1; }
 .flow-item { position: relative; display: flex; flex-direction: column; align-items: center; }
 .connector { width: 3px; height: 29px; background: #30455f; position: relative; }
 .connector::after {
@@ -226,6 +226,44 @@ body[data-platform="linux"] .topbar {
   border-radius: 50%; background: var(--gold);
   box-shadow: 0 0 0 3px #fbfaf5;
 }
+.loop-group {
+  width: 760px; min-height: 250px; position: relative;
+  display: flex; flex-direction: column; align-items: center;
+}
+.node.for.loop-control {
+  width: 285px; min-height: 74px; padding: 10px 45px;
+  border-radius: 0;
+  clip-path: polygon(13% 0, 87% 0, 100% 50%, 87% 100%, 13% 100%, 0 50%);
+}
+.loop-layout {
+  width: 100%; min-height: 132px; padding-top: 40px; position: relative;
+  display: flex; justify-content: flex-end; align-items: flex-start;
+}
+.loop-body {
+  width: 310px; min-height: 90px; position: relative;
+  margin-right: 5px;
+  display: flex; flex-direction: column; align-items: center;
+}
+.loop-path-label {
+  position: absolute; z-index: 2; padding: 3px 8px;
+  border-radius: 999px; background: #fbfaf5;
+  font-size: 10px; font-weight: 850; letter-spacing: .25px;
+}
+.loop-path-label.next {
+  top: -25px; left: calc(50% - 24px);
+  color: #7f2fb2; border: 1px solid #e5c7f5;
+}
+.loop-path-label.done {
+  top: 17px; left: calc(50% - 45px);
+  color: #475467; border: 1px solid #cbd5e1;
+}
+.loop-exit {
+  width: 100%; height: 36px; position: relative; flex: 0 0 36px;
+}
+.loop-exit small {
+  position: absolute; top: 9px; left: calc(50% + 12px);
+  color: #8c96a3; font: 8px ui-monospace;
+}
 .decision-merge small {
   position: absolute; z-index: 2; top: 8px; left: calc(50% + 12px);
   color: #8c96a3; font: 8px ui-monospace;
@@ -240,6 +278,11 @@ body[data-platform="linux"] .topbar {
 .node:hover { transform: translateY(-1px); box-shadow: 0 7px 18px #15284620; }
 .node.selected { outline: 3px solid #1597f541; border-color: var(--bright); box-shadow: 0 6px 22px #1377d62b; }
 .node.start, .node.end { border-radius: 999px; width: 250px; justify-content: center; }
+.node.declare, .node.assign { border-radius: 0; }
+.node.declare::before {
+  content: ""; position: absolute; top: -1.5px; bottom: -1.5px; left: 8px; width: 6px;
+  border-left: 1.5px solid var(--node-color); border-right: 1.5px solid var(--node-color);
+}
 .node.if {
   width: 335px; min-height: 82px; border-radius: 4px;
   clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
