@@ -1,0 +1,84 @@
+{
+  "name": "augorithm",
+  "version": "1.3.1",
+  "description": "A visual pseudocode and flowchart learning environment for macOS and Windows",
+  "main": "electron/main.js",
+  "author": "Kaung Khant Ko",
+  "license": "MIT",
+  "homepage": "https://github.com/kaungkhantko26/Augorithm",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kaungkhantko26/Augorithm.git"
+  },
+  "scripts": {
+    "start": "electron .",
+    "pack": "electron-builder --dir --mac",
+    "dmg": "electron-builder --mac dmg",
+    "windows": "electron-builder --win nsis --x64"
+  },
+  "devDependencies": {
+    "electron": "^38.0.0",
+    "electron-builder": "^26.0.12"
+  },
+  "build": {
+    "appId": "mm.edu.augorithm.app",
+    "productName": "Augorithm",
+    "artifactName": "Augorithm-${version}-${arch}.${ext}",
+    "files": [
+      "electron/**/*",
+      "app/**/*",
+      "package.json"
+    ],
+    "fileAssociations": [
+      {
+        "ext": "augo",
+        "name": "Augorithm Project",
+        "description": "Augorithm flowchart project",
+        "role": "Editor",
+        "mimeType": "application/x-augorithm-project"
+      }
+    ],
+    "directories": {
+      "output": "dist"
+    },
+    "mac": {
+      "category": "public.app-category.education",
+      "icon": "app/assets/icon.png",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": ["arm64"]
+        }
+      ],
+      "darkModeSupport": true,
+      "hardenedRuntime": false,
+      "gatekeeperAssess": false
+    },
+    "win": {
+      "icon": "app/assets/icon.png",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Augorithm"
+    },
+    "dmg": {
+      "title": "Install Augorithm",
+      "backgroundColor": "#071f40",
+      "iconSize": 112,
+      "contents": [
+        { "x": 160, "y": 190, "type": "file" },
+        { "x": 440, "y": 190, "type": "link", "path": "/Applications" }
+      ],
+      "window": { "width": 600, "height": 390 }
+    }
+  }
+}

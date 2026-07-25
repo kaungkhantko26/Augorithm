@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Augorithm</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark">A</div>
+      <div><strong>AUGORITHM</strong><span>Think it. Chart it. Run it.</span></div>
+    </div>
+    <div class="project-title">
+      <input id="projectName" value="Hello, World!" aria-label="Project name">
+      <span id="saveState">Not saved</span>
+    </div>
+    <div class="top-actions">
+      <button class="icon-button" id="openBtn" title="Open">⌑</button>
+      <button class="icon-button" id="saveBtn" title="Save">⇩</button>
+      <select id="uiLanguage" class="ui-language" aria-label="Interface language">
+        <option value="en">English</option>
+        <option value="my">မြန်မာ</option>
+      </select>
+      <button id="buildBtn" class="secondary-button"><span>↻</span> <span data-i18n="build">Build</span></button>
+      <button id="runBtn" class="run-button"><span>▶</span> <span data-i18n="run">Run</span></button>
+      <button class="icon-button" id="helpBtn" title="Quick guide">?</button>
+    </div>
+  </header>
+
+  <main class="app-shell">
+    <aside class="palette">
+      <div class="panel-heading"><span data-i18n="symbols">SYMBOLS</span><button id="templatesBtn" title="Examples">▦</button></div>
+      <div class="palette-scroll">
+        <section><h3 data-i18n="inputOutput">INPUT / OUTPUT</h3>
+          <button class="symbol" data-kind="input"><i class="teal">⌨</i><span data-i18n="input">Input</span><b>＋</b></button>
+          <button class="symbol" data-kind="output"><i class="blue">▰</i><span data-i18n="output">Output</span><b>＋</b></button>
+        </section>
+        <section><h3 data-i18n="variables">VARIABLES</h3>
+          <button class="symbol" data-kind="declare"><i class="indigo">▣</i><span data-i18n="declare">Declare</span><b>＋</b></button>
+          <button class="symbol" data-kind="assign"><i class="gold">=</i><span data-i18n="assign">Assign</span><b>＋</b></button>
+        </section>
+        <section><h3 data-i18n="control">CONTROL</h3>
+          <button class="symbol" data-kind="if"><i class="orange">◇</i><span data-i18n="if">If</span><b>＋</b></button>
+        </section>
+        <section><h3 data-i18n="looping">LOOPING</h3>
+          <button class="symbol" data-kind="while"><i class="purple">↻</i><span data-i18n="while">While</span><b>＋</b></button>
+          <button class="symbol" data-kind="for"><i class="purple">⟳</i><span data-i18n="for">For</span><b>＋</b></button>
+        </section>
+        <section><h3 data-i18n="miscellaneous">MISCELLANEOUS</h3>
+          <button class="symbol" data-kind="comment"><i class="gray">≡</i><span data-i18n="comment">Comment</span><b>＋</b></button>
+        </section>
+      </div>
+      <button class="examples-button" id="examplesBtn">✦ <span data-i18n="browseExamples">Browse examples</span></button>
+    </aside>
+
+    <section class="workspace">
+      <div class="workspace-tabs">
+        <div class="segmented" role="tablist">
+          <button class="active" data-tab="flow">⌘ <span data-i18n="flowchart">Flowchart</span></button>
+          <button data-tab="pseudo">☷ <span data-i18n="pseudocode">Pseudocode</span></button>
+          <button data-tab="source">&lt;/&gt; <span data-i18n="source">Source</span></button>
+        </div>
+        <div class="zoom-controls" id="zoomControls">
+          <button id="exportSVG" title="Export scalable flowchart">SVG</button>
+          <button id="exportPNG" title="Export flowchart image">PNG</button>
+          <i></i>
+          <button id="zoomOut" title="Zoom out">−</button><span id="zoomLabel">100%</span><button id="zoomIn" title="Zoom in">＋</button><button id="zoomReset" data-i18n="fit">Fit</button>
+        </div>
+      </div>
+      <div class="tab-content">
+        <div class="tab-pane active" id="flowPane">
+          <div class="canvas-grid">
+            <div id="flowchart" class="flowchart"></div>
+          </div>
+        </div>
+        <div class="tab-pane editor-pane" id="pseudoPane">
+          <div id="lineNumbers" class="line-numbers"></div>
+          <textarea id="codeEditor" spellcheck="false" aria-label="Pseudocode editor"></textarea>
+        </div>
+        <div class="tab-pane source-pane" id="sourcePane">
+          <div class="source-toolbar">
+            <span data-i18n="generatedSource">GENERATED SOURCE</span>
+            <div><select id="languageSelect">
+              <option value="pseudocode">Pseudocode</option>
+              <option value="python">Python</option>
+              <option value="swift">Swift</option>
+              <option value="javascript">JavaScript</option>
+            </select><button id="exportBtn">⇧ <span data-i18n="export">Export</span></button></div>
+          </div>
+          <pre id="sourceCode"></pre>
+        </div>
+      </div>
+      <section class="console" id="consolePanel">
+        <div class="console-title">
+          <span>▰ <span data-i18n="console">CONSOLE</span></span><span id="runtimeStatus"></span>
+          <div><button id="clearBtn" data-i18n="clear">Clear</button><button id="closeConsole">×</button></div>
+        </div>
+        <div class="console-body">
+          <div id="consoleOutput" class="console-output"><em data-i18n="pressRun">Press Run to execute your algorithm.</em></div>
+          <div class="console-input">
+            <label id="consoleInputLabel" data-i18n="consoleInput">CONSOLE INPUT</label>
+            <input id="consoleInput" placeholder="Run to enter each value automatically">
+            <small data-i18n="inputHint">Augorithm prompts for every INPUT statement.</small>
+            <button id="runAgainBtn">▶ <span data-i18n="runAgain">Run again</span></button>
+          </div>
+        </div>
+      </section>
+    </section>
+
+    <aside class="inspector">
+      <div class="panel-heading"><span data-i18n="inspector">INSPECTOR</span></div>
+      <div id="inspectorContent" class="inspector-content">
+        <div class="empty-inspector"><div>⌖</div><strong data-i18n="selectSymbol">Select a symbol</strong><span data-i18n="selectSymbolHint">Click a flowchart symbol to inspect it.</span></div>
+      </div>
+      <div class="validation">
+        <h3 data-i18n="validation">VALIDATION</h3>
+        <div id="diagnostics"></div>
+      </div>
+      <div class="variables-card" id="variablesCard" hidden>
+        <h3 data-i18n="variables">VARIABLES</h3><div id="variables"></div>
+      </div>
+    </aside>
+  </main>
+
+  <footer>
+    <span id="fileStatus">◇ Not saved</span>
+    <span class="creator-credit">Built by Kaung Khant Ko</span>
+    <div><button id="showConsole" hidden>▰ Console</button><span id="symbolCount">0 symbols</span><span id="issueCount" class="ready">● Ready</span></div>
+  </footer>
+
+  <dialog id="templateDialog">
+    <div class="dialog-title"><div><h2 data-i18n="startTemplate">Start with a template</h2><p data-i18n="templateHint">Learn programming logic one flowchart at a time.</p></div><button class="dialog-close">×</button></div>
+    <div id="templateGrid" class="template-grid"></div>
+  </dialog>
+
+  <dialog id="helpDialog">
+    <div class="dialog-title"><div><h2 data-i18n="quickGuide">Augorithm Quick Guide</h2><p data-i18n="quickGuideHint">Write beginner-friendly pseudocode and turn it into an executable flowchart.</p></div><button class="dialog-close">×</button></div>
+    <div class="guide">
+      <article><b>1</b><div><strong data-i18n="guideWrite">Write or add symbols</strong><p data-i18n="guideWriteHint">Use Declare, Set, Input, Output, If / Else, and While.</p></div></article>
+      <article><b>2</b><div><strong data-i18n="guideBuild">Build the flowchart</strong><p data-i18n="guideBuildHint">Changes synchronize automatically. Build checks the syntax.</p></div></article>
+      <article><b>3</b><div><strong data-i18n="guideRun">Run it</strong><p data-i18n="guideRunHint">Enter requested values in the Console, then inspect output and variables.</p></div></article>
+      <article><b>4</b><div><strong data-i18n="guideExport">Export your work</strong><p data-i18n="guideExportHint">Export flowcharts as SVG or PNG and source as Pseudocode, Python, Swift, or JavaScript.</p></div></article>
+      <div class="reference-card">
+        <div><strong data-i18n="referenceTitle">Flowgorithm language reference</strong><p data-i18n="referenceHint">Compare symbols, expressions, data types, and control structures with the original learning environment.</p></div>
+        <a href="https://www.flowgorithm.org/documentation/" target="_blank" rel="noreferrer" data-i18n="openReference">Open reference ↗</a>
+      </div>
+      <pre>Declare score As Integer
+Input score
+If score &gt;= 50 Then
+    Output "Pass"
+Else
+    Output "Try again"
+End If</pre>
+    </div>
+  </dialog>
+  <script src="renderer.js"></script>
+</body>
+</html>
