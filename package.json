@@ -41,6 +41,7 @@
     "directories": {
       "output": "dist"
     },
+    "afterPack": "electron/after-pack.js",
     "publish": {
       "provider": "github",
       "owner": "kaungkhantko26",
