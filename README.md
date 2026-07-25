@@ -8,12 +8,12 @@ Built by **Kaung Khant Ko**.
 
 Get the newest packages from [GitHub Releases](https://github.com/kaungkhantko26/Augorithm/releases/latest):
 
-- Windows 10/11 x64: `Augorithm-1.3.7-windows-x64-portable.zip`
-- Apple-silicon macOS: `Augorithm-1.3.7-arm64.zip`
+- Windows 10/11 x64: `Augorithm-1.3.8-windows-x64-portable.zip`
+- Apple-silicon macOS: `Augorithm-1.3.8-arm64.zip`
 
 ## Install on Windows
 
-1. Download `Augorithm-1.3.7-windows-x64-portable.zip` from Releases.
+1. Download `Augorithm-1.3.8-windows-x64-portable.zip` from Releases.
 2. Right-click the ZIP and choose **Extract All**.
 3. Open the extracted folder and double-click `Augorithm.exe`.
 4. If Microsoft Defender SmartScreen appears, review the unknown-publisher warning before deciding whether to continue.
@@ -22,7 +22,7 @@ The portable build is not Authenticode-signed, so Windows may report an unknown 
 
 ## Install on macOS
 
-1. Download `Augorithm-1.3.7-arm64.zip` from Releases.
+1. Download `Augorithm-1.3.8-arm64.zip` from Releases.
 2. Double-click the ZIP file.
 3. Drag **Augorithm.app** into **Applications**.
 4. Control-click Augorithm in Applications and choose **Open**.
@@ -58,6 +58,7 @@ Use **File → Save As…** for a new project and **File → Save** afterward. A
 - Safe syntax repair on Build/Run for missing program wrappers, block endings, `NEXT` variables, and common assignment forms
 - One-click Format and Fix Errors commands with macOS/Windows keyboard shortcuts
 - Flowgorithm-style `For` loops with a hexagonal control node, right-side `Next` path, downward `Done` path, and body return connector
+- Collision-free loop routing with a dedicated left-side Done lane and right-side return lane
 - Continuous, gap-free loop and True/False branch connectors with bold export-safe lines
 - Flowgorithm-style declaration, assignment, input, output, start, and end symbol colors and shapes
 - Flowchart zoom, fit, and pan

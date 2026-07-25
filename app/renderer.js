@@ -1058,10 +1058,28 @@ function drawDecisionConnectors() {
       y: ((edge === 'top' ? rect.top : rect.bottom) - hostRect.top) / scale
     };
   };
-  const path = (data, arrow = false) => {
+  const sidePoint = (element, edge) => {
+    const rect = element.getBoundingClientRect();
+    return {
+      x: ((edge === 'left' ? rect.left : rect.right) - hostRect.left) / scale,
+      y: (rect.top + rect.height / 2 - hostRect.top) / scale
+    };
+  };
+  const visualBounds = element => {
+    const elements = [element, ...element.querySelectorAll('.node, .decision-merge, .loop-exit, .empty-path')];
+    const rectangles = elements.map(item => item.getBoundingClientRect());
+    return {
+      left: Math.min(...rectangles.map(rect => rect.left - hostRect.left)) / scale,
+      right: Math.max(...rectangles.map(rect => rect.right - hostRect.left)) / scale,
+      top: Math.min(...rectangles.map(rect => rect.top - hostRect.top)) / scale,
+      bottom: Math.max(...rectangles.map(rect => rect.bottom - hostRect.top)) / scale
+    };
+  };
+  const path = (data, arrow = false, className = '') => {
     const element = document.createElementNS(namespace, 'path');
     element.setAttribute('d', data);
     if (arrow) element.setAttribute('marker-end', 'url(#flow-arrow)');
+    if (className) element.setAttribute('class', className);
     svg.appendChild(element);
   };
   const directContent = branch => [...branch.children].find(element =>
@@ -1106,14 +1124,14 @@ function drawDecisionConnectors() {
     const start = point(condition, 'bottom');
     const entries = branches.map(branch => point(entryNode(branch), 'top'));
     const splitY = start.y + 18;
-    path(`M ${start.x} ${start.y} V ${splitY} H ${entries[0].x} V ${entries[0].y}`, true);
-    path(`M ${start.x} ${splitY} H ${entries[1].x} V ${entries[1].y}`, true);
+    path(`M ${start.x} ${start.y} V ${splitY} H ${entries[0].x} V ${entries[0].y}`, true, 'decision-path true-path');
+    path(`M ${start.x} ${splitY} H ${entries[1].x} V ${entries[1].y}`, true, 'decision-path false-path');
 
     const exits = branches.map(branch => point(exitNode(branch), 'bottom'));
     const mergeTop = point(merge, 'top');
-    path(`M ${exits[0].x} ${exits[0].y} V ${mergeTop.y} H ${start.x}`);
-    path(`M ${exits[1].x} ${exits[1].y} V ${mergeTop.y} H ${start.x}`);
-    path(`M ${start.x} ${mergeTop.y} V ${point(merge, 'bottom').y}`);
+    path(`M ${exits[0].x} ${exits[0].y} V ${mergeTop.y} H ${start.x}`, false, 'decision-merge-path');
+    path(`M ${exits[1].x} ${exits[1].y} V ${mergeTop.y} H ${start.x}`, false, 'decision-merge-path');
+    path(`M ${start.x} ${mergeTop.y} V ${point(merge, 'bottom').y}`, false, 'decision-merge-path');
   });
 
   [...host.querySelectorAll('.loop-group')].forEach(group => {
@@ -1128,11 +1146,27 @@ function drawDecisionConnectors() {
     const exitBottom = point(exit, 'bottom');
     const splitY = start.y + 20;
     const returnY = bodyExit.y + 22;
-    const returnX = start.x + 25;
+    const groupBounds = visualBounds(group);
+    const bodyBounds = visualBounds(body);
+    const controlReturn = sidePoint(control, 'right');
+    const doneX = Math.max(18, groupBounds.left + 24);
+    const returnX = Math.min(width - 18, Math.max(groupBounds.right - 24, bodyBounds.right + 34, controlReturn.x + 54));
 
-    path(`M ${start.x} ${start.y} V ${splitY} H ${entry.x} V ${entry.y}`, true);
-    path(`M ${start.x} ${splitY} V ${exitBottom.y}`);
-    path(`M ${bodyExit.x} ${bodyExit.y} V ${returnY} H ${returnX} V ${start.y}`, true);
+    path(`M ${start.x} ${start.y} V ${splitY} H ${entry.x} V ${entry.y}`, true, 'loop-next-path');
+    path(`M ${start.x} ${splitY} H ${doneX} V ${exitBottom.y} H ${exitBottom.x}`, false, 'loop-done-path');
+    path(
+      `M ${bodyExit.x} ${bodyExit.y} V ${returnY} H ${returnX} V ${controlReturn.y} H ${controlReturn.x}`,
+      true,
+      'loop-return-path'
+    );
+
+    const layout = group.querySelector(':scope > .loop-layout');
+    const doneLabel = layout?.querySelector(':scope > .loop-path-label.done');
+    if (layout && doneLabel) {
+      const layoutRect = layout.getBoundingClientRect();
+      const labelLeft = doneX - (layoutRect.left - hostRect.left) / scale - doneLabel.offsetWidth / 2;
+      doneLabel.style.left = `${Math.max(4, labelLeft)}px`;
+    }
   });
   host.prepend(svg);
 }
