@@ -148,7 +148,7 @@
 
   <footer>
     <span id="fileStatus">◇ Not saved</span>
-    <span class="creator-credit">Built by Kaung Khant Ko</span>
+    <span class="creator-credit">Built by Kaung Khant Ko · <button id="versionBtn" class="version-link" type="button">v1.3.9</button></span>
     <div><button id="showConsole" hidden>▰ Console</button><span id="symbolCount">0 symbols</span><span id="issueCount" class="ready">● Ready</span></div>
   </footer>
 
@@ -179,6 +179,25 @@ End If
 Functions: Abs, Sqrt, Round, Floor, Ceiling, Pow,
 Min, Max, Len, Upper, Lower, Trim, Substring,
 ToInteger, ToReal, ToString, Sin, Cos, Tan, Log</pre>
+    </div>
+  </dialog>
+  <dialog id="versionDialog" class="version-dialog">
+    <div class="dialog-title">
+      <div><h2 data-i18n="aboutAugorithm">About Augorithm</h2><p data-i18n="updateHint">Version information and automatic updates.</p></div>
+      <button class="dialog-close">×</button>
+    </div>
+    <div class="version-content">
+      <div class="version-identity">
+        <img src="assets/icon.png" alt="">
+        <div><strong>Augorithm</strong><span id="currentVersion">Version 1.3.9</span><small>Built by Kaung Khant Ko</small></div>
+      </div>
+      <div class="update-card">
+        <div class="update-status-icon" id="updateStatusIcon">✓</div>
+        <div class="update-copy"><strong id="updateStatusTitle" data-i18n="updateReady">Augorithm is up to date</strong><span id="updateStatusMessage"></span></div>
+      </div>
+      <div class="update-progress" id="updateProgress" hidden><i id="updateProgressBar"></i></div>
+      <button id="updateActionBtn" class="update-action" type="button" data-i18n="checkUpdates">Check for updates</button>
+      <small class="automatic-update-note" data-i18n="automaticUpdates">Updates are checked automatically. Downloaded updates install when Augorithm restarts.</small>
     </div>
   </dialog>
   <script src="renderer.js"></script>

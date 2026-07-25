@@ -8,25 +8,24 @@ Built by **Kaung Khant Ko**.
 
 Get the newest packages from [GitHub Releases](https://github.com/kaungkhantko26/Augorithm/releases/latest):
 
-- Windows 10/11 x64: `Augorithm-1.3.8-windows-x64-portable.zip`
-- Apple-silicon macOS: `Augorithm-1.3.8-arm64.zip`
+- Windows 10/11 x64 installer: `Augorithm-1.3.9-x64.exe`
+- Apple-silicon macOS app: `Augorithm-1.3.9-arm64.zip`
 
 ## Install on Windows
 
-1. Download `Augorithm-1.3.8-windows-x64-portable.zip` from Releases.
-2. Right-click the ZIP and choose **Extract All**.
-3. Open the extracted folder and double-click `Augorithm.exe`.
+1. Download `Augorithm-1.3.9-x64.exe` from Releases.
+2. Double-click the installer and choose the installation folder.
+3. Open Augorithm from the Start menu or desktop shortcut.
 4. If Microsoft Defender SmartScreen appears, review the unknown-publisher warning before deciding whether to continue.
 
 The portable build is not Authenticode-signed, so Windows may report an unknown publisher.
 
 ## Install on macOS
 
-1. Download `Augorithm-1.3.8-arm64.zip` from Releases.
-2. Double-click the ZIP file.
-3. Drag **Augorithm.app** into **Applications**.
-4. Control-click Augorithm in Applications and choose **Open**.
-5. Confirm **Open** if macOS displays an unidentified-developer warning.
+1. Download `Augorithm-1.3.9-arm64.zip` from Releases.
+2. Double-click the ZIP and drag **Augorithm.app** into **Applications**.
+3. Control-click Augorithm in Applications and choose **Open**.
+4. Confirm **Open** if macOS displays an unidentified-developer warning.
 
 The macOS build is ad-hoc signed but not Apple-notarized.
 
@@ -44,6 +43,12 @@ The iPad app works offline after its first successful load. Projects can be open
 Projects use the `.augo` extension. The installers register this file type, so saved projects can be opened by double-clicking them in Finder or File Explorer.
 
 Use **File → Save As…** for a new project and **File → Save** afterward. Augorithm keeps a recovery draft for unsaved work.
+
+## Version and automatic updates
+
+The installed macOS and Windows apps check GitHub Releases automatically. Click the version badge in the bottom bar, or choose **Help → Check for Updates…**, to check immediately. New versions download inside Augorithm; select **Restart to update** when the download finishes. A downloaded update is also installed automatically when the app closes.
+
+On iPad, tap the version badge and select **Reload to update** when a newer web release is available.
 
 ## Features
 
@@ -70,6 +75,7 @@ Use **File → Save As…** for a new project and **File → Save** afterward. A
 - English and Burmese interface modes
 - `.augo` save, open, recovery, and double-click support
 - Native Windows x64 and Apple-silicon macOS packages
+- Visible version information with automatic in-app update checks, download progress, and restart-to-install
 - Installable, offline-capable iPad web app with touch controls and focused Note Mode
 
 ## Build from source

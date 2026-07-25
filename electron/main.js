@@ -1,9 +1,13 @@
 const { app, BrowserWindow, ipcMain, dialog, shell, Menu } = require('electron');
+const { autoUpdater } = require('electron-updater');
 const fs = require('fs');
 const path = require('path');
 
 let mainWindow;
 let pendingProjectPath = null;
+let updateDownloaded = false;
+let updateCheckPromise = null;
+let availableUpdateVersion = null;
 const hasSingleInstanceLock = app.requestSingleInstanceLock();
 
 if (!hasSingleInstanceLock) app.quit();
@@ -38,6 +42,63 @@ function deliverProject(filePath) {
   } catch (error) {
     dialog.showErrorBox('Cannot Open Augorithm Project', error.message);
   }
+}
+
+function sendUpdateState(state) {
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+  mainWindow.webContents.send('app:update-state', state);
+}
+
+function configureUpdater() {
+  autoUpdater.autoDownload = true;
+  autoUpdater.autoInstallOnAppQuit = true;
+  autoUpdater.allowPrerelease = false;
+  autoUpdater.on('checking-for-update', () => sendUpdateState({ status: 'checking' }));
+  autoUpdater.on('update-available', info => {
+    availableUpdateVersion = info.version;
+    sendUpdateState({ status: 'available', version: info.version });
+  });
+  autoUpdater.on('update-not-available', info =>
+    sendUpdateState({ status: 'current', version: info?.version || app.getVersion() }));
+  autoUpdater.on('download-progress', progress => sendUpdateState({
+    status: 'downloading',
+    version: availableUpdateVersion,
+    percent: Math.max(0, Math.min(100, progress.percent || 0)),
+    transferred: progress.transferred,
+    total: progress.total
+  }));
+  autoUpdater.on('update-downloaded', info => {
+    updateDownloaded = true;
+    availableUpdateVersion = info.version;
+    sendUpdateState({ status: 'downloaded', version: info.version });
+  });
+  autoUpdater.on('error', error => sendUpdateState({
+    status: 'error',
+    message: error?.message || 'The update could not be completed.'
+  }));
+}
+
+async function checkForUpdates() {
+  if (!app.isPackaged) {
+    const state = { status: 'development', version: app.getVersion() };
+    sendUpdateState(state);
+    return state;
+  }
+  if (updateDownloaded) {
+    const state = { status: 'downloaded' };
+    sendUpdateState(state);
+    return state;
+  }
+  if (updateCheckPromise) return updateCheckPromise;
+  updateCheckPromise = autoUpdater.checkForUpdates()
+    .then(result => ({
+      status: result?.updateInfo?.version && result.updateInfo.version !== app.getVersion()
+        ? 'available'
+        : 'current',
+      version: result?.updateInfo?.version || app.getVersion()
+    }))
+    .finally(() => { updateCheckPromise = null; });
+  return updateCheckPromise;
 }
 
 // macOS sends this event when an .augo document is double-clicked in Finder.
@@ -98,6 +159,7 @@ app.whenReady().then(() => {
     pendingProjectPath = projectArgument(process.argv);
   }
   createWindow();
+  configureUpdater();
   const template = [
     {
       label: 'File',
@@ -126,13 +188,37 @@ app.whenReady().then(() => {
       ]
     },
     { role: 'windowMenu' },
-    { role: 'help', submenu: [{ label: 'Augorithm Quick Guide', click: () => mainWindow.webContents.send('menu-action', 'help') }] }
+    {
+      role: 'help',
+      submenu: [
+        { label: 'Augorithm Quick Guide', click: () => mainWindow.webContents.send('menu-action', 'help') },
+        { label: `About Augorithm ${app.getVersion()}`, click: () => mainWindow.webContents.send('menu-action', 'version') },
+        { label: 'Check for Updates…', click: () => mainWindow.webContents.send('menu-action', 'version') }
+      ]
+    }
   ];
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
+  setTimeout(() => checkForUpdates().catch(() => {}), 5000);
   app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
 });
 
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
+
+ipcMain.handle('app:get-info', () => ({
+  name: app.getName(),
+  version: app.getVersion(),
+  platform: process.platform,
+  packaged: app.isPackaged,
+  updateSupported: app.isPackaged
+}));
+
+ipcMain.handle('app:check-for-updates', () => checkForUpdates());
+
+ipcMain.handle('app:install-update', () => {
+  if (!updateDownloaded) return false;
+  setImmediate(() => autoUpdater.quitAndInstall(false, true));
+  return true;
+});
 
 ipcMain.handle('project:save', async (_event, project, existingPath) => {
   let filePath = existingPath;

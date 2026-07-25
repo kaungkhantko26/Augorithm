@@ -1,8 +1,20 @@
 const $ = selector => document.querySelector(selector);
 const $$ = selector => [...document.querySelectorAll(selector)];
+const APP_VERSION = '1.3.9';
 
 // Browser/iPad fallback; Electron replaces this with the secure preload bridge.
 if (!window.augorithm) {
+  const updateListeners = [];
+  const emitUpdateState = state => updateListeners.forEach(listener => listener(state));
+  const versionParts = value => String(value || '').replace(/^v/i, '').split('.').map(part => parseInt(part, 10) || 0);
+  const isNewerVersion = (candidate, current) => {
+    const next = versionParts(candidate);
+    const installed = versionParts(current);
+    for (let index = 0; index < Math.max(next.length, installed.length); index += 1) {
+      if ((next[index] || 0) !== (installed[index] || 0)) return (next[index] || 0) > (installed[index] || 0);
+    }
+    return false;
+  };
   const downloadBlob = (blob, name) => {
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
@@ -66,6 +78,41 @@ if (!window.augorithm) {
     (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
   window.augorithm = {
     platform: isIPad ? 'ipad' : 'browser',
+    getAppInfo: async () => ({
+      name: 'Augorithm',
+      version: APP_VERSION,
+      platform: isIPad ? 'ipad' : 'browser',
+      packaged: false,
+      updateSupported: true
+    }),
+    checkForUpdates: async () => {
+      emitUpdateState({ status: 'checking' });
+      try {
+        const response = await fetch('https://api.github.com/repos/kaungkhantko26/Augorithm/releases/latest', {
+          cache: 'no-store',
+          headers: { Accept: 'application/vnd.github+json' }
+        });
+        if (!response.ok) throw new Error(`Update server returned ${response.status}.`);
+        const release = await response.json();
+        const latest = String(release.tag_name || release.name || '').replace(/^v/i, '');
+        const state = isNewerVersion(latest, APP_VERSION)
+          ? { status: 'available', version: latest, web: true }
+          : { status: 'current', version: APP_VERSION, web: true };
+        emitUpdateState(state);
+        return state;
+      } catch (error) {
+        const state = { status: 'error', message: error.message, web: true };
+        emitUpdateState(state);
+        return state;
+      }
+    },
+    installUpdate: async () => {
+      const registration = await navigator.serviceWorker?.getRegistration();
+      await registration?.update();
+      location.reload();
+      return true;
+    },
+    onUpdateState: callback => updateListeners.push(callback),
     saveProject: async project => {
       const filePath = safeDownloadName(project?.name, 'augo');
       downloadBlob(new Blob([JSON.stringify(project, null, 2)], { type: 'application/json' }), filePath);
@@ -117,7 +164,16 @@ const translations = {
     formatted: 'Pseudocode formatted', fixedCount: 'Fixed {count} syntax issue(s)',
     noSafeFix: 'No safe automatic fixes found', tabHint: 'Tab indents · Shift+Tab outdents',
     darkMode: 'Switch to dark mode', lightMode: 'Switch to light mode',
-    noteMode: 'Note mode', exitNoteMode: 'Exit note mode'
+    noteMode: 'Note mode', exitNoteMode: 'Exit note mode',
+    aboutAugorithm: 'About Augorithm', updateHint: 'Version information and automatic updates.',
+    updateReady: 'Augorithm is up to date', checkUpdates: 'Check for updates',
+    checkingUpdates: 'Checking for updates…', updateAvailable: 'Update {version} is available',
+    downloadingUpdate: 'Downloading update {version}… {percent}%',
+    restartUpdate: 'Restart to update', reloadUpdate: 'Reload to update',
+    updateDownloaded: 'Update {version} is ready', updateError: 'Update check failed',
+    updateCurrent: 'You are using the latest version.',
+    updateDevelopment: 'Automatic updates are enabled in installed builds.',
+    automaticUpdates: 'Updates are checked automatically. Downloaded updates install when Augorithm restarts.'
   },
   my: {
     build: 'တည်ဆောက်', run: 'လုပ်ဆောင်', symbols: 'သင်္ကေတများ', inputOutput: 'အဝင် / အထွက်',
@@ -166,7 +222,16 @@ const translations = {
     noSafeFix: 'ဘေးကင်းစွာ အလိုအလျောက်ပြင်နိုင်သော အမှားမတွေ့ပါ',
     tabHint: 'Tab ဖြင့်အတွင်းရွှေ့ · Shift+Tab ဖြင့်အပြင်ရွှေ့',
     darkMode: 'အမှောင်ပုံစံသို့ ပြောင်းမည်', lightMode: 'အလင်းပုံစံသို့ ပြောင်းမည်',
-    noteMode: 'မှတ်စုစနစ်', exitNoteMode: 'မှတ်စုစနစ်မှ ထွက်မည်'
+    noteMode: 'မှတ်စုစနစ်', exitNoteMode: 'မှတ်စုစနစ်မှ ထွက်မည်',
+    aboutAugorithm: 'Augorithm အကြောင်း', updateHint: 'ဗားရှင်းအချက်အလက်နှင့် အလိုအလျောက်အပ်ဒိတ်များ။',
+    updateReady: 'Augorithm သည် နောက်ဆုံးဗားရှင်းဖြစ်သည်', checkUpdates: 'အပ်ဒိတ်စစ်ဆေးမည်',
+    checkingUpdates: 'အပ်ဒိတ်စစ်ဆေးနေသည်…', updateAvailable: 'ဗားရှင်း {version} ရရှိနိုင်သည်',
+    downloadingUpdate: 'ဗားရှင်း {version} ကို ဒေါင်းလုဒ်လုပ်နေသည်… {percent}%',
+    restartUpdate: 'ပြန်ဖွင့်ပြီး အပ်ဒိတ်လုပ်မည်', reloadUpdate: 'ပြန်တင်ပြီး အပ်ဒိတ်လုပ်မည်',
+    updateDownloaded: 'ဗားရှင်း {version} အဆင်သင့်ဖြစ်ပါပြီ', updateError: 'အပ်ဒိတ်စစ်ဆေးမှု မအောင်မြင်ပါ',
+    updateCurrent: 'နောက်ဆုံးဗားရှင်းကို အသုံးပြုနေပါသည်။',
+    updateDevelopment: 'ထည့်သွင်းထားသော app တွင် အလိုအလျောက်အပ်ဒိတ် ရရှိနိုင်သည်။',
+    automaticUpdates: 'အပ်ဒိတ်များကို အလိုအလျောက်စစ်ဆေးသည်။ ဒေါင်းလုဒ်ပြီးသောအပ်ဒိတ်ကို Augorithm ပြန်ဖွင့်ချိန်တွင် ထည့်သွင်းမည်။'
   }
 };
 
@@ -177,6 +242,92 @@ let noteMode = storedNoteMode === 'true';
 const t = key => translations[uiLanguage][key] || translations.en[key] || key;
 const tf = (key, values = {}) => Object.entries(values)
   .reduce((text, [name, value]) => text.replaceAll(`{${name}}`, value), t(key));
+let appInfo = {
+  name: 'Augorithm',
+  version: APP_VERSION,
+  platform: window.augorithm.platform || 'browser',
+  packaged: false,
+  updateSupported: true
+};
+let lastUpdateState = { status: 'idle', version: APP_VERSION };
+
+function renderVersionInfo() {
+  const version = appInfo.version || APP_VERSION;
+  $('#versionBtn').textContent = `v${version}`;
+  $('#currentVersion').textContent = `Version ${version}`;
+}
+
+function renderUpdateState(state = lastUpdateState) {
+  lastUpdateState = { ...lastUpdateState, ...state };
+  const status = lastUpdateState.status || 'idle';
+  const version = lastUpdateState.version || appInfo.version || APP_VERSION;
+  const percent = Math.round(lastUpdateState.percent || 0);
+  const card = $('.update-card');
+  const icon = $('#updateStatusIcon');
+  const title = $('#updateStatusTitle');
+  const message = $('#updateStatusMessage');
+  const action = $('#updateActionBtn');
+  const progress = $('#updateProgress');
+  const progressBar = $('#updateProgressBar');
+  if (!card || !action) return;
+  card.dataset.status = status;
+  progress.hidden = status !== 'downloading';
+  progressBar.style.width = `${percent}%`;
+  action.disabled = status === 'checking' || status === 'downloading' ||
+    (status === 'available' && !lastUpdateState.web);
+  action.dataset.action = status === 'downloaded' || (status === 'available' && lastUpdateState.web)
+    ? 'install'
+    : 'check';
+
+  const views = {
+    idle: ['✓', t('updateReady'), t('updateCurrent'), t('checkUpdates')],
+    current: ['✓', t('updateReady'), t('updateCurrent'), t('checkUpdates')],
+    checking: ['↻', t('checkingUpdates'), '', t('checkingUpdates')],
+    available: ['↓', tf('updateAvailable', { version }), lastUpdateState.web ? '' : t('automaticUpdates'),
+      lastUpdateState.web ? t('reloadUpdate') : t('checkingUpdates')],
+    downloading: ['↓', tf('downloadingUpdate', { version, percent }), '', tf('downloadingUpdate', { version, percent })],
+    downloaded: ['↻', tf('updateDownloaded', { version }), t('automaticUpdates'), t('restartUpdate')],
+    development: ['i', `Augorithm ${version}`, t('updateDevelopment'), t('checkUpdates')],
+    error: ['!', t('updateError'), lastUpdateState.message || '', t('checkUpdates')]
+  };
+  const view = views[status] || views.idle;
+  [icon.textContent, title.textContent, message.textContent, action.textContent] = view;
+}
+
+async function initializeVersionInfo() {
+  try {
+    appInfo = { ...appInfo, ...(await window.augorithm.getAppInfo()) };
+  } catch {
+    // Keep the embedded version for the browser fallback.
+  }
+  renderVersionInfo();
+  renderUpdateState(lastUpdateState);
+}
+
+function openVersionDialog(checkNow = false) {
+  renderVersionInfo();
+  renderUpdateState(lastUpdateState);
+  if (!$('#versionDialog').open) $('#versionDialog').showModal();
+  if (checkNow) checkForAppUpdate();
+}
+
+async function checkForAppUpdate() {
+  renderUpdateState({ status: 'checking' });
+  try {
+    const state = await window.augorithm.checkForUpdates();
+    if (state) renderUpdateState(state);
+  } catch (error) {
+    renderUpdateState({ status: 'error', message: error.message });
+  }
+}
+
+async function handleUpdateAction() {
+  if ($('#updateActionBtn').dataset.action === 'install') {
+    await window.augorithm.installUpdate();
+    return;
+  }
+  await checkForAppUpdate();
+}
 
 function localizedDiagnostic(message) {
   if (uiLanguage !== 'my') return message;
@@ -230,6 +381,8 @@ function applyUILanguage(language) {
   $('#consoleInput').placeholder = t('runToEnter');
   updateThemeButton();
   updateNoteModeButton();
+  renderVersionInfo();
+  renderUpdateState(lastUpdateState);
   renderTemplateGrid();
   if (state.items.length) build();
 }
@@ -1974,6 +2127,8 @@ function init() {
   $('#templatesBtn').addEventListener('click', () => $('#templateDialog').showModal());
   $('#examplesBtn').addEventListener('click', () => $('#templateDialog').showModal());
   $('#helpBtn').addEventListener('click', () => $('#helpDialog').showModal());
+  $('#versionBtn').addEventListener('click', () => openVersionDialog(false));
+  $('#updateActionBtn').addEventListener('click', handleUpdateAction);
   $$('.dialog-close').forEach(button => button.addEventListener('click', () => button.closest('dialog').close()));
   $('#languageSelect').addEventListener('change', renderSource);
   $('#uiLanguage').addEventListener('change', event => applyUILanguage(event.target.value));
@@ -2035,8 +2190,9 @@ function init() {
   $('#showConsole').addEventListener('click', () => { $('#consolePanel').hidden = false; $('#showConsole').hidden = true; });
   window.augorithm.onMenuAction(action => ({
     new: newProject, open: openProject, save: () => saveProject(false), saveAs: () => saveProject(true), build: buildAndFix, run: startProgram,
-    clear: clearRuntime, help: () => $('#helpDialog').showModal()
+    clear: clearRuntime, help: () => $('#helpDialog').showModal(), version: () => openVersionDialog(true)
   })[action]?.());
+  window.augorithm.onUpdateState(renderUpdateState);
   window.augorithm.onOpenProjectFile(loadProject);
   try {
     const recovery = JSON.parse(localStorage.getItem(recoveryKey));
@@ -2054,11 +2210,13 @@ function init() {
   }
   window.addEventListener('beforeunload', () => { if (state.dirty) saveRecoveryDraft(); });
   applyUILanguage(uiLanguage);
+  initializeVersionInfo();
   applyNoteMode(storedNoteMode === null && window.augorithm.platform === 'ipad' ? true : noteMode);
   build();
   updateEditorCursor();
   if (window.augorithm.platform === 'browser' || window.augorithm.platform === 'ipad') {
     navigator.serviceWorker?.register('./service-worker.js').catch(() => {});
+    setTimeout(() => checkForAppUpdate(), 6000);
   }
 }
 
