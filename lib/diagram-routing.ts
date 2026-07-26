@@ -1,0 +1,122 @@
+import type { DiagramEdge, DiagramNode, Point } from "./augorithm-core";
+
+type Port = NonNullable<DiagramEdge["sourcePort"]>;
+
+function portPoint(node: DiagramNode, port: Port): Point {
+  if (port === "top") return { x: node.position.x + node.width / 2, y: node.position.y };
+  if (port === "right") return { x: node.position.x + node.width, y: node.position.y + node.height / 2 };
+  if (port === "left") return { x: node.position.x, y: node.position.y + node.height / 2 };
+  return { x: node.position.x + node.width / 2, y: node.position.y + node.height };
+}
+
+function automaticPorts(source: DiagramNode, target: DiagramNode): { source: Port; target: Port } {
+  const sourceCenter = {
+    x: source.position.x + source.width / 2,
+    y: source.position.y + source.height / 2,
+  };
+  const targetCenter = {
+    x: target.position.x + target.width / 2,
+    y: target.position.y + target.height / 2,
+  };
+  const deltaX = targetCenter.x - sourceCenter.x;
+  const deltaY = targetCenter.y - sourceCenter.y;
+  if (Math.abs(deltaX) > Math.abs(deltaY)) {
+    return deltaX >= 0 ? { source: "right", target: "left" } : { source: "left", target: "right" };
+  }
+  return deltaY >= 0 ? { source: "bottom", target: "top" } : { source: "top", target: "bottom" };
+}
+
+function isLoopContinue(edge: DiagramEdge, source: DiagramNode): boolean {
+  return source.kind === "loop" && /^(?:true|next)$/i.test(edge.label ?? "");
+}
+
+function isLoopExit(edge: DiagramEdge, source: DiagramNode): boolean {
+  return source.kind === "loop" && /^(?:false|done)$/i.test(edge.label ?? "");
+}
+
+export function edgePoints(edge: DiagramEdge, source: DiagramNode, target: DiagramNode): Point[] {
+  if (edge.waypoints?.length) {
+    const automatic = automaticPorts(source, target);
+    return [
+      portPoint(source, edge.sourcePort ?? automatic.source),
+      ...edge.waypoints,
+      portPoint(target, edge.targetPort ?? automatic.target),
+    ];
+  }
+
+  // Loop feedback always returns through an outside lane and enters through the
+  // bottom port. It can therefore never share a lane with the forward branch.
+  if (target.kind === "loop" && source.id !== target.id) {
+    const start = portPoint(source, edge.sourcePort ?? "bottom");
+    const end = portPoint(target, edge.targetPort ?? "bottom");
+    const laneX = Math.max(
+      source.position.x + source.width,
+      target.position.x + target.width,
+    ) + 72;
+    const departureY = Math.max(start.y + 44, source.position.y + source.height + 44);
+    const approachY = end.y + 46;
+    return [
+      start,
+      { x: start.x, y: departureY },
+      { x: laneX, y: departureY },
+      { x: laneX, y: approachY },
+      { x: end.x, y: approachY },
+      end,
+    ];
+  }
+
+  // The body branch leaves a loop from the right. The end arrow points into
+  // the body node from its left side, while the feedback arrow uses the lane
+  // above. This removes the opposing arrows visible in the previous layout.
+  if (isLoopContinue(edge, source)) {
+    const start = portPoint(source, edge.sourcePort ?? "right");
+    const targetIsRight = target.position.x >= source.position.x + source.width / 2;
+    const targetPort: Port = edge.targetPort ?? (targetIsRight ? "left" : "top");
+    const end = portPoint(target, targetPort);
+    if (Math.abs(start.y - end.y) < 1) return [start, end];
+    const laneX = Math.max(start.x + 52, start.x + (end.x - start.x) / 2);
+    return [start, { x: laneX, y: start.y }, { x: laneX, y: end.y }, end];
+  }
+
+  // Done/False leaves through the bottom, clearly separated from the body.
+  if (isLoopExit(edge, source)) {
+    const start = portPoint(source, edge.sourcePort ?? "bottom");
+    const end = portPoint(target, edge.targetPort ?? "top");
+    if (Math.abs(start.x - end.x) < 1) return [start, end];
+    const middleY = start.y + Math.max(48, (end.y - start.y) / 2);
+    return [start, { x: start.x, y: middleY }, { x: end.x, y: middleY }, end];
+  }
+
+  const automatic = automaticPorts(source, target);
+  const sourcePort = edge.sourcePort ?? automatic.source;
+  const targetPort = edge.targetPort ?? automatic.target;
+  const start = portPoint(source, sourcePort);
+  const end = portPoint(target, targetPort);
+  if (Math.abs(start.x - end.x) < 1 || Math.abs(start.y - end.y) < 1) return [start, end];
+  if (sourcePort === "left" || sourcePort === "right") {
+    const middleX = start.x + (end.x - start.x) / 2;
+    return [start, { x: middleX, y: start.y }, { x: middleX, y: end.y }, end];
+  }
+  const middleY = start.y + (end.y - start.y) / 2;
+  return [start, { x: start.x, y: middleY }, { x: end.x, y: middleY }, end];
+}
+
+export function pathFromPoints(points: Point[]): string {
+  return points.map((point, index) => `${index ? "L" : "M"} ${point.x} ${point.y}`).join(" ");
+}
+
+export function edgeLabelPoint(points: Point[]): Point {
+  if (points.length < 2) return points[0] ?? { x: 0, y: 0 };
+  let longest = { start: points[0], end: points[1], length: 0 };
+  for (let index = 1; index < points.length; index += 1) {
+    const start = points[index - 1];
+    const end = points[index];
+    const length = Math.hypot(end.x - start.x, end.y - start.y);
+    if (length > longest.length) longest = { start, end, length };
+  }
+  const horizontal = Math.abs(longest.end.x - longest.start.x) >= Math.abs(longest.end.y - longest.start.y);
+  return {
+    x: (longest.start.x + longest.end.x) / 2 + (horizontal ? 0 : 22),
+    y: (longest.start.y + longest.end.y) / 2 + (horizontal ? -18 : 0),
+  };
+}
