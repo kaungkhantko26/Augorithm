@@ -2,6 +2,36 @@
 
 All notable Augorithm changes are documented here.
 
+## [1.4.5] — 2026-07-26
+
+### Improved
+
+- Full-width, responsive Python workspace with an editable code area, standard input, run output, cursor status, indentation, and keyboard run shortcut
+- Direct flowchart editing through visible node edit controls and context-aware node insertion
+- Clearer running, stopped, success, and error feedback across Python controls
+
+### Fixed
+
+- Python workspace collapsing into a narrow column because of an invalid stylesheet block
+- Invalid generated Python comparisons such as `if size = "S":`
+- Pseudocode operators and booleans now translate correctly for Python, JavaScript, and Swift conditions
+- Flowchart node clicks being intercepted by canvas panning
+- `While` blocks and `Next` loop endings not being recognized by the visual editor
+- Concurrent Python processes and missing stop behavior in desktop builds
+
+## [1.4.4] — 2026-07-26
+
+### Added
+
+- New glass-finished AU brand icon based on the artwork supplied by Kaung Khant Ko
+- Native-size icon assets for macOS, Windows, iPad/PWA, browser tabs, and `.augo` documents
+
+### Improved
+
+- Consistent AU branding in the title bar, About dialog, installed app, shortcuts, and project files
+- Windows `.augo` file registration so saved projects use the Augorithm icon and open in Augorithm
+- Versioned offline icon caching for installed iPad web apps
+
 ## [1.4.3] — 2026-07-26
 
 ### Added
@@ -11,6 +41,8 @@ All notable Augorithm changes are documented here.
 - Automatic project and export filenames based on algorithm content
 - Database normalization workspace with guided 1NF, 2NF, and 3NF decomposition
 - Desktop Python editor, export, console input, and local Python 3 runner
+- Typed pseudocode-to-Java generation with `Scanner` input and Java-safe expressions
+- IDE-style generated-source viewer with syntax highlighting, line numbers, wrapping, copy, and language-aware filenames
 - Save/export reveal actions for Finder and File Explorer
 
 ### Improved

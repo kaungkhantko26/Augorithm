@@ -10,6 +10,7 @@ let pendingProjectPath = null;
 let updateDownloaded = false;
 let updateCheckPromise = null;
 let availableUpdateVersion = null;
+let activePythonJob = null;
 const hasSingleInstanceLock = app.requestSingleInstanceLock();
 
 if (!hasSingleInstanceLock) app.quit();
@@ -146,6 +147,7 @@ function createWindow() {
         }
       : { titleBarStyle: 'default' }),
     backgroundColor: '#071f40',
+    icon: path.join(__dirname, '..', 'app', 'assets', 'icons', 'icon-glass-1024.png'),
     show: false,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -341,12 +343,15 @@ function runPythonProcess(command, prefixArgs, scriptPath, input) {
       stdio: ['pipe', 'pipe', 'pipe'],
       windowsHide: true
     });
+    const job = { child, stopped: false };
+    activePythonJob = job;
     let stdout = '';
     let stderr = '';
     let finished = false;
     const finish = result => {
       if (finished) return;
       finished = true;
+      if (activePythonJob === job) activePythonJob = null;
       resolve(result);
     };
     const timer = setTimeout(() => {
@@ -361,23 +366,49 @@ function runPythonProcess(command, prefixArgs, scriptPath, input) {
     });
     child.on('error', error => {
       clearTimeout(timer);
+      if (finished) return;
+      finished = true;
+      if (activePythonJob === job) activePythonJob = null;
       reject(error);
     });
     child.on('close', exitCode => {
       clearTimeout(timer);
-      finish({ success: exitCode === 0, stdout, stderr, exitCode, command });
+      const stopped = job.stopped;
+      finish({
+        success: !stopped && exitCode === 0,
+        stdout,
+        stderr: stopped ? `${stderr}\nExecution stopped by user.`.trim() : stderr,
+        exitCode,
+        command,
+        stopped
+      });
     });
     child.stdin.end(String(input || ''));
   });
 }
 
 ipcMain.handle('python:run', async (_event, { code, input }) => {
+  if (activePythonJob) {
+    return {
+      success: false,
+      stdout: '',
+      stderr: 'Another Python program is already running.',
+      exitCode: null,
+      command: null
+    };
+  }
   const temporaryDirectory = await fs.promises.mkdtemp(path.join(app.getPath('temp'), 'augorithm-python-'));
   const scriptPath = path.join(temporaryDirectory, 'main.py');
   await fs.promises.writeFile(scriptPath, String(code || ''), 'utf8');
   const candidates = process.platform === 'win32'
-    ? [['py', ['-3']], ['python', []]]
-    : [['python3', []], ['python', []]];
+    ? [['py', ['-3']], ['python', []], ['python3', []]]
+    : [
+        ['/usr/bin/python3', []],
+        ['/opt/homebrew/bin/python3', []],
+        ['/usr/local/bin/python3', []],
+        ['python3', []],
+        ['python', []]
+      ];
   try {
     for (const [command, args] of candidates) {
       try {
@@ -396,4 +427,10 @@ ipcMain.handle('python:run', async (_event, { code, input }) => {
   } finally {
     await fs.promises.rm(temporaryDirectory, { recursive: true, force: true }).catch(() => {});
   }
+});
+
+ipcMain.handle('python:stop', () => {
+  if (!activePythonJob) return false;
+  activePythonJob.stopped = true;
+  return activePythonJob.child.kill();
 });

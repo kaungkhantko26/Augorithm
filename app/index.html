@@ -9,13 +9,15 @@
   <meta name="apple-mobile-web-app-title" content="Augorithm">
   <title>Augorithm</title>
   <link rel="manifest" href="manifest.webmanifest">
-  <link rel="apple-touch-icon" href="assets/icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/icons/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="assets/icons/favicon-16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/apple-touch-icon.png">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <header class="topbar">
     <div class="brand">
-      <div class="brand-mark">A</div>
+      <img class="brand-mark" src="assets/icons/icon-64.png" alt="Augorithm AU logo" draggable="false">
       <div><strong>AUGORITHM</strong><span>Think it. Chart it. Run it.</span></div>
     </div>
     <div class="project-title">
@@ -117,15 +119,33 @@
         </div>
         <div class="tab-pane source-pane" id="sourcePane">
           <div class="source-toolbar">
-            <span data-i18n="generatedSource">GENERATED SOURCE</span>
-            <div><select id="languageSelect">
-              <option value="pseudocode">Pseudocode</option>
-              <option value="python">Python</option>
-              <option value="swift">Swift</option>
-              <option value="javascript">JavaScript</option>
-            </select><button id="exportBtn">⇧ <span data-i18n="export">Export</span></button></div>
+            <div class="source-identity">
+              <i></i>
+              <div><strong data-i18n="generatedSource">GENERATED SOURCE</strong><span id="sourceFileName">main.java</span></div>
+              <em data-i18n="liveGenerated">LIVE</em>
+            </div>
+            <div class="source-actions">
+              <label for="languageSelect" data-i18n="targetLanguage">Target</label>
+              <select id="languageSelect">
+                <option value="java">Java</option>
+                <option value="python">Python</option>
+                <option value="javascript">JavaScript</option>
+                <option value="swift">Swift</option>
+                <option value="pseudocode">Pseudocode</option>
+              </select>
+              <button id="wrapSourceBtn" class="icon-source-button" type="button" title="Toggle line wrapping" aria-pressed="false">↩</button>
+              <button id="copySourceBtn" type="button">⧉ <span data-i18n="copyCode">Copy</span></button>
+              <button id="exportBtn" type="button">⇧ <span data-i18n="export">Export</span></button>
+            </div>
           </div>
-          <pre id="sourceCode"></pre>
+          <div class="source-editor" id="sourceEditor">
+            <pre id="sourceLineNumbers" aria-hidden="true"></pre>
+            <pre id="sourceCode" tabindex="0" aria-label="Generated source code"></pre>
+          </div>
+          <div class="source-statusbar">
+            <span id="sourceStatus" data-i18n="liveSourceHint">Generated live from pseudocode</span>
+            <div><span id="sourceStats">0 lines</span><span id="sourceEncoding">UTF-8</span><span id="sourceMode">Java</span></div>
+          </div>
         </div>
         <div class="tab-pane database-pane" id="databasePane">
           <div class="feature-toolbar">
@@ -147,12 +167,13 @@
         <div class="tab-pane python-pane" id="pythonPane">
           <div class="feature-toolbar">
             <div><strong data-i18n="pythonWorkspace">PYTHON EDITOR</strong><span data-i18n="pythonHint">Generate Python from pseudocode, edit it, and run it in the desktop app.</span></div>
-            <div><button id="generatePythonBtn" data-i18n="generatePython">Generate from pseudocode</button><button id="exportPythonBtn" data-i18n="exportPython">Export .py</button><button id="runPythonBtn" class="primary-feature-button">▶ <span data-i18n="runPython">Run Python</span></button></div>
+            <div><button id="generatePythonBtn" data-i18n="generatePython">Generate from pseudocode</button><button id="exportPythonBtn" data-i18n="exportPython">Export .py</button><button id="stopPythonBtn" class="stop-feature-button" hidden>■ <span data-i18n="stopPython">Stop</span></button><button id="runPythonBtn" class="primary-feature-button">▶ <span data-i18n="runPython">Run Python</span></button></div>
           </div>
           <div class="python-workspace">
             <div class="python-editor-wrap">
-              <label for="pythonEditor">main.py</label>
+              <label for="pythonEditor"><span>main.py</span><em data-i18n="editablePython">EDITABLE</em></label>
               <textarea id="pythonEditor" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="Python editor"></textarea>
+              <div class="python-statusbar"><span id="pythonEditorStatus" data-i18n="pythonEditorReady">Ready · ⌘/Ctrl + Enter to run</span><span id="pythonCursorPosition">Ln 1, Col 1</span></div>
             </div>
             <div class="python-io">
               <label><span data-i18n="standardInput">STANDARD INPUT</span><textarea id="pythonInput" placeholder="One input value per line"></textarea></label>
@@ -195,7 +216,7 @@
 
   <footer>
     <span id="fileStatus">◇ Not saved</span>
-    <span class="creator-credit">Built by Kaung Khant Ko · <button id="versionBtn" class="version-link" type="button">v1.4.3</button></span>
+    <span class="creator-credit">Built by Kaung Khant Ko · <button id="versionBtn" class="version-link" type="button">v1.4.5</button></span>
     <div><button id="showConsole" hidden>▰ Console</button><span id="symbolCount">0 symbols</span><span id="issueCount" class="ready">● Ready</span></div>
   </footer>
 
@@ -210,7 +231,7 @@
       <article><b>1</b><div><strong data-i18n="guideWrite">Write or add symbols</strong><p data-i18n="guideWriteHint">Use Declare, Set, Input, Output, If / Else, and While.</p></div></article>
       <article><b>2</b><div><strong data-i18n="guideBuild">Build the flowchart</strong><p data-i18n="guideBuildHint">Changes synchronize automatically. Build checks the syntax.</p></div></article>
       <article><b>3</b><div><strong data-i18n="guideRun">Run it</strong><p data-i18n="guideRunHint">Enter requested values in the Console, then inspect output and variables.</p></div></article>
-      <article><b>4</b><div><strong data-i18n="guideExport">Export your work</strong><p data-i18n="guideExportHint">Export flowcharts as SVG or PNG and source as Pseudocode, Python, Swift, or JavaScript.</p></div></article>
+      <article><b>4</b><div><strong data-i18n="guideExport">Export your work</strong><p data-i18n="guideExportHint">Export flowcharts as SVG or PNG and source as Java, Python, Swift, JavaScript, or Pseudocode.</p></div></article>
       <div class="reference-card">
         <div><strong data-i18n="referenceTitle">Flowgorithm language reference</strong><p data-i18n="referenceHint">Compare symbols, expressions, data types, and control structures with the original learning environment.</p></div>
         <a href="https://www.flowgorithm.org/documentation/" target="_blank" rel="noreferrer" data-i18n="openReference">Open reference ↗</a>
@@ -235,8 +256,8 @@ ToInteger, ToReal, ToString, Sin, Cos, Tan, Log</pre>
     </div>
     <div class="version-content">
       <div class="version-identity">
-        <img src="assets/icon.png" alt="">
-        <div><strong>Augorithm</strong><span id="currentVersion">Version 1.4.3</span><small>Built by Kaung Khant Ko</small></div>
+        <img src="assets/icons/icon-glass-1024.png" alt="Augorithm glass AU icon">
+        <div><strong>Augorithm</strong><span id="currentVersion">Version 1.4.5</span><small>Built by Kaung Khant Ko</small></div>
       </div>
       <div class="update-card">
         <div class="update-status-icon" id="updateStatusIcon">✓</div>
@@ -247,6 +268,8 @@ ToInteger, ToReal, ToString, Sin, Cos, Tan, Log</pre>
       <small class="automatic-update-note" data-i18n="automaticUpdates">Updates are checked automatically. Downloaded updates install when Augorithm restarts.</small>
     </div>
   </dialog>
+  <div id="appToast" class="app-toast" role="status" aria-live="polite" hidden></div>
+  <script src="source-generators.js"></script>
   <script src="renderer.js"></script>
 </body>
 </html>
