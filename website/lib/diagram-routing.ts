@@ -4,9 +4,50 @@ type Port = NonNullable<DiagramEdge["sourcePort"]>;
 
 function portPoint(node: DiagramNode, port: Port): Point {
   if (port === "top") return { x: node.position.x + node.width / 2, y: node.position.y };
-  if (port === "right") return { x: node.position.x + node.width, y: node.position.y + node.height / 2 };
-  if (port === "left") return { x: node.position.x, y: node.position.y + node.height / 2 };
+  // Input/output nodes are parallelograms. Their visible side at mid-height is
+  // inset from the rectangular DOM box, so routing to the box edge leaves a
+  // noticeable gap between the arrowhead and the shape.
+  const sideInset = node.kind === "input" || node.kind === "output"
+    ? node.width * 0.045
+    : 0;
+  if (port === "right") {
+    return {
+      x: node.position.x + node.width - sideInset,
+      y: node.position.y + node.height / 2,
+    };
+  }
+  if (port === "left") {
+    return {
+      x: node.position.x + sideInset,
+      y: node.position.y + node.height / 2,
+    };
+  }
   return { x: node.position.x + node.width / 2, y: node.position.y + node.height };
+}
+
+function offsetFromPort(point: Point, port: Port, distance: number): Point {
+  if (port === "top") return { x: point.x, y: point.y - distance };
+  if (port === "bottom") return { x: point.x, y: point.y + distance };
+  if (port === "left") return { x: point.x - distance, y: point.y };
+  return { x: point.x + distance, y: point.y };
+}
+
+function orthogonalize(points: Point[]): Point[] {
+  const result: Point[] = [];
+  points.forEach((point) => {
+    const previous = result.at(-1);
+    if (!previous) {
+      result.push(point);
+      return;
+    }
+    if (previous.x !== point.x && previous.y !== point.y) {
+      result.push({ x: point.x, y: previous.y });
+    }
+    if (result.at(-1)?.x !== point.x || result.at(-1)?.y !== point.y) {
+      result.push(point);
+    }
+  });
+  return result;
 }
 
 function automaticPorts(source: DiagramNode, target: DiagramNode): { source: Port; target: Port } {
@@ -37,11 +78,17 @@ function isLoopExit(edge: DiagramEdge, source: DiagramNode): boolean {
 export function edgePoints(edge: DiagramEdge, source: DiagramNode, target: DiagramNode): Point[] {
   if (edge.waypoints?.length) {
     const automatic = automaticPorts(source, target);
-    return [
-      portPoint(source, edge.sourcePort ?? automatic.source),
+    const sourcePort = edge.sourcePort ?? automatic.source;
+    const targetPort = edge.targetPort ?? automatic.target;
+    const start = portPoint(source, sourcePort);
+    const end = portPoint(target, targetPort);
+    return orthogonalize([
+      start,
+      offsetFromPort(start, sourcePort, 20),
       ...edge.waypoints,
-      portPoint(target, edge.targetPort ?? automatic.target),
-    ];
+      offsetFromPort(end, targetPort, 20),
+      end,
+    ]);
   }
 
   // Loop feedback always returns through an outside lane and enters through the

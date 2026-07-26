@@ -129,6 +129,83 @@ END`);
   ));
 });
 
+test("lands arrowheads on visible parallelogram borders and preserves port approach", () => {
+  const source = {
+    id: "source",
+    kind: "loop" as const,
+    label: "WHILE ready",
+    position: { x: 100, y: 100 },
+    width: 300,
+    height: 100,
+    style: { fill: "#fff", stroke: "#000", text: "#000", fontSize: 14 },
+  };
+  const target = {
+    id: "target",
+    kind: "output" as const,
+    label: "OUTPUT result",
+    position: { x: 600, y: 240 },
+    width: 320,
+    height: 100,
+    style: { fill: "#fff", stroke: "#000", text: "#000", fontSize: 14 },
+  };
+  const route = edgePoints(
+    { id: "edge", source: source.id, target: target.id, label: "True" },
+    source,
+    target,
+  );
+
+  assert.deepEqual(route.at(-1), {
+    x: target.position.x + target.width * 0.045,
+    y: target.position.y + target.height / 2,
+  });
+  assert.equal(route.at(-2)?.y, route.at(-1)?.y);
+  assert.ok((route.at(-2)?.x ?? Infinity) < (route.at(-1)?.x ?? -Infinity));
+});
+
+test("keeps edited waypoint routes orthogonal at shape ports", () => {
+  const source = {
+    id: "source",
+    kind: "process" as const,
+    label: "SET value = 1",
+    position: { x: 100, y: 100 },
+    width: 260,
+    height: 80,
+    style: { fill: "#fff", stroke: "#000", text: "#000", fontSize: 14 },
+  };
+  const target = {
+    id: "target",
+    kind: "input" as const,
+    label: "INPUT value",
+    position: { x: 620, y: 280 },
+    width: 300,
+    height: 90,
+    style: { fill: "#fff", stroke: "#000", text: "#000", fontSize: 14 },
+  };
+  const route = edgePoints(
+    {
+      id: "edge",
+      source: source.id,
+      target: target.id,
+      sourcePort: "right",
+      targetPort: "left",
+      waypoints: [{ x: 480, y: 210 }],
+    },
+    source,
+    target,
+  );
+
+  for (let index = 1; index < route.length; index += 1) {
+    assert.ok(
+      route[index - 1].x === route[index].x || route[index - 1].y === route[index].y,
+      "every edited connector segment should remain orthogonal",
+    );
+  }
+  assert.deepEqual(route.at(-1), {
+    x: target.position.x + target.width * 0.045,
+    y: target.position.y + target.height / 2,
+  });
+});
+
 test("executes false and else-if branches", () => {
   const result = executePseudocode(`START
 SET score TO 45

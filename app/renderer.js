@@ -1376,7 +1376,7 @@ function drawDecisionConnectors() {
   svg.setAttribute('height', height);
   svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
   svg.innerHTML = `<defs>
-    <marker id="flow-arrow" markerWidth="8" markerHeight="8" refX="7.4" refY="4" orient="auto" markerUnits="userSpaceOnUse">
+    <marker id="flow-arrow" markerWidth="8" markerHeight="8" refX="8" refY="4" orient="auto" markerUnits="userSpaceOnUse">
       <path d="M0,0 L8,4 L0,8 Z" fill="#30455f" stroke="none"></path>
     </marker>
   </defs>`;
@@ -1390,8 +1390,13 @@ function drawDecisionConnectors() {
   };
   const sidePoint = (element, edge) => {
     const rect = element.getBoundingClientRect();
+    const parallelogramInset = element.classList.contains('input') || element.classList.contains('output')
+      ? rect.width * 0.035
+      : 0;
     return {
-      x: ((edge === 'left' ? rect.left : rect.right) - hostRect.left) / scale,
+      x: ((edge === 'left'
+        ? rect.left + parallelogramInset
+        : rect.right - parallelogramInset) - hostRect.left) / scale,
       y: (rect.top + rect.height / 2 - hostRect.top) / scale
     };
   };
@@ -2924,7 +2929,7 @@ function makeFlowchartSVG() {
     svg: `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
       <rect width="100%" height="100%" fill="#fbfaf5"></rect>
       <defs>
-        <marker id="export-flow-arrow" markerWidth="8" markerHeight="8" refX="7.4" refY="4" orient="auto" markerUnits="userSpaceOnUse">
+        <marker id="export-flow-arrow" markerWidth="8" markerHeight="8" refX="8" refY="4" orient="auto" markerUnits="userSpaceOnUse">
           <path d="M0,0 L8,4 L0,8 Z" fill="#30455f"></path>
         </marker>
       </defs>

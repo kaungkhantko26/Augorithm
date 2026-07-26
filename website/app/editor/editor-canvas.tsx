@@ -157,7 +157,7 @@ export function EditorCanvas({
       >
         <svg className="editor-edge-layer" width={CANVAS_WIDTH} height={CANVAS_HEIGHT} role="group" aria-label="Diagram connections">
           <defs>
-            <marker id="editor-arrow" markerWidth="8" markerHeight="8" refX="7.4" refY="4" orient="auto" markerUnits="userSpaceOnUse">
+            <marker id="editor-arrow" markerWidth="8" markerHeight="8" refX="8" refY="4" orient="auto" markerUnits="userSpaceOnUse">
               <path d="M0,0 L8,4 L0,8 Z" />
             </marker>
           </defs>

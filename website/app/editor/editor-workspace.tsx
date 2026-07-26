@@ -108,7 +108,7 @@ function exportSvg(page: DiagramPage): string {
       `<tspan x="${node.position.x + node.width / 2}" dy="${index === 0 ? 0 : 19}">${escape(line.trim())}</tspan>`).join("");
     return `<g>${shape}<text x="${node.position.x + node.width / 2}" y="${node.position.y + node.height / 2 - (lines.length - 1) * 8}" text-anchor="middle" dominant-baseline="middle" fill="${node.style.text}" font-family="Inter,Arial,sans-serif" font-size="${node.style.fontSize}" font-weight="650">${text}</text></g>`;
   }).join("");
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7.4" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0 0 L8 4 L0 8Z" fill="#30455f"/></marker></defs><rect width="100%" height="100%" fill="${page.background}"/><g transform="translate(${offsetX} ${offsetY})">${edges}${nodes}</g></svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="8" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0 0 L8 4 L0 8Z" fill="#30455f"/></marker></defs><rect width="100%" height="100%" fill="${page.background}"/><g transform="translate(${offsetX} ${offsetY})">${edges}${nodes}</g></svg>`;
 }
 
 async function svgToPng(svg: string): Promise<Blob> {
