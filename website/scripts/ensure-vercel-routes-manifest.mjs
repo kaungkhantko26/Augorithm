@@ -1,4 +1,4 @@
-import { copyFile, access, mkdir } from "node:fs/promises";
+import { copyFile, access, cp, mkdir } from "node:fs/promises";
 import { constants } from "node:fs";
 import { join } from "node:path";
 
@@ -17,11 +17,11 @@ try {
 }
 
 // With a monorepo Root Directory, Vercel 56 currently completes the build in
-// `website/.next` but performs one final compatibility lookup at the checkout
-// root. Mirror only the requested manifest there; the application output stays
-// in the configured project directory.
+// `website/.next` but performs its final output collection at the checkout
+// root. Mirror the completed build there so all server manifests and chunks
+// stay together. This is only an ephemeral Vercel build-directory copy.
 if (process.env.VERCEL) {
   const collectorDirectory = join(process.cwd(), "..", ".next");
   await mkdir(collectorDirectory, { recursive: true });
-  await copyFile(deterministic, join(collectorDirectory, "routes-manifest-deterministic.json"));
+  await cp(buildDirectory, collectorDirectory, { recursive: true, force: true });
 }
