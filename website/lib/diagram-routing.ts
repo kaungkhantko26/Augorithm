@@ -75,6 +75,23 @@ function isLoopExit(edge: DiagramEdge, source: DiagramNode): boolean {
   return source.kind === "loop" && /^(?:false|done)$/i.test(edge.label ?? "");
 }
 
+function isLoopFeedback(source: DiagramNode, target: DiagramNode): boolean {
+  // A loop has two kinds of incoming edges: the normal entry from the symbol
+  // above it and the feedback edge from the last symbol in its body. Treating
+  // every incoming edge as feedback sent normal entry lines around the outside
+  // lane and produced the apparently disconnected arrows seen in exports.
+  return target.kind === "loop"
+    && source.id !== target.id
+    && source.position.y >= target.position.y + target.height;
+}
+
+function loopBottomPoint(node: DiagramNode, lane: "exit" | "feedback"): Point {
+  return {
+    x: node.position.x + node.width * (lane === "exit" ? 0.24 : 0.68),
+    y: node.position.y + node.height,
+  };
+}
+
 export function edgePoints(edge: DiagramEdge, source: DiagramNode, target: DiagramNode): Point[] {
   if (edge.waypoints?.length) {
     const automatic = automaticPorts(source, target);
@@ -93,9 +110,11 @@ export function edgePoints(edge: DiagramEdge, source: DiagramNode, target: Diagr
 
   // Loop feedback always returns through an outside lane and enters through the
   // bottom port. It can therefore never share a lane with the forward branch.
-  if (target.kind === "loop" && source.id !== target.id) {
+  if (isLoopFeedback(source, target)) {
     const start = portPoint(source, edge.sourcePort ?? "bottom");
-    const end = portPoint(target, edge.targetPort ?? "bottom");
+    const end = edge.targetPort
+      ? portPoint(target, edge.targetPort)
+      : loopBottomPoint(target, "feedback");
     const laneX = Math.max(
       source.position.x + source.width,
       target.position.x + target.width,
@@ -117,17 +136,18 @@ export function edgePoints(edge: DiagramEdge, source: DiagramNode, target: Diagr
   // above. This removes the opposing arrows visible in the previous layout.
   if (isLoopContinue(edge, source)) {
     const start = portPoint(source, edge.sourcePort ?? "right");
-    const targetIsRight = target.position.x >= source.position.x + source.width / 2;
-    const targetPort: Port = edge.targetPort ?? (targetIsRight ? "left" : "top");
+    const targetPort: Port = edge.targetPort ?? "top";
     const end = portPoint(target, targetPort);
     if (Math.abs(start.y - end.y) < 1) return [start, end];
-    const laneX = Math.max(start.x + 52, start.x + (end.x - start.x) / 2);
+    const laneX = Math.max(start.x + 52, end.x);
     return [start, { x: laneX, y: start.y }, { x: laneX, y: end.y }, end];
   }
 
   // Done/False leaves through the bottom, clearly separated from the body.
   if (isLoopExit(edge, source)) {
-    const start = portPoint(source, edge.sourcePort ?? "bottom");
+    const start = edge.sourcePort
+      ? portPoint(source, edge.sourcePort)
+      : loopBottomPoint(source, "exit");
     const end = portPoint(target, edge.targetPort ?? "top");
     if (Math.abs(start.x - end.x) < 1) return [start, end];
     const middleY = start.y + Math.max(48, (end.y - start.y) / 2);
