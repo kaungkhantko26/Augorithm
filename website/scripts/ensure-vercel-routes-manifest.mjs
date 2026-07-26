@@ -21,7 +21,13 @@ try {
 // root. Mirror the completed build there so all server manifests and chunks
 // stay together. This is only an ephemeral Vercel build-directory copy.
 if (process.env.VERCEL) {
-  const collectorDirectory = join(process.cwd(), "..", ".next");
+  const checkoutDirectory = join(process.cwd(), "..");
+  const collectorDirectory = join(checkoutDirectory, ".next");
   await mkdir(collectorDirectory, { recursive: true });
   await cp(buildDirectory, collectorDirectory, { recursive: true, force: true });
+  await cp(
+    join(process.cwd(), "node_modules"),
+    join(checkoutDirectory, "node_modules"),
+    { recursive: true, force: true },
+  );
 }
