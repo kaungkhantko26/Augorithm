@@ -12,6 +12,7 @@
   },
   "scripts": {
     "start": "electron .",
+    "test": "node tests/source-generators.test.js",
     "pack": "electron-builder --dir --mac",
     "dmg": "electron-builder --mac dmg zip --arm64",
     "windows": "electron-builder --win nsis --x64"

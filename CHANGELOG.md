@@ -11,6 +11,8 @@ All notable Augorithm changes are documented here.
 - Automatic project and export filenames based on algorithm content
 - Database normalization workspace with guided 1NF, 2NF, and 3NF decomposition
 - Desktop Python editor, export, console input, and local Python 3 runner
+- Typed pseudocode-to-Java generation with `Scanner` input and Java-safe expressions
+- IDE-style generated-source viewer with syntax highlighting, line numbers, wrapping, copy, and language-aware filenames
 - Save/export reveal actions for Finder and File Explorer
 
 ### Improved

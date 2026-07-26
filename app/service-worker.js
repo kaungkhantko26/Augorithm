@@ -1,8 +1,9 @@
-const CACHE_NAME = 'augorithm-1.4.3';
+const CACHE_NAME = 'augorithm-1.4.3-java-source';
 const APP_FILES = [
   './',
   './index.html',
   './styles.css',
+  './source-generators.js',
   './renderer.js',
   './manifest.webmanifest',
   './assets/icon.png'

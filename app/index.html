@@ -117,15 +117,33 @@
         </div>
         <div class="tab-pane source-pane" id="sourcePane">
           <div class="source-toolbar">
-            <span data-i18n="generatedSource">GENERATED SOURCE</span>
-            <div><select id="languageSelect">
-              <option value="pseudocode">Pseudocode</option>
-              <option value="python">Python</option>
-              <option value="swift">Swift</option>
-              <option value="javascript">JavaScript</option>
-            </select><button id="exportBtn">⇧ <span data-i18n="export">Export</span></button></div>
+            <div class="source-identity">
+              <i></i>
+              <div><strong data-i18n="generatedSource">GENERATED SOURCE</strong><span id="sourceFileName">main.java</span></div>
+              <em data-i18n="liveGenerated">LIVE</em>
+            </div>
+            <div class="source-actions">
+              <label for="languageSelect" data-i18n="targetLanguage">Target</label>
+              <select id="languageSelect">
+                <option value="java">Java</option>
+                <option value="python">Python</option>
+                <option value="javascript">JavaScript</option>
+                <option value="swift">Swift</option>
+                <option value="pseudocode">Pseudocode</option>
+              </select>
+              <button id="wrapSourceBtn" class="icon-source-button" type="button" title="Toggle line wrapping" aria-pressed="false">↩</button>
+              <button id="copySourceBtn" type="button">⧉ <span data-i18n="copyCode">Copy</span></button>
+              <button id="exportBtn" type="button">⇧ <span data-i18n="export">Export</span></button>
+            </div>
           </div>
-          <pre id="sourceCode"></pre>
+          <div class="source-editor" id="sourceEditor">
+            <pre id="sourceLineNumbers" aria-hidden="true"></pre>
+            <pre id="sourceCode" tabindex="0" aria-label="Generated source code"></pre>
+          </div>
+          <div class="source-statusbar">
+            <span id="sourceStatus" data-i18n="liveSourceHint">Generated live from pseudocode</span>
+            <div><span id="sourceStats">0 lines</span><span id="sourceEncoding">UTF-8</span><span id="sourceMode">Java</span></div>
+          </div>
         </div>
         <div class="tab-pane database-pane" id="databasePane">
           <div class="feature-toolbar">
@@ -210,7 +228,7 @@
       <article><b>1</b><div><strong data-i18n="guideWrite">Write or add symbols</strong><p data-i18n="guideWriteHint">Use Declare, Set, Input, Output, If / Else, and While.</p></div></article>
       <article><b>2</b><div><strong data-i18n="guideBuild">Build the flowchart</strong><p data-i18n="guideBuildHint">Changes synchronize automatically. Build checks the syntax.</p></div></article>
       <article><b>3</b><div><strong data-i18n="guideRun">Run it</strong><p data-i18n="guideRunHint">Enter requested values in the Console, then inspect output and variables.</p></div></article>
-      <article><b>4</b><div><strong data-i18n="guideExport">Export your work</strong><p data-i18n="guideExportHint">Export flowcharts as SVG or PNG and source as Pseudocode, Python, Swift, or JavaScript.</p></div></article>
+      <article><b>4</b><div><strong data-i18n="guideExport">Export your work</strong><p data-i18n="guideExportHint">Export flowcharts as SVG or PNG and source as Java, Python, Swift, JavaScript, or Pseudocode.</p></div></article>
       <div class="reference-card">
         <div><strong data-i18n="referenceTitle">Flowgorithm language reference</strong><p data-i18n="referenceHint">Compare symbols, expressions, data types, and control structures with the original learning environment.</p></div>
         <a href="https://www.flowgorithm.org/documentation/" target="_blank" rel="noreferrer" data-i18n="openReference">Open reference ↗</a>
@@ -247,6 +265,7 @@ ToInteger, ToReal, ToString, Sin, Cos, Tan, Log</pre>
       <small class="automatic-update-note" data-i18n="automaticUpdates">Updates are checked automatically. Downloaded updates install when Augorithm restarts.</small>
     </div>
   </dialog>
+  <script src="source-generators.js"></script>
   <script src="renderer.js"></script>
 </body>
 </html>

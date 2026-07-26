@@ -32,6 +32,7 @@ Augorithm is built by **Kaung Khant Ko** as an independent computer-science lear
 - Save and reopen complete `.augo` projects, including recovery for unsaved work.
 - Translate the interface between English and Burmese.
 - Use the database-normalization workspace for guided 1NF, 2NF, and 3NF decomposition.
+- Generate readable Java, Python, Swift, and JavaScript from pseudocode.
 - Write and run Python in the desktop app.
 - Install the offline-capable web app on iPad.
 
@@ -86,7 +87,8 @@ Then:
 1. Select **Build** to validate and generate the flowchart.
 2. Select **Run** and provide values when Augorithm prompts for input.
 3. Open **Flowchart** to edit or inspect the diagram.
-4. Use **Copy**, **PNG**, or **SVG** to place the flowchart in Canva, PowerPoint, documents, or other design tools.
+4. Open **Source** to generate Java, Python, Swift, JavaScript, or Pseudocode with live filenames, line numbers, copy, and export controls.
+5. Use **Copy**, **PNG**, or **SVG** to place the flowchart in Canva, PowerPoint, documents, or other design tools.
 
 ## Pseudocode support
 
@@ -100,6 +102,18 @@ Augorithm accepts several common teaching styles, including:
 - Quote-aware inline statements such as `Output "Fail" End If`
 
 The formatter uses four-space indentation and supports Tab, Shift+Tab, smart Enter, and automatic block completion.
+
+## Java source generation
+
+Java is the default generated-source target. Augorithm converts normalized pseudocode into a complete Java class with:
+
+- A safe class name derived from the project name
+- Typed `int`, `double`, `String`, `boolean`, and `char` declarations
+- `Scanner`-based console input
+- Java conditions, `Objects.equals` string comparisons, and `Math` functions
+- Inclusive positive or negative `For` loops
+- `If`/`Else If`/`Else`, `While`, comments, assignments, and output
+- Matching `.java` export filenames, live syntax highlighting, line numbers, copy, and wrapping
 
 ## Flowcharts and exports
 

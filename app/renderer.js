@@ -160,7 +160,11 @@ const translations = {
     flowchartCopied: 'Flowchart copied — paste it into Canva or PowerPoint.',
     flowchartCopyFailed: 'Could not copy the flowchart: {message}',
     editNodeHint: 'Double-click to edit this statement',
-    generatedSource: 'GENERATED SOURCE', export: 'Export',
+    generatedSource: 'GENERATED SOURCE', export: 'Export', copyCode: 'Copy',
+    liveGenerated: 'LIVE', targetLanguage: 'Target',
+    liveSourceHint: 'Generated live from pseudocode',
+    sourceCopied: '{language} source copied to the clipboard.',
+    sourceCopyFailed: 'Could not copy source: {message}',
     clear: 'Clear', inspector: 'INSPECTOR', validation: 'VALIDATION', console: 'CONSOLE',
     pressRun: 'Press Run to execute your algorithm.', consoleInput: 'CONSOLE INPUT',
     inputHint: 'Augorithm prompts for every INPUT statement.', runAgain: 'Run again',
@@ -180,7 +184,7 @@ const translations = {
     guideBuild: 'Build the flowchart', guideBuildHint: 'Changes synchronize automatically. Build checks the syntax.',
     guideRun: 'Run it', guideRunHint: 'Enter requested values in the Console, then inspect output and variables.',
     guideExport: 'Export your work',
-    guideExportHint: 'Export flowcharts as SVG or PNG and source as Pseudocode, Python, Swift, or JavaScript.',
+    guideExportHint: 'Export flowcharts as SVG or PNG and source as Java, Python, Swift, JavaScript, or Pseudocode.',
     referenceTitle: 'Flowgorithm language reference',
     referenceHint: 'Compare symbols, expressions, data types, and control structures with the original learning environment.',
     openReference: 'Open reference ↗', statement: 'STATEMENT', update: 'Update',
@@ -223,7 +227,11 @@ const translations = {
     flowchartCopied: 'ပုံကြမ်းကို ကူးယူပြီးပါပြီ — Canva သို့မဟုတ် PowerPoint တွင် ထည့်နိုင်ပါသည်။',
     flowchartCopyFailed: 'ပုံကြမ်းကို ကူးယူ၍မရပါ: {message}',
     editNodeHint: 'ဤဖော်ပြချက်ကို ပြင်ရန် နှစ်ချက်နှိပ်ပါ',
-    generatedSource: 'ထုတ်ပေးထားသော ရင်းမြစ်ကုဒ်', export: 'ထုတ်ယူ',
+    generatedSource: 'ထုတ်ပေးထားသော ရင်းမြစ်ကုဒ်', export: 'ထုတ်ယူ', copyCode: 'ကူးယူ',
+    liveGenerated: 'တိုက်ရိုက်', targetLanguage: 'ရည်ရွယ်ဘာသာ',
+    liveSourceHint: 'Pseudocode မှ အလိုအလျောက် ထုတ်ပေးထားသည်',
+    sourceCopied: '{language} ကုဒ်ကို ကူးယူပြီးပါပြီ။',
+    sourceCopyFailed: 'ကုဒ်ကူးယူ၍မရပါ: {message}',
     clear: 'ရှင်းလင်း', inspector: 'စစ်ဆေးရန်', validation: 'အတည်ပြုစစ်ဆေးမှု',
     console: 'လုပ်ဆောင်မှုမှတ်တမ်း', pressRun: 'လုပ်ဆောင်ရန် “Run” ကိုနှိပ်ပါ။',
     consoleInput: 'ထည့်သွင်းတန်ဖိုး', inputHint: 'INPUT တစ်ခုချင်းစီအတွက် တန်ဖိုးတောင်းပါမည်။',
@@ -251,7 +259,7 @@ const translations = {
     guideRun: 'လုပ်ဆောင်ပါ',
     guideRunHint: 'တောင်းဆိုသောတန်ဖိုးများကို ထည့်ပြီး အထွက်နှင့် ကိန်းရှင်များကို စစ်ဆေးပါ။',
     guideExport: 'သင့်အလုပ်ကို ထုတ်ယူပါ',
-    guideExportHint: 'ပုံကြမ်းကို SVG/PNG နှင့် ကုဒ်ကို Pseudocode, Python, Swift သို့မဟုတ် JavaScript အဖြစ် ထုတ်ယူပါ။',
+    guideExportHint: 'ပုံကြမ်းကို SVG/PNG နှင့် ကုဒ်ကို Java, Python, Swift, JavaScript သို့မဟုတ် Pseudocode အဖြစ် ထုတ်ယူပါ။',
     referenceTitle: 'Flowgorithm ဘာသာစကား ကိုးကားချက်',
     referenceHint: 'သင်္ကေတ၊ ဖော်ပြချက်၊ ဒေတာအမျိုးအစားနှင့် ထိန်းချုပ်ပုံများကို မူရင်းစနစ်နှင့် နှိုင်းယှဉ်ပါ။',
     openReference: 'ကိုးကားချက်ဖွင့်ရန် ↗', statement: 'ဖော်ပြချက်', update: 'ပြင်ဆင်မည်',
@@ -2054,6 +2062,12 @@ function renderVariables() {
 function sourceFor(language) {
   const source = $('#codeEditor').value;
   if (language === 'pseudocode') return source;
+  if (language === 'java') {
+    const statements = logicalSourceLines(source).map(({ raw }) => normalizeStatement(raw)).filter(Boolean);
+    return window.AugorithmSourceGenerators.generateJavaSource(statements, {
+      projectName: $('#projectName').value
+    });
+  }
   const out = [];
   let indent = 0;
   const unit = '    ';
@@ -2140,8 +2154,90 @@ function sourceFor(language) {
   return out.join('\n');
 }
 
+const sourceLanguageMeta = {
+  java: { label: 'Java', extension: 'java' },
+  python: { label: 'Python', extension: 'py' },
+  javascript: { label: 'JavaScript', extension: 'js' },
+  swift: { label: 'Swift', extension: 'swift' },
+  pseudocode: { label: 'Pseudocode', extension: 'txt' }
+};
+
+const sourceKeywords = {
+  java: [
+    'public', 'private', 'protected', 'final', 'class', 'static', 'void', 'int',
+    'double', 'boolean', 'char', 'String', 'new', 'import', 'if', 'else', 'while',
+    'for', 'return', 'true', 'false', 'null', 'throws', 'try', 'catch'
+  ],
+  python: ['def', 'if', 'elif', 'else', 'while', 'for', 'in', 'range', 'return', 'try', 'except', 'True', 'False', 'None', 'import'],
+  javascript: ['function', 'let', 'const', 'var', 'if', 'else', 'while', 'for', 'return', 'true', 'false', 'null', 'new'],
+  swift: ['import', 'struct', 'class', 'static', 'func', 'var', 'let', 'if', 'else', 'while', 'for', 'in', 'true', 'false', 'nil'],
+  pseudocode: ['START', 'END', 'PROGRAM', 'DECLARE', 'AS', 'SET', 'INPUT', 'OUTPUT', 'IF', 'THEN', 'ELSE', 'WHILE', 'FOR', 'TO', 'STEP', 'NEXT']
+};
+
+function highlightSource(code, language) {
+  const keywords = sourceKeywords[language] || [];
+  const escapedKeywords = keywords.map(keyword => keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
+  const commentPattern = language === 'python' || language === 'pseudocode' ? '#[^\\n]*|//[^\\n]*' : '//[^\\n]*';
+  const pattern = new RegExp(
+    `("(?:\\\\.|[^"\\\\])*"|'(?:\\\\.|[^'\\\\])*')|(${commentPattern})|\\b(\\d+(?:\\.\\d+)?)\\b${escapedKeywords ? `|\\b(${escapedKeywords})\\b` : ''}`,
+    'g'
+  );
+  let html = '';
+  let position = 0;
+  for (const match of code.matchAll(pattern)) {
+    html += escapeHTML(code.slice(position, match.index));
+    const className = match[1] ? 'token-string' : match[2] ? 'token-comment' : match[3] ? 'token-number' : 'token-keyword';
+    html += `<span class="${className}">${escapeHTML(match[0])}</span>`;
+    position = match.index + match[0].length;
+  }
+  return html + escapeHTML(code.slice(position));
+}
+
+function generatedSourceFileName(language) {
+  const meta = sourceLanguageMeta[language];
+  if (language === 'java') {
+    return `${window.AugorithmSourceGenerators.sanitizeJavaClassName($('#projectName').value)}.java`;
+  }
+  const base = String($('#projectName').value || 'algorithm').trim()
+    .replace(/[^\p{L}\p{N}_-]+/gu, '-').replace(/^-+|-+$/g, '') || 'algorithm';
+  return `${base}.${meta.extension}`;
+}
+
 function renderSource() {
-  $('#sourceCode').textContent = sourceFor($('#languageSelect').value);
+  const language = $('#languageSelect').value;
+  const meta = sourceLanguageMeta[language] || sourceLanguageMeta.java;
+  const code = sourceFor(language);
+  const lines = code.split(/\r?\n/);
+  $('#sourceCode').innerHTML = highlightSource(code, language);
+  $('#sourceLineNumbers').textContent = lines.map((_line, index) => index + 1).join('\n');
+  $('#sourceFileName').textContent = generatedSourceFileName(language);
+  $('#sourceStats').textContent = `${lines.length} ${lines.length === 1 ? 'line' : 'lines'} · ${code.length} chars`;
+  $('#sourceMode').textContent = meta.label;
+  $('#sourceStatus').textContent = t('liveSourceHint');
+  $('#sourceEditor').dataset.language = language;
+}
+
+async function copyGeneratedSource() {
+  const language = $('#languageSelect').value;
+  const meta = sourceLanguageMeta[language] || sourceLanguageMeta.java;
+  const source = sourceFor(language);
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(source);
+    } else {
+      const temporary = document.createElement('textarea');
+      temporary.value = source;
+      temporary.style.position = 'fixed';
+      temporary.style.opacity = '0';
+      document.body.appendChild(temporary);
+      temporary.select();
+      if (!document.execCommand('copy')) throw new Error('Clipboard access is unavailable.');
+      temporary.remove();
+    }
+    $('#sourceStatus').textContent = tf('sourceCopied', { language: meta.label });
+  } catch (error) {
+    $('#sourceStatus').textContent = tf('sourceCopyFailed', { message: error.message });
+  }
 }
 
 const splitNames = value => [...new Set(String(value || '').split(',').map(item => item.trim()).filter(Boolean))];
@@ -2493,6 +2589,8 @@ function init() {
   document.body.dataset.platform = window.augorithm.platform || 'browser';
   document.body.dataset.activeTab = 'flow';
   applyTheme(uiTheme);
+  const savedSourceLanguage = localStorage.getItem('augorithm.sourceLanguage');
+  if (sourceLanguageMeta[savedSourceLanguage]) $('#languageSelect').value = savedSourceLanguage;
   $('#codeEditor').value = templates[0].code;
   renderTemplateGrid();
   $$('.symbol').forEach(button => button.addEventListener('click', () => insertSnippet(button.dataset.kind)));
@@ -2515,6 +2613,7 @@ function init() {
     state.projectNameEdited = true;
     markDirty();
     updateEditorFileName();
+    renderSource();
   });
   $('#buildBtn').addEventListener('click', buildAndFix);
   $('#runBtn').addEventListener('click', startProgram);
@@ -2534,7 +2633,17 @@ function init() {
   $('#versionBtn').addEventListener('click', () => openVersionDialog(false));
   $('#updateActionBtn').addEventListener('click', handleUpdateAction);
   $$('.dialog-close').forEach(button => button.addEventListener('click', () => button.closest('dialog').close()));
-  $('#languageSelect').addEventListener('change', renderSource);
+  $('#languageSelect').addEventListener('change', event => {
+    localStorage.setItem('augorithm.sourceLanguage', event.target.value);
+    renderSource();
+  });
+  $('#copySourceBtn').addEventListener('click', copyGeneratedSource);
+  $('#wrapSourceBtn').addEventListener('click', event => {
+    const enabled = !$('#sourceEditor').classList.contains('wrap-lines');
+    $('#sourceEditor').classList.toggle('wrap-lines', enabled);
+    event.currentTarget.setAttribute('aria-pressed', String(enabled));
+    event.currentTarget.classList.toggle('active', enabled);
+  });
   $('#databaseExampleBtn').addEventListener('click', () => loadNormalizationExample(true));
   $('#normalizeBtn').addEventListener('click', event => { event.preventDefault(); analyzeNormalization(); });
   ['relationName', 'dbAttributes', 'dbPrimaryKey', 'dbDependencies'].forEach(id =>
@@ -2562,9 +2671,18 @@ function init() {
   $('#exportPNG').addEventListener('click', () => exportFlowchart('png'));
   $('#exportBtn').addEventListener('click', async () => {
     const language = $('#languageSelect').value;
-    const extensions = { pseudocode: 'txt', python: 'py', swift: 'swift', javascript: 'js' };
-    const path = await window.augorithm.exportSource({ name: $('#projectName').value, content: sourceFor(language), extension: extensions[language] });
-    if (path) $('#runtimeStatus').textContent = savedLocationMessage('Exported', path);
+    const meta = sourceLanguageMeta[language] || sourceLanguageMeta.java;
+    const fileName = generatedSourceFileName(language);
+    const exportName = fileName.slice(0, -(meta.extension.length + 1));
+    const path = await window.augorithm.exportSource({
+      name: exportName,
+      content: sourceFor(language),
+      extension: meta.extension
+    });
+    if (path) {
+      $('#sourceStatus').textContent = savedLocationMessage('Exported', path);
+      $('#runtimeStatus').textContent = savedLocationMessage('Exported', path);
+    }
   });
   $('#zoomOut').addEventListener('click', () => setZoom(state.zoom - .1));
   $('#zoomIn').addEventListener('click', () => setZoom(state.zoom + .1));
