@@ -167,12 +167,13 @@
         <div class="tab-pane python-pane" id="pythonPane">
           <div class="feature-toolbar">
             <div><strong data-i18n="pythonWorkspace">PYTHON EDITOR</strong><span data-i18n="pythonHint">Generate Python from pseudocode, edit it, and run it in the desktop app.</span></div>
-            <div><button id="generatePythonBtn" data-i18n="generatePython">Generate from pseudocode</button><button id="exportPythonBtn" data-i18n="exportPython">Export .py</button><button id="runPythonBtn" class="primary-feature-button">▶ <span data-i18n="runPython">Run Python</span></button></div>
+            <div><button id="generatePythonBtn" data-i18n="generatePython">Generate from pseudocode</button><button id="exportPythonBtn" data-i18n="exportPython">Export .py</button><button id="stopPythonBtn" class="stop-feature-button" hidden>■ <span data-i18n="stopPython">Stop</span></button><button id="runPythonBtn" class="primary-feature-button">▶ <span data-i18n="runPython">Run Python</span></button></div>
           </div>
           <div class="python-workspace">
             <div class="python-editor-wrap">
-              <label for="pythonEditor">main.py</label>
+              <label for="pythonEditor"><span>main.py</span><em data-i18n="editablePython">EDITABLE</em></label>
               <textarea id="pythonEditor" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="Python editor"></textarea>
+              <div class="python-statusbar"><span id="pythonEditorStatus" data-i18n="pythonEditorReady">Ready · ⌘/Ctrl + Enter to run</span><span id="pythonCursorPosition">Ln 1, Col 1</span></div>
             </div>
             <div class="python-io">
               <label><span data-i18n="standardInput">STANDARD INPUT</span><textarea id="pythonInput" placeholder="One input value per line"></textarea></label>
@@ -215,7 +216,7 @@
 
   <footer>
     <span id="fileStatus">◇ Not saved</span>
-    <span class="creator-credit">Built by Kaung Khant Ko · <button id="versionBtn" class="version-link" type="button">v1.4.4</button></span>
+    <span class="creator-credit">Built by Kaung Khant Ko · <button id="versionBtn" class="version-link" type="button">v1.4.5</button></span>
     <div><button id="showConsole" hidden>▰ Console</button><span id="symbolCount">0 symbols</span><span id="issueCount" class="ready">● Ready</span></div>
   </footer>
 
@@ -256,7 +257,7 @@ ToInteger, ToReal, ToString, Sin, Cos, Tan, Log</pre>
     <div class="version-content">
       <div class="version-identity">
         <img src="assets/icons/icon-glass-1024.png" alt="Augorithm glass AU icon">
-        <div><strong>Augorithm</strong><span id="currentVersion">Version 1.4.4</span><small>Built by Kaung Khant Ko</small></div>
+        <div><strong>Augorithm</strong><span id="currentVersion">Version 1.4.5</span><small>Built by Kaung Khant Ko</small></div>
       </div>
       <div class="update-card">
         <div class="update-status-icon" id="updateStatusIcon">✓</div>
@@ -267,6 +268,7 @@ ToInteger, ToReal, ToString, Sin, Cos, Tan, Log</pre>
       <small class="automatic-update-note" data-i18n="automaticUpdates">Updates are checked automatically. Downloaded updates install when Augorithm restarts.</small>
     </div>
   </dialog>
+  <div id="appToast" class="app-toast" role="status" aria-live="polite" hidden></div>
   <script src="source-generators.js"></script>
   <script src="renderer.js"></script>
 </body>

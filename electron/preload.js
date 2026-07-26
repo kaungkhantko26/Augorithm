@@ -8,6 +8,7 @@ contextBridge.exposeInMainWorld('augorithm', {
   onUpdateState: callback => ipcRenderer.on('app:update-state', (_event, state) => callback(state)),
   revealFile: filePath => ipcRenderer.invoke('file:reveal', filePath),
   runPython: data => ipcRenderer.invoke('python:run', data),
+  stopPython: () => ipcRenderer.invoke('python:stop'),
   saveProject: (project, path) => ipcRenderer.invoke('project:save', project, path),
   openProject: () => ipcRenderer.invoke('project:open'),
   exportSource: data => ipcRenderer.invoke('source:export', data),

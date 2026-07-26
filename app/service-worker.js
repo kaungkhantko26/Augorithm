@@ -1,4 +1,4 @@
-const CACHE_NAME = 'augorithm-1.4.4-glass-brand';
+const CACHE_NAME = 'augorithm-1.4.5-editor-runtime';
 const APP_FILES = [
   './',
   './index.html',

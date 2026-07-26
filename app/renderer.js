@@ -1,6 +1,6 @@
 const $ = selector => document.querySelector(selector);
 const $$ = selector => [...document.querySelectorAll(selector)];
-const APP_VERSION = '1.4.4';
+const APP_VERSION = '1.4.5';
 
 // Browser/iPad fallback; Electron replaces this with the secure preload bridge.
 if (!window.augorithm) {
@@ -125,6 +125,7 @@ if (!window.augorithm) {
       exitCode: null,
       command: null
     }),
+    stopPython: async () => false,
     saveProject: async project => {
       const filePath = safeDownloadName(project?.name, 'augo');
       downloadBlob(new Blob([JSON.stringify(project, null, 2)], { type: 'application/json' }), filePath);
@@ -213,7 +214,9 @@ const translations = {
     pythonWorkspace: 'PYTHON EDITOR',
     pythonHint: 'Generate Python from pseudocode, edit it, and run it in the desktop app.',
     generatePython: 'Generate from pseudocode', exportPython: 'Export .py',
-    runPython: 'Run Python', standardInput: 'STANDARD INPUT', pythonOutput: 'OUTPUT'
+    runPython: 'Run Python', stopPython: 'Stop', editablePython: 'EDITABLE',
+    pythonEditorReady: 'Ready · ⌘/Ctrl + Enter to run',
+    standardInput: 'STANDARD INPUT', pythonOutput: 'OUTPUT'
   },
   my: {
     build: 'တည်ဆောက်', run: 'လုပ်ဆောင်', symbols: 'သင်္ကေတများ', inputOutput: 'အဝင် / အထွက်',
@@ -290,7 +293,9 @@ const translations = {
     pythonWorkspace: 'PYTHON စာတည်းဖြတ်စနစ်',
     pythonHint: 'Pseudocode မှ Python ထုတ်ပြီး desktop app တွင် ပြင်ဆင်ကာ လုပ်ဆောင်ပါ။',
     generatePython: 'Pseudocode မှထုတ်မည်', exportPython: '.py ထုတ်မည်',
-    runPython: 'Python လုပ်ဆောင်မည်', standardInput: 'ထည့်သွင်းတန်ဖိုး', pythonOutput: 'အထွက်'
+    runPython: 'Python လုပ်ဆောင်မည်', stopPython: 'ရပ်မည်', editablePython: 'ပြင်နိုင်သည်',
+    pythonEditorReady: 'အသင့်ဖြစ်ပြီ · ⌘/Ctrl + Enter ဖြင့်လုပ်ဆောင်ပါ',
+    standardInput: 'ထည့်သွင်းတန်ဖိုး', pythonOutput: 'အထွက်'
   }
 };
 
@@ -614,6 +619,8 @@ const state = {
   flowLayoutKey: null,
   guidedInputs: [],
   awaitingInput: null,
+  pythonRunning: false,
+  toastTimer: null,
   recoveryTimer: null,
   flowObserver: null,
   projectNameEdited: false
@@ -748,6 +755,30 @@ function normalizeExpression(expression) {
     .replace(/(?<!&)&(?!&)/g, '+')
     .replace(/[“”]/g, '"')
     .replace(/[‘’]/g, "'");
+}
+
+function sourceExpression(expression, language, { condition = false } = {}) {
+  const source = normalizeExpression(expression);
+  const parts = source.split(/("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')/g);
+  return parts.map((part, index) => {
+    if (index % 2 === 1) return part;
+    let result = part.replace(/\bMOD\b/gi, '%');
+    if (condition) result = result.replace(/(?<![<>=!])=(?!=)/g, language === 'javascript' ? '===' : '==');
+    if (language === 'python') {
+      return result
+        .replace(/\bAND\b/gi, 'and')
+        .replace(/\bOR\b/gi, 'or')
+        .replace(/\bNOT\b/gi, 'not')
+        .replace(/\bTRUE\b/gi, 'True')
+        .replace(/\bFALSE\b/gi, 'False');
+    }
+    return result
+      .replace(/\bAND\b/gi, '&&')
+      .replace(/\bOR\b/gi, '||')
+      .replace(/\bNOT\b/gi, '!')
+      .replace(/\bTRUE\b/gi, 'true')
+      .replace(/\bFALSE\b/gi, 'false');
+  }).join('');
 }
 
 function normalizeStatement(raw) {
@@ -1468,8 +1499,10 @@ function buildVisualProgram() {
       if (shouldStop(lower)) break;
       if (lower.startsWith('if ')) {
         nodes.push(decision());
+      } else if (lower.startsWith('while ')) {
+        nodes.push(loop('while'));
       } else if (lower.startsWith('for ')) {
-        nodes.push(loop());
+        nodes.push(loop('for'));
       } else {
         const item = byLine.get(cursor);
         if (item) nodes.push({ type: 'node', item });
@@ -1507,12 +1540,15 @@ function buildVisualProgram() {
     return { type: 'decision', branches, elseBody, endItem };
   }
 
-  function loop() {
+  function loop(type) {
     const item = byLine.get(cursor);
     cursor++;
-    const body = sequence(lower => lower.startsWith('end for'));
+    const isCloser = lower => type === 'while'
+      ? lower.startsWith('end while')
+      : lower.startsWith('end for') || /^next(?:\s|$)/.test(lower);
+    const body = sequence(isCloser);
     nextMeaningful();
-    const endItem = cursor < lines.length && lines[cursor].trim().toLowerCase().startsWith('end for')
+    const endItem = cursor < lines.length && isCloser(lines[cursor].trim().toLowerCase())
       ? byLine.get(cursor) : null;
     if (endItem) cursor++;
     return { type: 'loop', item, body, endItem };
@@ -1535,11 +1571,13 @@ function createFlowNode(item) {
   node.title = item.virtual ? '' : t('editNodeHint');
   node.innerHTML = `<span class="node-icon">${info.icon}</span>
     <span class="node-copy"><strong>${escapeHTML(localizedNodeText(item.title))}</strong><p>${escapeHTML(localizedNodeText(item.detail))}</p></span>
-    <small>L${item.line}</small>`;
+    <small>L${item.line}</small>
+    ${item.virtual ? '' : `<span class="node-edit-button" role="button" tabindex="-1" title="${escapeHTML(t('editNodeHint'))}" aria-label="${escapeHTML(t('editNodeHint'))}">✎</span>`}`;
   if (!item.virtual) {
     node.tabIndex = 0;
     node.addEventListener('click', () => selectLine(item.line, false));
     node.addEventListener('dblclick', event => beginInlineNodeEdit(event, node, item));
+    node.querySelector('.node-edit-button')?.addEventListener('click', event => beginInlineNodeEdit(event, node, item));
     node.addEventListener('keydown', event => {
       if (event.key === 'Enter') beginInlineNodeEdit(event, node, item);
       if (event.key === ' ') {
@@ -1742,6 +1780,7 @@ function updateSelectedLine(value) {
   $('#codeEditor').value = lines.join('\n');
   syncAutomaticProjectName();
   markDirty(); build(); selectLine(state.selectedLine);
+  showToast('Flowchart symbol updated.');
 }
 
 function deleteSelectedLine() {
@@ -1751,20 +1790,35 @@ function deleteSelectedLine() {
   $('#codeEditor').value = lines.join('\n');
   syncAutomaticProjectName();
   state.selectedLine = null; markDirty(); build(); selectLine(null);
+  showToast('Flowchart symbol deleted.');
 }
 
 function insertSnippet(kind, stayOnFlowchart = false) {
   const editor = $('#codeEditor');
   const lines = editor.value.split(/\r?\n/);
-  let index = lines.findIndex(line => line.trim().toLowerCase() === 'end program');
-  if (index < 0) index = lines.length;
-  const snippetLines = snippets[kind].split('\n').map(line => `    ${line}`);
+  const selected = state.items.find(item => item.line === state.selectedLine && !item.virtual);
+  let index;
+  let baseIndent;
+  if (selected) {
+    const selectedSource = lines[selected.line - 1] || '';
+    const selectedIndent = selectedSource.match(/^\s*/)?.[0] || '';
+    index = selected.closing ? selected.line - 1 : selected.line;
+    baseIndent = selectedIndent + (!selected.closing && ['start', 'if', 'while', 'for'].includes(selected.kind) ? '    ' : '');
+  } else {
+    index = lines.findIndex(line => /^(?:end program|end)$/i.test(line.trim()));
+    if (index < 0) index = lines.length;
+    baseIndent = index < lines.length ? `${lines[index].match(/^\s*/)?.[0] || ''}    ` : '    ';
+  }
+  const snippetLines = snippets[kind].split('\n').map(line => `${baseIndent}${line}`);
   lines.splice(index, 0, ...snippetLines);
   editor.value = lines.join('\n');
   syncAutomaticProjectName();
   markDirty(); build();
+  const insertedLine = index + 1;
+  showToast(`${kindInfo[kind].title} symbol added.`);
   if (stayOnFlowchart) {
     activateTab('flow');
+    selectLine(insertedLine, false);
   } else {
     activateTab('pseudo');
     editor.focus();
@@ -2106,7 +2160,7 @@ function sourceFor(language) {
     }
     if (lower.startsWith('else if ')) {
       indent = Math.max(0, indent - 1);
-      const condition = normalizeExpression(text.replace(/^else\s+if\s+|\s+then$/gi, ''));
+      const condition = sourceExpression(text.replace(/^else\s+if\s+|\s+then$/gi, ''), language, { condition: true });
       out.push(unit.repeat(indent) + (language === 'python' ? `elif ${condition}:` : `} else if (${condition}) {`));
       indent++; return;
     }
@@ -2122,23 +2176,23 @@ function sourceFor(language) {
         : `let ${name} = ${isString ? '""' : '0'};`;
     } else if (lower.startsWith('set ') || assignmentFrom(text)) {
       const assignment = assignmentFrom(text);
-      if (assignment) line = `${assignment.name} = ${normalizeExpression(assignment.expression)}${language === 'javascript' ? ';' : ''}`;
+      if (assignment) line = `${assignment.name} = ${sourceExpression(assignment.expression, language)}${language === 'javascript' ? ';' : ''}`;
     } else if (lower.startsWith('output ')) {
-      const args = splitOutputArguments(text.slice(7)).map(normalizeExpression).join(', ');
+      const args = splitOutputArguments(text.slice(7)).map(argument => sourceExpression(argument, language)).join(', ');
       line = language === 'javascript' ? `console.log(${args});` : `print(${args})`;
     } else if (lower.startsWith('input ')) {
       const name = text.slice(6);
       line = language === 'python' ? `${name} = _augo_input()` : language === 'swift' ? `${name} = Double(readLine() ?? "0") ?? 0` : `${name} = prompt("");`;
     } else if (lower.startsWith('if ')) {
-      const condition = normalizeExpression(text.replace(/^if\s+|\s+then$/gi, ''));
+      const condition = sourceExpression(text.replace(/^if\s+|\s+then$/gi, ''), language, { condition: true });
       out.push(unit.repeat(indent) + (language === 'python' ? `if ${condition}:` : `if (${condition}) {`)); indent++; return;
     } else if (lower.startsWith('while ')) {
-      const condition = normalizeExpression(text.slice(6));
+      const condition = sourceExpression(text.slice(6), language, { condition: true });
       out.push(unit.repeat(indent) + (language === 'python' ? `while ${condition}:` : `while (${condition}) {`)); indent++; return;
     } else if (lower.startsWith('for ')) {
       const loop = parseForHeader(text);
       if (loop) {
-        const start = normalizeExpression(loop.start), end = normalizeExpression(loop.end), step = normalizeExpression(loop.step);
+        const start = sourceExpression(loop.start, language), end = sourceExpression(loop.end, language), step = sourceExpression(loop.step, language);
         const generated = language === 'python'
           ? `for ${loop.variable} in range(${start}, (${end}) + (1 if (${step}) > 0 else -1), ${step}):`
           : language === 'swift'
@@ -2357,16 +2411,84 @@ function loadNormalizationExample(markChanged = true) {
 function generatePython(markChanged = true) {
   $('#pythonEditor').value = sourceFor('python');
   $('#pythonOutput').textContent = 'Python regenerated from the current pseudocode.';
+  $('#pythonOutput').closest('.python-output').className = 'python-output success';
+  $('#pythonEditorStatus').textContent = 'Generated from the current pseudocode · editable';
+  updatePythonCursor();
+  showToast('Python regenerated from pseudocode.');
   if (markChanged) markDirty();
 }
 
+function updatePythonCursor() {
+  const editor = $('#pythonEditor');
+  if (!editor) return;
+  const before = editor.value.slice(0, editor.selectionStart);
+  const lines = before.split('\n');
+  $('#pythonCursorPosition').textContent = `Ln ${lines.length}, Col ${lines.at(-1).length + 1}`;
+}
+
+function handlePythonEditorKeyDown(event) {
+  const editor = event.currentTarget;
+  if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
+    event.preventDefault();
+    runPythonEditor();
+    return;
+  }
+  if (event.key === 'Tab') {
+    event.preventDefault();
+    const start = editor.selectionStart;
+    const end = editor.selectionEnd;
+    if (start === end) {
+      editor.setRangeText('    ', start, end, 'end');
+    } else {
+      const lineStart = editor.value.lastIndexOf('\n', start - 1) + 1;
+      let lineEnd = editor.value.indexOf('\n', end);
+      if (lineEnd < 0) lineEnd = editor.value.length;
+      const selected = editor.value.slice(lineStart, lineEnd);
+      const replacement = selected.split('\n').map(line => event.shiftKey ? line.replace(/^ {1,4}/, '') : `    ${line}`).join('\n');
+      editor.setRangeText(replacement, lineStart, lineEnd, 'select');
+    }
+    markDirty();
+    updatePythonCursor();
+    return;
+  }
+  if (event.key === 'Enter' && !event.metaKey && !event.ctrlKey && !event.altKey) {
+    event.preventDefault();
+    const start = editor.selectionStart;
+    const lineStart = editor.value.lastIndexOf('\n', start - 1) + 1;
+    const beforeCursor = editor.value.slice(lineStart, start);
+    const indent = beforeCursor.match(/^\s*/)?.[0] || '';
+    const extra = beforeCursor.trimEnd().endsWith(':') ? '    ' : '';
+    editor.setRangeText(`\n${indent}${extra}`, start, editor.selectionEnd, 'end');
+    markDirty();
+    updatePythonCursor();
+  }
+}
+
+function setPythonRunning(running) {
+  state.pythonRunning = running;
+  $('#runPythonBtn').disabled = running;
+  $('#generatePythonBtn').disabled = running;
+  $('#exportPythonBtn').disabled = running;
+  $('#stopPythonBtn').hidden = !running;
+  $('#pythonEditorStatus').textContent = running ? 'Running Python…' : t('pythonEditorReady');
+  $('#pythonEditor').readOnly = running;
+}
+
 async function runPythonEditor() {
-  const button = $('#runPythonBtn');
-  button.disabled = true;
+  if (state.pythonRunning) return;
+  const code = $('#pythonEditor').value;
+  if (!code.trim()) {
+    $('#pythonOutput').textContent = 'Nothing to run. Generate Python or enter code first.';
+    $('#pythonOutput').closest('.python-output').className = 'python-output error';
+    showToast('Enter Python code before running.', true);
+    return;
+  }
+  setPythonRunning(true);
+  $('#pythonOutput').closest('.python-output').className = 'python-output running';
   $('#pythonOutput').textContent = 'Running…';
   try {
     const result = await window.augorithm.runPython({
-      code: $('#pythonEditor').value,
+      code,
       input: $('#pythonInput').value
     });
     const details = [];
@@ -2375,10 +2497,27 @@ async function runPythonEditor() {
     if (result.stderr) details.push(result.stderr.replace(/\s+$/, ''));
     if (result.exitCode !== null && result.exitCode !== undefined) details.push(`Process exited with code ${result.exitCode}.`);
     $('#pythonOutput').textContent = details.filter(Boolean).join('\n\n') || 'Program completed with no output.';
+    const succeeded = result.success === true;
+    $('#pythonOutput').closest('.python-output').className = `python-output ${succeeded ? 'success' : 'error'}`;
+    showToast(succeeded ? 'Python completed successfully.' : 'Python finished with an error.', !succeeded);
   } catch (error) {
     $('#pythonOutput').textContent = error.message;
+    $('#pythonOutput').closest('.python-output').className = 'python-output error';
+    showToast(`Python could not run: ${error.message}`, true);
   } finally {
-    button.disabled = false;
+    setPythonRunning(false);
+    updatePythonCursor();
+  }
+}
+
+async function stopPythonEditor() {
+  if (!state.pythonRunning) return;
+  $('#pythonEditorStatus').textContent = 'Stopping Python…';
+  const stopped = await window.augorithm.stopPython?.();
+  if (stopped) {
+    $('#pythonOutput').textContent = 'Execution stopped.';
+    $('#pythonOutput').closest('.python-output').className = 'python-output error';
+    showToast('Python execution stopped.');
   }
 }
 
@@ -2585,6 +2724,20 @@ function escapeHTML(value) {
   return String(value).replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' })[char]);
 }
 
+function showToast(message, error = false) {
+  const toast = $('#appToast');
+  if (!toast) return;
+  clearTimeout(state.toastTimer);
+  toast.textContent = message;
+  toast.classList.toggle('error', error);
+  toast.hidden = false;
+  requestAnimationFrame(() => toast.classList.add('show'));
+  state.toastTimer = setTimeout(() => {
+    toast.classList.remove('show');
+    setTimeout(() => { toast.hidden = true; }, 190);
+  }, 2600);
+}
+
 function init() {
   document.body.dataset.platform = window.augorithm.platform || 'browser';
   document.body.dataset.activeTab = 'flow';
@@ -2650,7 +2803,15 @@ function init() {
     $(`#${id}`).addEventListener('input', markDirty));
   $('#generatePythonBtn').addEventListener('click', () => generatePython(true));
   $('#runPythonBtn').addEventListener('click', runPythonEditor);
-  $('#pythonEditor').addEventListener('input', markDirty);
+  $('#stopPythonBtn').addEventListener('click', stopPythonEditor);
+  $('#pythonEditor').addEventListener('input', () => {
+    markDirty();
+    $('#pythonEditorStatus').textContent = 'Edited · ⌘/Ctrl + Enter to run';
+    updatePythonCursor();
+  });
+  $('#pythonEditor').addEventListener('keydown', handlePythonEditorKeyDown);
+  ['click', 'keyup', 'select'].forEach(eventName =>
+    $('#pythonEditor').addEventListener(eventName, updatePythonCursor));
   $('#pythonInput').addEventListener('input', markDirty);
   $('#exportPythonBtn').addEventListener('click', async () => {
     const path = await window.augorithm.exportSource({
@@ -2695,7 +2856,7 @@ function init() {
   }, { passive: false });
   let pan = null;
   $('#flowPane').addEventListener('pointerdown', event => {
-    if (event.button !== 0 || event.target.closest('button')) return;
+    if (event.button !== 0 || event.target.closest('.node, button, input, textarea, select, [role="button"], .path-label, .loop-path-label')) return;
     const pane = $('#flowPane');
     pan = { x: event.clientX, y: event.clientY, left: pane.scrollLeft, top: pane.scrollTop };
     pane.classList.add('panning');
@@ -2710,7 +2871,11 @@ function init() {
   $('#flowPane').addEventListener('pointerup', event => {
     pan = null;
     $('#flowPane').classList.remove('panning');
-    $('#flowPane').releasePointerCapture(event.pointerId);
+    if ($('#flowPane').hasPointerCapture(event.pointerId)) $('#flowPane').releasePointerCapture(event.pointerId);
+  });
+  $('#flowPane').addEventListener('pointercancel', () => {
+    pan = null;
+    $('#flowPane').classList.remove('panning');
   });
   window.addEventListener('keydown', event => {
     if (!(event.metaKey || event.ctrlKey)) return;

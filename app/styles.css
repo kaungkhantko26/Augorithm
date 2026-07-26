@@ -382,6 +382,20 @@ body[data-language="my"] #copyFlowchart { max-width: 82px; font-size: 9px; overf
 .node strong { display: block; color: #667085; font-size: 9px; text-transform: uppercase; letter-spacing: .7px; }
 .node p { margin: 3px 0 0; font-size: 12px; font-weight: 650; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .node small { color: #8c96a3; font: 8px ui-monospace; }
+.node-edit-button {
+  position: absolute !important; z-index: 6 !important; top: 5px; right: 7px;
+  width: 23px; height: 23px; padding: 0; display: grid; place-items: center;
+  border: 1px solid #9fc5eb; border-radius: 7px; color: #155b9b; background: #fffffff2;
+  box-shadow: 0 3px 10px #102d4f20; opacity: 0; transform: translateY(-2px);
+  font-size: 11px; transition: opacity .14s ease, transform .14s ease, background-color .14s ease;
+}
+.node:hover .node-edit-button,
+.node.selected .node-edit-button,
+.node:focus-within .node-edit-button { opacity: 1; transform: none; }
+.node-edit-button:hover { color: white; background: var(--bright); border-color: var(--bright); }
+.node.if .node-edit-button { top: 29px; right: 42px; }
+.node.input .node-edit-button,
+.node.output .node-edit-button { right: 28px; }
 .inline-node-editor {
   position: absolute; z-index: 5; inset: 8px 14px;
   width: calc(100% - 28px); min-width: 0; padding: 7px 9px;
@@ -517,7 +531,6 @@ body[data-language="my"] #copyFlowchart { max-width: 82px; font-size: 9px; overf
 body[data-language="my"] .source-actions label { display: none; }
 body[data-language="my"] .source-toolbar button { max-width: 94px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 body[data-language="my"] .source-identity strong { max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-}
 .database-pane, .python-pane { flex-direction: column; background: var(--surface-soft); }
 .feature-toolbar {
   min-height: 54px; flex: 0 0 auto; padding: 8px 12px;
@@ -537,6 +550,9 @@ body[data-language="my"] .source-identity strong { max-width: 180px; overflow: h
 }
 .feature-toolbar .primary-feature-button {
   color: white; background: var(--blue); border-color: var(--blue);
+}
+.feature-toolbar .stop-feature-button {
+  color: #b42318; background: #fff1f0; border-color: #f3b8b2;
 }
 .database-workspace {
   flex: 1; min-height: 0; padding: 14px; display: grid; grid-template-columns: minmax(260px, .8fr) minmax(350px, 1.2fr);
@@ -591,20 +607,44 @@ body[data-language="my"] .source-identity strong { max-width: 180px; overflow: h
 }
 .sql-card header button { border: 0; color: var(--blue); background: none; font-size: 9px; font-weight: 800; }
 .sql-card pre { margin: 9px 0 0; overflow: auto; user-select: text; font: 10px/1.5 "SFMono-Regular", Menlo, monospace; }
-.python-workspace { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(400px, 1fr) 270px; }
-.python-editor-wrap { min-width: 0; display: flex; flex-direction: column; border-right: 1px solid var(--line); }
+.python-workspace {
+  width: 100%; flex: 1; min-height: 0; display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(250px, 30%);
+  overflow: hidden;
+}
+.python-editor-wrap {
+  min-width: 0; min-height: 0; display: flex; flex-direction: column;
+  overflow: hidden; border-right: 1px solid var(--line); background: var(--surface);
+}
 .python-editor-wrap > label {
-  height: 27px; padding: 0 12px; display: flex; align-items: center;
+  height: 30px; flex: 0 0 30px; padding: 0 12px; display: flex; align-items: center;
+  justify-content: space-between; gap: 10px;
   color: var(--muted); background: var(--surface-soft); border-bottom: 1px solid var(--line);
   font: 9px "SFMono-Regular", Menlo, monospace;
 }
+.python-editor-wrap > label em {
+  padding: 2px 6px; border: 1px solid #91bde7; border-radius: 999px;
+  color: #1c64a6; background: #eaf4ff; font-size: 7px; font-style: normal;
+  font-weight: 850; letter-spacing: .7px;
+}
 #pythonEditor {
-  flex: 1; min-height: 0; resize: none; padding: 15px 17px; border: 0; outline: 0;
+  width: 100%; flex: 1 1 auto; min-height: 0; resize: none; padding: 16px 18px; border: 0; outline: 0;
   color: #172033; background: var(--surface); tab-size: 4;
-  font: 12.5px/1.65 "SFMono-Regular", Menlo, Consolas, monospace;
+  caret-color: var(--blue); font: 13px/1.65 "SFMono-Regular", Menlo, Consolas, monospace;
+  white-space: pre; overflow: auto; user-select: text;
+}
+#pythonEditor:focus { background: linear-gradient(90deg, #f8fbff 0, var(--surface) 30px); }
+#pythonEditor::selection { color: #0b213e; background: #b9dafc; }
+.python-statusbar {
+  height: 25px; flex: 0 0 25px; padding: 0 11px; display: flex; align-items: center;
+  justify-content: space-between; gap: 10px; color: #64748b; background: #eef3f8;
+  border-top: 1px solid var(--line); font: 8.5px "SFMono-Regular", Menlo, monospace;
+}
+.python-statusbar > span:first-child {
+  min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .python-io { min-height: 0; padding: 12px; display: flex; flex-direction: column; gap: 12px; background: var(--surface-soft); }
-.python-io textarea { min-height: 85px; background: var(--surface); }
+.python-io textarea { min-height: 100px; max-height: 180px; background: var(--surface); }
 .python-output {
   flex: 1; min-height: 0; padding: 10px; display: flex; flex-direction: column;
   border: 1px solid var(--line); border-radius: 8px; background: #071f40;
@@ -614,6 +654,19 @@ body[data-language="my"] .source-identity strong { max-width: 180px; overflow: h
   flex: 1; margin: 8px 0 0; overflow: auto; user-select: text; white-space: pre-wrap;
   color: #eef6ff; font: 11px/1.55 "SFMono-Regular", Menlo, monospace;
 }
+.python-output.success { border-color: #36b37e; box-shadow: inset 3px 0 #36b37e; }
+.python-output.error { border-color: #f97066; box-shadow: inset 3px 0 #f97066; }
+.python-output.running { border-color: #53a6ef; box-shadow: inset 3px 0 #53a6ef; }
+.app-toast {
+  position: fixed; z-index: 1000; left: 50%; bottom: 44px; max-width: min(440px, calc(100vw - 32px));
+  padding: 10px 14px; transform: translate(-50%, 12px); opacity: 0;
+  border: 1px solid #ffffff30; border-radius: 10px; color: white; background: #102a4aeb;
+  box-shadow: 0 12px 36px #06152d48; backdrop-filter: blur(12px);
+  font-size: 11px; font-weight: 700; text-align: center;
+  transition: opacity .18s ease, transform .18s ease;
+}
+.app-toast.show { opacity: 1; transform: translate(-50%, 0); }
+.app-toast.error { background: #8f251feb; }
 body[data-active-tab="database"] .console,
 body[data-active-tab="python"] .console { display: none; }
 .console { height: 172px; flex: 0 0 auto; border-top: 1px solid var(--line); background: white; }
@@ -900,8 +953,22 @@ body[data-theme="dark"] .feature-toolbar > div:first-child strong,
 body[data-theme="dark"] .feature-empty b,
 body[data-theme="dark"] .normal-form-card code { color: #a9d3fb; }
 body[data-theme="dark"] .normalization-form input,
-body[data-theme="dark"] .normalization-form textarea {
+body[data-theme="dark"] .normalization-form textarea,
+body[data-theme="dark"] #pythonEditor,
+body[data-theme="dark"] .python-io textarea {
   color: #e6edf5; background: #101820; border-color: #405168;
+}
+body[data-theme="dark"] #pythonEditor:focus {
+  background: linear-gradient(90deg, #152334 0, #101820 30px);
+}
+body[data-theme="dark"] .python-statusbar {
+  color: #9eabbc; background: #121c28; border-color: #334155;
+}
+body[data-theme="dark"] .python-editor-wrap > label em {
+  color: #9bd1ff; background: #123453; border-color: #32658e;
+}
+body[data-theme="dark"] .node-edit-button {
+  color: #b8dcff; background: #162a40f2; border-color: #4779a7;
 }
 body[data-theme="dark"] .normalization-error { color: #ffb4ad; background: #3b2022; border-color: #7a373b; }
 body[data-theme="dark"] .console-input input,

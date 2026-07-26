@@ -2,6 +2,23 @@
 
 All notable Augorithm changes are documented here.
 
+## [1.4.5] — 2026-07-26
+
+### Improved
+
+- Full-width, responsive Python workspace with an editable code area, standard input, run output, cursor status, indentation, and keyboard run shortcut
+- Direct flowchart editing through visible node edit controls and context-aware node insertion
+- Clearer running, stopped, success, and error feedback across Python controls
+
+### Fixed
+
+- Python workspace collapsing into a narrow column because of an invalid stylesheet block
+- Invalid generated Python comparisons such as `if size = "S":`
+- Pseudocode operators and booleans now translate correctly for Python, JavaScript, and Swift conditions
+- Flowchart node clicks being intercepted by canvas panning
+- `While` blocks and `Next` loop endings not being recognized by the visual editor
+- Concurrent Python processes and missing stop behavior in desktop builds
+
 ## [1.4.4] — 2026-07-26
 
 ### Added
