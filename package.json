@@ -1,6 +1,6 @@
 {
   "name": "augorithm",
-  "version": "1.4.3",
+  "version": "1.4.4",
   "description": "Visual pseudocode editor, flowchart generator, and algorithm runner for macOS, Windows, and iPad",
   "main": "electron/main.js",
   "author": "Kaung Khant Ko",
@@ -37,6 +37,7 @@
         "name": "Augorithm Project",
         "description": "Augorithm flowchart project",
         "role": "Editor",
+        "rank": "Owner",
         "mimeType": "application/x-augorithm-project"
       }
     ],
@@ -52,7 +53,7 @@
     },
     "mac": {
       "category": "public.app-category.education",
-      "icon": "app/assets/icon.png",
+      "icon": "app/assets/icons/icon-glass-1024.png",
       "identity": null,
       "target": [
         {
@@ -73,7 +74,7 @@
       "gatekeeperAssess": false
     },
     "win": {
-      "icon": "app/assets/icon.png",
+      "icon": "app/assets/icons/icon-glass-1024.png",
       "target": [
         {
           "target": "nsis",
@@ -85,6 +86,7 @@
     },
     "nsis": {
       "oneClick": false,
+      "perMachine": true,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,

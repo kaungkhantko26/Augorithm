@@ -146,6 +146,7 @@ function createWindow() {
         }
       : { titleBarStyle: 'default' }),
     backgroundColor: '#071f40',
+    icon: path.join(__dirname, '..', 'app', 'assets', 'icons', 'icon-glass-1024.png'),
     show: false,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),

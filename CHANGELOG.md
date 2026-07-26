@@ -2,6 +2,19 @@
 
 All notable Augorithm changes are documented here.
 
+## [1.4.4] — 2026-07-26
+
+### Added
+
+- New glass-finished AU brand icon based on the artwork supplied by Kaung Khant Ko
+- Native-size icon assets for macOS, Windows, iPad/PWA, browser tabs, and `.augo` documents
+
+### Improved
+
+- Consistent AU branding in the title bar, About dialog, installed app, shortcuts, and project files
+- Windows `.augo` file registration so saved projects use the Augorithm icon and open in Augorithm
+- Versioned offline icon caching for installed iPad web apps
+
 ## [1.4.3] — 2026-07-26
 
 ### Added

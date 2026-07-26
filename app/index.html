@@ -9,13 +9,15 @@
   <meta name="apple-mobile-web-app-title" content="Augorithm">
   <title>Augorithm</title>
   <link rel="manifest" href="manifest.webmanifest">
-  <link rel="apple-touch-icon" href="assets/icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/icons/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="assets/icons/favicon-16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/apple-touch-icon.png">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <header class="topbar">
     <div class="brand">
-      <div class="brand-mark">A</div>
+      <img class="brand-mark" src="assets/icons/icon-64.png" alt="Augorithm AU logo" draggable="false">
       <div><strong>AUGORITHM</strong><span>Think it. Chart it. Run it.</span></div>
     </div>
     <div class="project-title">
@@ -213,7 +215,7 @@
 
   <footer>
     <span id="fileStatus">◇ Not saved</span>
-    <span class="creator-credit">Built by Kaung Khant Ko · <button id="versionBtn" class="version-link" type="button">v1.4.3</button></span>
+    <span class="creator-credit">Built by Kaung Khant Ko · <button id="versionBtn" class="version-link" type="button">v1.4.4</button></span>
     <div><button id="showConsole" hidden>▰ Console</button><span id="symbolCount">0 symbols</span><span id="issueCount" class="ready">● Ready</span></div>
   </footer>
 
@@ -253,8 +255,8 @@ ToInteger, ToReal, ToString, Sin, Cos, Tan, Log</pre>
     </div>
     <div class="version-content">
       <div class="version-identity">
-        <img src="assets/icon.png" alt="">
-        <div><strong>Augorithm</strong><span id="currentVersion">Version 1.4.3</span><small>Built by Kaung Khant Ko</small></div>
+        <img src="assets/icons/icon-glass-1024.png" alt="Augorithm glass AU icon">
+        <div><strong>Augorithm</strong><span id="currentVersion">Version 1.4.4</span><small>Built by Kaung Khant Ko</small></div>
       </div>
       <div class="update-card">
         <div class="update-status-icon" id="updateStatusIcon">✓</div>

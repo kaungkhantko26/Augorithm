@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="app/assets/icon.png" alt="Augorithm app icon" width="112" height="112">
+  <img src="app/assets/icons/icon-glass-1024.png" alt="Augorithm glass AU app icon" width="112" height="112">
 
   # Augorithm
 
@@ -38,12 +38,12 @@ Augorithm is built by **Kaung Khant Ko** as an independent computer-science lear
 
 ## Install Augorithm
 
-The current source and package version is **1.4.3**.
+The current source and package version is **1.4.4**.
 
 ### macOS
 
 1. Open [the latest release](https://github.com/kaungkhantko26/Augorithm/releases/latest).
-2. Download `Augorithm-1.4.3-arm64.zip`.
+2. Download `Augorithm-1.4.4-arm64.zip`.
 3. Open the ZIP and drag **Augorithm.app** into **Applications**.
 4. On first launch, Control-click the app, choose **Open**, then confirm.
 
@@ -52,7 +52,7 @@ The current macOS build supports Apple silicon. It is not Apple-notarized, so ma
 ### Windows
 
 1. Open [the latest release](https://github.com/kaungkhantko26/Augorithm/releases/latest).
-2. Download `Augorithm-1.4.3-x64.exe`.
+2. Download `Augorithm-1.4.4-x64.exe`.
 3. Run the installer and choose an installation folder.
 4. Open Augorithm from the Start menu or desktop shortcut.
 
@@ -66,6 +66,8 @@ The current Windows build is not Authenticode-signed, so Microsoft Defender Smar
 4. Use **Note Mode** for a focused, touch-friendly pseudocode workspace.
 
 After the first successful load, the iPad app can work offline. Projects can be opened from Files and saved as `.augo` downloads.
+
+Saved `.augo` project files use the same glass AU icon as the application. Standard exports such as PNG, SVG, Java, Python, and JavaScript keep their native system file types so they remain easy to open in presentation, design, and development tools.
 
 ## Quick start
 
