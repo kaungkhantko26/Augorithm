@@ -95,34 +95,56 @@ END`);
   assert.ok(loop);
   const forward = parsed.edges.find((edge) => edge.source === loop.id && edge.label === "True");
   const exit = parsed.edges.find((edge) => edge.source === loop.id && edge.label === "False");
-  const feedback = parsed.edges.find((edge) => edge.target === loop.id);
+  const incoming = parsed.edges.filter((edge) => edge.target === loop.id);
+  const entry = incoming.find((edge) => {
+    const source = nodeMap.get(edge.source);
+    return source && source.position.y < loop.position.y;
+  });
+  const feedback = incoming.find((edge) => {
+    const source = nodeMap.get(edge.source);
+    return source && source.position.y > loop.position.y;
+  });
   assert.ok(forward);
   assert.ok(exit);
+  assert.ok(entry);
   assert.ok(feedback);
 
   const forwardTarget = nodeMap.get(forward.target);
   const exitTarget = nodeMap.get(exit.target);
+  const entrySource = nodeMap.get(entry.source);
   const feedbackSource = nodeMap.get(feedback.source);
   assert.ok(forwardTarget);
   assert.ok(exitTarget);
+  assert.ok(entrySource);
   assert.ok(feedbackSource);
 
   const forwardRoute = edgePoints(forward, loop, forwardTarget);
   const exitRoute = edgePoints(exit, loop, exitTarget);
+  const entryRoute = edgePoints(entry, entrySource, loop);
   const feedbackRoute = edgePoints(feedback, feedbackSource, loop);
 
   assert.deepEqual(forwardRoute[0], {
     x: loop.position.x + loop.width,
     y: loop.position.y + loop.height / 2,
   });
+  assert.deepEqual(forwardRoute.at(-1), {
+    x: forwardTarget.position.x + forwardTarget.width / 2,
+    y: forwardTarget.position.y,
+  });
   assert.deepEqual(exitRoute[0], {
-    x: loop.position.x + loop.width / 2,
+    x: loop.position.x + loop.width * 0.24,
     y: loop.position.y + loop.height,
   });
+  assert.deepEqual(entryRoute.at(-1), {
+    x: loop.position.x + loop.width / 2,
+    y: loop.position.y,
+  });
+  assert.equal(entryRoute.length, 2, "normal loop entry must stay on the center line");
   assert.deepEqual(feedbackRoute.at(-1), {
-    x: loop.position.x + loop.width / 2,
+    x: loop.position.x + loop.width * 0.68,
     y: loop.position.y + loop.height,
   });
+  assert.notEqual(exitRoute[0].x, feedbackRoute.at(-1)?.x);
   assert.ok(Math.max(...feedbackRoute.map((point) => point.x)) > Math.max(
     loop.position.x + loop.width,
     feedbackSource.position.x + feedbackSource.width,
@@ -132,8 +154,8 @@ END`);
 test("lands arrowheads on visible parallelogram borders and preserves port approach", () => {
   const source = {
     id: "source",
-    kind: "loop" as const,
-    label: "WHILE ready",
+    kind: "decision" as const,
+    label: "IF ready",
     position: { x: 100, y: 100 },
     width: 300,
     height: 100,
