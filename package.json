@@ -1,6 +1,6 @@
 {
   "name": "augorithm",
-  "version": "1.4.5",
+  "version": "1.4.7",
   "description": "Visual pseudocode editor, flowchart generator, and algorithm runner for macOS, Windows, and iPad",
   "main": "electron/main.js",
   "author": "Kaung Khant Ko",
@@ -12,7 +12,7 @@
   },
   "scripts": {
     "start": "electron .",
-    "test": "node tests/source-generators.test.js",
+    "test": "node tests/source-generators.test.js && node tests/desktop-features.test.js",
     "pack": "electron-builder --dir --mac",
     "dmg": "electron-builder --mac dmg zip --arm64",
     "windows": "electron-builder --win nsis --x64"

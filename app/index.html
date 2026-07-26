@@ -69,12 +69,14 @@
       <div class="workspace-tabs">
         <div class="segmented" role="tablist">
           <button class="active" data-tab="flow">⌘ <span data-i18n="flowchart">Flowchart</span></button>
+          <button data-tab="split">◫ <span data-i18n="split">Split</span></button>
           <button data-tab="pseudo">☷ <span data-i18n="pseudocode">Pseudocode</span></button>
           <button data-tab="source">&lt;/&gt; <span data-i18n="source">Source</span></button>
           <button data-tab="database">▦ <span data-i18n="database">Database</span></button>
           <button data-tab="python">Py <span data-i18n="pythonEditor">Python</span></button>
         </div>
         <div class="zoom-controls" id="zoomControls">
+          <button id="connectShapes" type="button" title="Connect two shapes" aria-pressed="false">↗ <span data-i18n="connect">Connect</span></button>
           <select id="flowAddSymbol" title="Add a flowchart node" aria-label="Add a flowchart node">
             <option value="" data-i18n="addNode">＋ Add node</option>
             <option value="input" data-i18n="input">Input</option>
@@ -133,6 +135,7 @@
                 <option value="swift">Swift</option>
                 <option value="pseudocode">Pseudocode</option>
               </select>
+              <button id="regenerateSourceBtn" type="button">↻ <span data-i18n="regenerate">Regenerate</span></button>
               <button id="wrapSourceBtn" class="icon-source-button" type="button" title="Toggle line wrapping" aria-pressed="false">↩</button>
               <button id="copySourceBtn" type="button">⧉ <span data-i18n="copyCode">Copy</span></button>
               <button id="exportBtn" type="button">⇧ <span data-i18n="export">Export</span></button>
@@ -140,7 +143,7 @@
           </div>
           <div class="source-editor" id="sourceEditor">
             <pre id="sourceLineNumbers" aria-hidden="true"></pre>
-            <pre id="sourceCode" tabindex="0" aria-label="Generated source code"></pre>
+            <textarea id="sourceCode" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="Generated source code editor"></textarea>
           </div>
           <div class="source-statusbar">
             <span id="sourceStatus" data-i18n="liveSourceHint">Generated live from pseudocode</span>
@@ -216,7 +219,7 @@
 
   <footer>
     <span id="fileStatus">◇ Not saved</span>
-    <span class="creator-credit">Built by Kaung Khant Ko · <button id="versionBtn" class="version-link" type="button">v1.4.5</button></span>
+    <span class="creator-credit">Built by Kaung Khant Ko · <button id="versionBtn" class="version-link" type="button">v1.4.7</button></span>
     <div><button id="showConsole" hidden>▰ Console</button><span id="symbolCount">0 symbols</span><span id="issueCount" class="ready">● Ready</span></div>
   </footer>
 
@@ -257,7 +260,7 @@ ToInteger, ToReal, ToString, Sin, Cos, Tan, Log</pre>
     <div class="version-content">
       <div class="version-identity">
         <img src="assets/icons/icon-glass-1024.png" alt="Augorithm glass AU icon">
-        <div><strong>Augorithm</strong><span id="currentVersion">Version 1.4.5</span><small>Built by Kaung Khant Ko</small></div>
+        <div><strong>Augorithm</strong><span id="currentVersion">Version 1.4.7</span><small>Built by Kaung Khant Ko</small></div>
       </div>
       <div class="update-card">
         <div class="update-status-icon" id="updateStatusIcon">✓</div>

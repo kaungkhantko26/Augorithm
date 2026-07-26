@@ -38,12 +38,12 @@ Augorithm is built by **Kaung Khant Ko** as an independent computer-science lear
 
 ## Install Augorithm
 
-The current source and package version is **1.4.5**.
+The current source and package version is **1.4.7**.
 
 ### macOS
 
 1. Open [the latest release](https://github.com/kaungkhantko26/Augorithm/releases/latest).
-2. Download `Augorithm-1.4.5-arm64.zip`.
+2. Download `Augorithm-1.4.7-arm64.zip`.
 3. Open the ZIP and drag **Augorithm.app** into **Applications**.
 4. On first launch, Control-click the app, choose **Open**, then confirm.
 
@@ -52,7 +52,7 @@ The current macOS build supports Apple silicon. It is not Apple-notarized, so ma
 ### Windows
 
 1. Open [the latest release](https://github.com/kaungkhantko26/Augorithm/releases/latest).
-2. Download `Augorithm-1.4.5-x64.exe`.
+2. Download `Augorithm-1.4.7-x64.exe`.
 3. Run the installer and choose an installation folder.
 4. Open Augorithm from the Start menu or desktop shortcut.
 

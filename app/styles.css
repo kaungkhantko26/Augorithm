@@ -137,7 +137,7 @@ body[data-platform="linux"] .topbar {
 }
 .segmented { display: flex; padding: 3px; border-radius: 8px; background: #e9edf2; }
 .segmented button {
-  width: 104px; height: 28px; border: 0; border-radius: 6px;
+  width: 94px; height: 28px; border: 0; border-radius: 6px;
   color: #5a6573; background: transparent; font-size: 11px; font-weight: 600;
 }
 .segmented button.active { color: var(--ink); background: white; box-shadow: 0 1px 4px #0c1d3522; }
@@ -183,6 +183,10 @@ body[data-language="my"] .symbol span {
   color: var(--navy-2); border-color: #9fb2c8; background: #f4f8fd;
   box-shadow: 0 2px 7px #17395f18;
 }
+#connectShapes.active {
+  color: white; border-color: var(--bright); background: var(--bright);
+  box-shadow: 0 0 0 3px #1597f529;
+}
 .zoom-controls select {
   height: 27px; max-width: 106px; padding: 0 7px;
   border: 1px solid var(--line); border-radius: 6px; color: #455368; background: white;
@@ -194,6 +198,17 @@ body[data-language="my"] #copyFlowchart { max-width: 82px; font-size: 9px; overf
 .tab-content { flex: 1; min-height: 0; position: relative; }
 .tab-pane { position: absolute; inset: 0; display: none; }
 .tab-pane.active { display: flex; }
+.tab-content.split-active {
+  display: grid;
+  grid-template-columns: minmax(380px, 1fr) minmax(380px, 1fr);
+}
+.tab-content.split-active #pseudoPane,
+.tab-content.split-active #flowPane {
+  position: relative; inset: auto; min-width: 0; min-height: 0;
+}
+.tab-content.split-active #pseudoPane { grid-column: 1; grid-row: 1; border-right: 1px solid var(--line); }
+.tab-content.split-active #flowPane { grid-column: 2; grid-row: 1; }
+.tab-content.split-active .canvas-grid { min-width: 700px; }
 #flowPane { overflow: auto; cursor: grab; }
 #flowPane.panning { cursor: grabbing; }
 .canvas-grid {
@@ -211,16 +226,46 @@ body[data-language="my"] #copyFlowchart { max-width: 82px; font-size: 9px; overf
   position: absolute; inset: 0; z-index: 0; overflow: visible; pointer-events: none;
 }
 .connector-layer path {
-  fill: none; stroke: #30455f; stroke-width: 4; stroke-linecap: round; stroke-linejoin: round;
+  fill: none; stroke: #30455f; stroke-width: 2.25; stroke-linecap: round; stroke-linejoin: round;
   vector-effect: non-scaling-stroke;
 }
 .connector-layer marker path { fill: #30455f; stroke: none; }
+.connector-layer .custom-connection-hit {
+  stroke: transparent; stroke-width: 18; pointer-events: stroke; cursor: pointer;
+}
+.connector-layer .custom-connection { pointer-events: none; }
+.connector-layer .custom-connection.selected {
+  stroke: var(--bright); filter: drop-shadow(0 0 2px #1597f577);
+}
+.connector-layer .connection-waypoint {
+  fill: var(--bright); stroke: white; stroke-width: 2.5;
+  pointer-events: all; cursor: move;
+}
+.connector-layer .custom-connection-label {
+  fill: #30455f; font: 700 12px Inter, Arial, sans-serif;
+  paint-order: stroke; stroke: var(--canvas); stroke-width: 6px; stroke-linejoin: round;
+}
+#flowPane.connecting .node { cursor: crosshair; }
+#flowPane.connecting .node.connection-source {
+  outline: 4px solid #1597f54d; outline-offset: 5px;
+}
+.inspector-card > input[type="text"],
+.inspector-card > input[type="number"],
+.inspector-card > input:not([type]) {
+  width: 100%; min-height: 34px; padding: 7px 9px;
+  border: 1px solid var(--line); border-radius: 7px;
+  color: var(--ink); background: var(--surface);
+}
+.connection-check {
+  min-height: 34px; display: flex !important; flex-direction: row !important;
+  align-items: center; gap: 8px;
+}
 .flowchart > :not(.connector-layer), .decision-group > *, .decision-branch > *, .loop-group > *, .loop-body > * { z-index: 1; }
 .flow-item { position: relative; display: flex; flex-direction: column; align-items: center; }
-.connector { width: 4px; height: 29px; background: #30455f; position: relative; }
+.connector { width: 2.25px; height: 29px; background: #30455f; position: relative; }
 .connector::after {
   content: ""; position: absolute; bottom: -1px; left: -3px;
-  border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 7px solid #30455f;
+  border-left: 4px solid transparent; border-right: 4px solid transparent; border-top: 6px solid #30455f;
 }
 .branch-label {
   position: absolute; left: 10px; top: 8px; font-size: 9px; font-weight: 800;
@@ -333,7 +378,7 @@ body[data-language="my"] #copyFlowchart { max-width: 82px; font-size: 9px; overf
 }
 .node {
   width: 310px; min-height: 60px; padding: 9px 17px;
-  display: flex; align-items: center; gap: 11px;
+  display: grid; grid-template-columns: 34px minmax(0, 1fr) 34px; align-items: center; gap: 10px;
   border: 1.5px solid var(--node-color); background: color-mix(in srgb, var(--node-color) 9%, white);
   border-radius: 13px; box-shadow: 0 3px 7px #1528460e; position: relative;
   transition: box-shadow .14s, transform .14s;
@@ -343,7 +388,7 @@ body[data-language="my"] #copyFlowchart { max-width: 82px; font-size: 9px; overf
 .node:active { transform: translateY(0) scale(.995); }
 .node:focus-visible { outline: 3px solid #1597f54a; outline-offset: 3px; }
 .node.selected { outline: 3px solid #1597f541; border-color: var(--bright); box-shadow: 0 6px 22px #1377d62b; }
-.node.start, .node.end { border-radius: 999px; width: 250px; justify-content: center; }
+.node.start, .node.end { border-radius: 999px; width: 250px; }
 .node.declare, .node.assign { border-radius: 0; }
 .node.declare::before {
   content: ""; position: absolute; top: -1.5px; bottom: -1.5px; left: 8px; width: 6px;
@@ -374,14 +419,31 @@ body[data-language="my"] #copyFlowchart { max-width: 82px; font-size: 9px; overf
   position: relative; z-index: 1;
 }
 .node .node-icon {
-  flex: 0 0 auto; width: 29px; height: 29px; display: grid; place-items: center;
+  width: 29px; height: 29px; display: grid; place-items: center; justify-self: start;
   border-radius: 8px; color: var(--node-color); background: color-mix(in srgb, var(--node-color) 13%, white);
   font-weight: 800;
 }
-.node .node-copy { flex: 1; min-width: 0; }
-.node strong { display: block; color: #667085; font-size: 9px; text-transform: uppercase; letter-spacing: .7px; }
-.node p { margin: 3px 0 0; font-size: 12px; font-weight: 650; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.node small { color: #8c96a3; font: 8px ui-monospace; }
+.node .node-copy {
+  min-width: 0; max-width: 100%; display: grid; place-items: center;
+  text-align: center; line-height: 1.25;
+}
+.node strong {
+  display: block; max-width: 100%; color: #667085; font-size: 9px;
+  text-align: center; text-transform: uppercase; letter-spacing: .7px;
+  overflow-wrap: anywhere; word-break: break-word;
+}
+.node p {
+  width: 100%; max-width: 100%; margin: 3px 0 0; font-size: 12px; font-weight: 650;
+  line-height: 1.35; text-align: center; white-space: normal;
+  overflow: visible; text-overflow: clip; overflow-wrap: anywhere; word-break: break-word;
+}
+.node small {
+  min-width: 0; max-width: 34px; justify-self: end; color: #8c96a3;
+  font: 8px ui-monospace; text-align: center; overflow-wrap: anywhere;
+}
+
+body[data-language="my"] .node .node-copy { line-height: 1.45; }
+body[data-language="my"] .node p { line-height: 1.5; }
 .node-edit-button {
   position: absolute !important; z-index: 6 !important; top: 5px; right: 7px;
   width: 23px; height: 23px; padding: 0; display: grid; place-items: center;
@@ -494,7 +556,7 @@ body[data-language="my"] #copyFlowchart { max-width: 82px; font-size: 9px; overf
 .source-toolbar .icon-source-button.active { color: #8bc8ff; border-color: #397fc2; background: #173451; }
 .source-editor {
   flex: 1; min-height: 0; display: grid; grid-template-columns: 54px minmax(0, 1fr);
-  overflow: auto; background:
+  overflow: hidden; background:
     linear-gradient(90deg, #111c29 0 54px, transparent 54px),
     var(--source-bg);
 }
@@ -507,11 +569,12 @@ body[data-language="my"] #copyFlowchart { max-width: 82px; font-size: 9px; overf
 #sourceLineNumbers {
   position: sticky; left: 0; z-index: 1; padding-left: 8px; padding-right: 12px;
   color: #51657c; background: #111c29; border-right: 1px solid #213247;
-  text-align: right; user-select: none;
+  text-align: right; user-select: none; overflow: hidden;
 }
 #sourceCode {
-  width: max-content; min-width: 100%; padding-left: 20px; padding-right: 40px;
-  outline: 0; color: var(--source-ink); user-select: text;
+  width: 100%; min-width: 100%; min-height: 100%; padding: 18px 40px 30px 20px;
+  resize: none; border: 0; outline: 0; color: var(--source-ink); background: transparent;
+  caret-color: #8bc8ff; overflow: auto;
 }
 #sourceCode:focus { background: linear-gradient(90deg, #14223480, transparent 140px); }
 .source-editor.wrap-lines { grid-template-columns: 54px minmax(0, 1fr); overflow-x: hidden; }

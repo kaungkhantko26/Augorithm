@@ -1,6 +1,6 @@
 const $ = selector => document.querySelector(selector);
 const $$ = selector => [...document.querySelectorAll(selector)];
-const APP_VERSION = '1.4.5';
+const APP_VERSION = '1.4.7';
 
 // Browser/iPad fallback; Electron replaces this with the secure preload bridge.
 if (!window.augorithm) {
@@ -156,7 +156,8 @@ const translations = {
     assign: 'Assign', control: 'CONTROL', if: 'If', looping: 'LOOPING', while: 'While',
     for: 'For', miscellaneous: 'MISCELLANEOUS', comment: 'Comment',
     browseExamples: 'Browse examples', flowchart: 'Flowchart', pseudocode: 'Pseudocode',
-    source: 'Source', database: 'Database', pythonEditor: 'Python', fit: 'Fit',
+    source: 'Source', split: 'Split', connect: 'Connect', regenerate: 'Regenerate',
+    database: 'Database', pythonEditor: 'Python', fit: 'Fit',
     addNode: '＋ Add node', copyFlowchart: 'Copy',
     flowchartCopied: 'Flowchart copied — paste it into Canva or PowerPoint.',
     flowchartCopyFailed: 'Could not copy the flowchart: {message}',
@@ -224,7 +225,8 @@ const translations = {
     assign: 'တန်ဖိုးသတ်မှတ်', control: 'ထိန်းချုပ်မှု', if: 'အကယ်၍',
     looping: 'ထပ်ခါလုပ်ဆောင်ခြင်း', while: 'မှန်နေစဉ်', for: 'အကြိမ်ရေဖြင့်',
     miscellaneous: 'အခြား', comment: 'မှတ်ချက်', browseExamples: 'နမူနာများကြည့်ရန်',
-    flowchart: 'လုပ်ငန်းစဉ်ပုံကြမ်း', pseudocode: 'ပရိုဂရမ်အကြမ်းကုဒ်', source: 'ရင်းမြစ်ကုဒ်',
+    flowchart: 'လုပ်ငန်းစဉ်ပုံကြမ်း', split: 'ခွဲမြင်ကွင်း', connect: 'ချိတ်ဆက်', regenerate: 'ပြန်ထုတ်မည်',
+    pseudocode: 'ပရိုဂရမ်အကြမ်းကုဒ်', source: 'ရင်းမြစ်ကုဒ်',
     database: 'ဒေတာဘေ့စ်', pythonEditor: 'Python',
     fit: 'အံကိုက်', addNode: '＋ Node ထည့်မည်', copyFlowchart: 'ကူးယူ',
     flowchartCopied: 'ပုံကြမ်းကို ကူးယူပြီးပါပြီ — Canva သို့မဟုတ် PowerPoint တွင် ထည့်နိုင်ပါသည်။',
@@ -623,7 +625,13 @@ const state = {
   toastTimer: null,
   recoveryTimer: null,
   flowObserver: null,
-  projectNameEdited: false
+  projectNameEdited: false,
+  projectDocument: null,
+  sourceDrafts: {},
+  customConnections: [],
+  selectedConnectionId: null,
+  connectionMode: false,
+  connectionSourceLine: null
 };
 
 const recoveryKey = 'augorithm.recovery.v1';
@@ -687,9 +695,16 @@ function syncAutomaticProjectName(force = false) {
 }
 
 function currentProject() {
+  const preserved = state.projectDocument?.schemaVersion === 2 ? state.projectDocument : {};
+  const now = new Date().toISOString();
   return {
+    ...preserved,
+    schemaVersion: 2,
     name: $('#projectName').value || 'Untitled Algorithm',
     code: modernizeForClosers($('#codeEditor').value),
+    updatedAt: now,
+    activePageId: preserved.activePageId || 'page-main',
+    pages: Array.isArray(preserved.pages) ? preserved.pages : [],
     database: {
       name: $('#relationName')?.value || '',
       attributes: $('#dbAttributes')?.value || '',
@@ -700,8 +715,19 @@ function currentProject() {
       code: $('#pythonEditor')?.value || '',
       input: $('#pythonInput')?.value || ''
     },
-    version: 3,
-    createdAt: state.createdAt || new Date().toISOString()
+    generatedSource: {
+      drafts: { ...state.sourceDrafts }
+    },
+    diagramConnections: state.customConnections.map(connection => ({ ...connection })),
+    preferences: {
+      theme: document.documentElement.dataset.theme || preserved.preferences?.theme || 'system',
+      snapToGrid: preserved.preferences?.snapToGrid ?? true,
+      gridSize: preserved.preferences?.gridSize || 20,
+      language: document.documentElement.lang === 'my' ? 'my' : 'en',
+      ...preserved.preferences
+    },
+    version: 4,
+    createdAt: state.createdAt || preserved.createdAt || now
   };
 }
 
@@ -1350,8 +1376,8 @@ function drawDecisionConnectors() {
   svg.setAttribute('height', height);
   svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
   svg.innerHTML = `<defs>
-    <marker id="flow-arrow" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto" markerUnits="userSpaceOnUse">
-      <path d="M0,0 L9,4.5 L0,9 Z" fill="#30455f" stroke="none"></path>
+    <marker id="flow-arrow" markerWidth="8" markerHeight="8" refX="7.4" refY="4" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L8,4 L0,8 Z" fill="#30455f" stroke="none"></path>
     </marker>
   </defs>`;
 
@@ -1434,7 +1460,7 @@ function drawDecisionConnectors() {
 
     const start = point(condition, 'bottom');
     const entries = branches.map(branch => point(entryNode(branch), 'top'));
-    const splitY = start.y + 18;
+    const splitY = start.y + 22;
     path(`M ${start.x} ${start.y} V ${splitY} H ${entries[0].x} V ${entries[0].y}`, true, 'decision-path true-path');
     path(`M ${start.x} ${splitY} H ${entries[1].x} V ${entries[1].y}`, true, 'decision-path false-path');
 
@@ -1458,14 +1484,15 @@ function drawDecisionConnectors() {
     const bodyExit = point(exitNode(body), 'bottom');
     const exitTop = point(exit, 'top');
     const exitBottom = point(exit, 'bottom');
-    const returnY = bodyExit.y + 24;
+    const returnY = bodyExit.y + 30;
     const bodyBounds = visualBounds(body);
-    const returnX = Math.min(width - 18, Math.max(bodyBounds.right + 38, nextPort.x + 44));
+    const returnX = Math.min(width - 42, Math.max(bodyBounds.right + 52, nextPort.x + 58));
+    const returnApproachY = returnPort.y + 30;
 
     path(`M ${nextPort.x} ${nextPort.y} H ${entry.x} V ${entry.y}`, true, 'loop-next-path');
     path(`M ${donePort.x} ${donePort.y} V ${exitTop.y} H ${exitTop.x} V ${exitBottom.y}`, false, 'loop-done-path');
     path(
-      `M ${bodyExit.x} ${bodyExit.y} V ${returnY} H ${returnX} V ${returnPort.y + 24} H ${returnPort.x} V ${returnPort.y}`,
+      `M ${bodyExit.x} ${bodyExit.y} V ${returnY} H ${returnX} V ${returnApproachY} H ${returnPort.x} V ${returnPort.y}`,
       true,
       'loop-return-path'
     );
@@ -1478,7 +1505,176 @@ function drawDecisionConnectors() {
       doneLabel.style.left = `${Math.max(4, labelLeft)}px`;
     }
   });
+
+  state.customConnections.forEach(connection => {
+    const sourceNode = host.querySelector(`.node[data-line="${connection.sourceLine}"]`);
+    const targetNode = host.querySelector(`.node[data-line="${connection.targetLine}"]`);
+    if (!sourceNode || !targetNode) return;
+    const sourceRect = sourceNode.getBoundingClientRect();
+    const targetRect = targetNode.getBoundingClientRect();
+    const sourceCenter = {
+      x: (sourceRect.left + sourceRect.width / 2 - hostRect.left) / scale,
+      y: (sourceRect.top + sourceRect.height / 2 - hostRect.top) / scale
+    };
+    const targetCenter = {
+      x: (targetRect.left + targetRect.width / 2 - hostRect.left) / scale,
+      y: (targetRect.top + targetRect.height / 2 - hostRect.top) / scale
+    };
+    const horizontal = Math.abs(targetCenter.x - sourceCenter.x) > Math.abs(targetCenter.y - sourceCenter.y);
+    const start = horizontal
+      ? sidePoint(sourceNode, targetCenter.x >= sourceCenter.x ? 'right' : 'left')
+      : point(sourceNode, targetCenter.y >= sourceCenter.y ? 'bottom' : 'top');
+    const end = horizontal
+      ? sidePoint(targetNode, targetCenter.x >= sourceCenter.x ? 'left' : 'right')
+      : point(targetNode, targetCenter.y >= sourceCenter.y ? 'top' : 'bottom');
+    const waypoint = connection.waypoint || (horizontal
+      ? { x: (start.x + end.x) / 2, y: start.y }
+      : { x: start.x, y: (start.y + end.y) / 2 });
+    const data = horizontal
+      ? `M ${start.x} ${start.y} H ${waypoint.x} V ${waypoint.y} H ${(waypoint.x + end.x) / 2} V ${end.y} H ${end.x}`
+      : `M ${start.x} ${start.y} V ${waypoint.y} H ${waypoint.x} V ${(waypoint.y + end.y) / 2} H ${end.x} V ${end.y}`;
+    const hit = document.createElementNS(namespace, 'path');
+    hit.setAttribute('d', data);
+    hit.setAttribute('class', 'custom-connection-hit');
+    hit.dataset.connectionId = connection.id;
+    hit.addEventListener('pointerdown', event => {
+      event.stopPropagation();
+      selectConnection(connection.id);
+    });
+    svg.appendChild(hit);
+    const visible = document.createElementNS(namespace, 'path');
+    visible.setAttribute('d', data);
+    visible.setAttribute('class', `custom-connection${state.selectedConnectionId === connection.id ? ' selected' : ''}`);
+    visible.style.strokeWidth = String(connection.strokeWidth || 2.25);
+    if (connection.arrow !== false) visible.setAttribute('marker-end', 'url(#flow-arrow)');
+    svg.appendChild(visible);
+    if (connection.label) {
+      const label = document.createElementNS(namespace, 'text');
+      label.setAttribute('x', String(waypoint.x + 9));
+      label.setAttribute('y', String(waypoint.y - 10));
+      label.setAttribute('class', 'custom-connection-label');
+      label.textContent = connection.label;
+      svg.appendChild(label);
+    }
+    if (state.selectedConnectionId === connection.id) {
+      const handle = document.createElementNS(namespace, 'circle');
+      handle.setAttribute('cx', String(waypoint.x));
+      handle.setAttribute('cy', String(waypoint.y));
+      handle.setAttribute('r', '7');
+      handle.setAttribute('class', 'connection-waypoint');
+      handle.addEventListener('pointerdown', event => beginConnectionWaypointDrag(event, connection.id));
+      svg.appendChild(handle);
+    }
+  });
   host.prepend(svg);
+}
+
+function setConnectionMode(enabled) {
+  state.connectionMode = enabled;
+  if (!enabled) state.connectionSourceLine = null;
+  $('#flowPane').classList.toggle('connecting', enabled);
+  $('#connectShapes').classList.toggle('active', enabled);
+  $('#connectShapes').setAttribute('aria-pressed', String(enabled));
+  renderFlowchart();
+  if (enabled) showToast('Select the first shape, then select the destination shape.');
+}
+
+function chooseConnectionNode(line) {
+  if (!state.connectionSourceLine) {
+    state.connectionSourceLine = line;
+    renderFlowchart();
+    showToast('Now select the destination shape.');
+    return;
+  }
+  if (state.connectionSourceLine === line) {
+    state.connectionSourceLine = null;
+    renderFlowchart();
+    return;
+  }
+  const connection = {
+    id: `connection-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    sourceLine: state.connectionSourceLine,
+    targetLine: line,
+    label: '',
+    strokeWidth: 2.25,
+    arrow: true,
+    waypoint: null
+  };
+  state.customConnections.push(connection);
+  state.selectedConnectionId = connection.id;
+  state.connectionSourceLine = null;
+  markDirty();
+  setConnectionMode(false);
+  selectConnection(connection.id);
+}
+
+function selectedConnection() {
+  return state.customConnections.find(connection => connection.id === state.selectedConnectionId) || null;
+}
+
+function selectConnection(id) {
+  state.selectedConnectionId = id;
+  state.selectedLine = null;
+  const connection = selectedConnection();
+  if (!connection) return selectLine(null, false);
+  $$('#flowchart .node.selected').forEach(node => node.classList.remove('selected'));
+  const host = $('#inspectorContent');
+  host.innerHTML = `<div class="selected-summary" style="--node-color:#1597f5">
+      <i>↗</i><div><strong>Connection</strong><span>Line ${connection.sourceLine} → ${connection.targetLine}</span></div>
+    </div>
+    <div class="inspector-card">
+      <label>Label</label><input id="connectionLabel" value="${escapeHTML(connection.label || '')}" placeholder="Optional label">
+      <label>Line weight</label><input id="connectionWeight" type="number" min="1" max="6" step=".25" value="${connection.strokeWidth || 2.25}">
+      <label class="connection-check"><input id="connectionArrow" type="checkbox"${connection.arrow !== false ? ' checked' : ''}> Arrow at end</label>
+      <div class="line-actions"><button id="resetConnection">Reset route</button><button id="deleteConnection" class="danger">Delete line</button></div>
+    </div>`;
+  const apply = () => {
+    connection.label = $('#connectionLabel').value;
+    connection.strokeWidth = Math.max(1, Math.min(6, Number($('#connectionWeight').value) || 2.25));
+    connection.arrow = $('#connectionArrow').checked;
+    markDirty();
+    drawDecisionConnectors();
+  };
+  $('#connectionLabel').addEventListener('input', apply);
+  $('#connectionWeight').addEventListener('input', apply);
+  $('#connectionArrow').addEventListener('change', apply);
+  $('#resetConnection').addEventListener('click', () => {
+    connection.waypoint = null;
+    markDirty();
+    drawDecisionConnectors();
+  });
+  $('#deleteConnection').addEventListener('click', () => {
+    state.customConnections = state.customConnections.filter(item => item.id !== connection.id);
+    state.selectedConnectionId = null;
+    markDirty();
+    drawDecisionConnectors();
+    selectLine(null, false);
+  });
+  drawDecisionConnectors();
+}
+
+function beginConnectionWaypointDrag(event, id) {
+  event.preventDefault();
+  event.stopPropagation();
+  const connection = state.customConnections.find(item => item.id === id);
+  if (!connection) return;
+  const host = $('#flowchart');
+  const move = pointerEvent => {
+    const rect = host.getBoundingClientRect();
+    const scale = state.zoom || 1;
+    connection.waypoint = {
+      x: (pointerEvent.clientX - rect.left) / scale,
+      y: (pointerEvent.clientY - rect.top) / scale
+    };
+    drawDecisionConnectors();
+  };
+  const finish = () => {
+    window.removeEventListener('pointermove', move);
+    window.removeEventListener('pointerup', finish);
+    markDirty();
+  };
+  window.addEventListener('pointermove', move);
+  window.addEventListener('pointerup', finish, { once: true });
 }
 
 function buildVisualProgram() {
@@ -1563,7 +1759,7 @@ function buildVisualProgram() {
 function createFlowNode(item) {
   const info = kindInfo[item.kind];
   const node = document.createElement('div');
-  node.className = `node ${item.kind}${state.selectedLine === item.line ? ' selected' : ''}`;
+  node.className = `node ${item.kind}${state.selectedLine === item.line ? ' selected' : ''}${state.connectionSourceLine === item.line ? ' connection-source' : ''}`;
   node.style.setProperty('--node-color', info.color);
   node.setAttribute('role', 'button');
   node.dataset.line = String(item.line);
@@ -1575,7 +1771,10 @@ function createFlowNode(item) {
     ${item.virtual ? '' : `<span class="node-edit-button" role="button" tabindex="-1" title="${escapeHTML(t('editNodeHint'))}" aria-label="${escapeHTML(t('editNodeHint'))}">✎</span>`}`;
   if (!item.virtual) {
     node.tabIndex = 0;
-    node.addEventListener('click', () => selectLine(item.line, false));
+    node.addEventListener('click', () => {
+      if (state.connectionMode) chooseConnectionNode(item.line);
+      else selectLine(item.line, false);
+    });
     node.addEventListener('dblclick', event => beginInlineNodeEdit(event, node, item));
     node.querySelector('.node-edit-button')?.addEventListener('click', event => beginInlineNodeEdit(event, node, item));
     node.addEventListener('keydown', event => {
@@ -1744,6 +1943,7 @@ function renderLineNumbers() {
 }
 
 function selectLine(line, rerenderFlowchart = true) {
+  if (line !== null) state.selectedConnectionId = null;
   state.selectedLine = line;
   if (rerenderFlowchart) {
     renderFlowchart();
@@ -2257,24 +2457,42 @@ function generatedSourceFileName(language) {
   return `${base}.${meta.extension}`;
 }
 
-function renderSource() {
-  const language = $('#languageSelect').value;
+function sourceEditorValue(language = $('#languageSelect').value) {
+  return Object.prototype.hasOwnProperty.call(state.sourceDrafts, language)
+    ? state.sourceDrafts[language]
+    : sourceFor(language);
+}
+
+function updateSourceMetrics(language, code, edited = false) {
   const meta = sourceLanguageMeta[language] || sourceLanguageMeta.java;
-  const code = sourceFor(language);
-  const lines = code.split(/\r?\n/);
-  $('#sourceCode').innerHTML = highlightSource(code, language);
+  const lines = String(code).split(/\r?\n/);
   $('#sourceLineNumbers').textContent = lines.map((_line, index) => index + 1).join('\n');
   $('#sourceFileName').textContent = generatedSourceFileName(language);
   $('#sourceStats').textContent = `${lines.length} ${lines.length === 1 ? 'line' : 'lines'} · ${code.length} chars`;
   $('#sourceMode').textContent = meta.label;
-  $('#sourceStatus').textContent = t('liveSourceHint');
+  $('#sourceStatus').textContent = edited ? 'Edited source draft · Regenerate to reset' : t('liveSourceHint');
   $('#sourceEditor').dataset.language = language;
+}
+
+function renderSource() {
+  const language = $('#languageSelect').value;
+  const code = sourceEditorValue(language);
+  $('#sourceCode').value = code;
+  updateSourceMetrics(language, code, Object.prototype.hasOwnProperty.call(state.sourceDrafts, language));
+}
+
+function regenerateSource() {
+  const language = $('#languageSelect').value;
+  delete state.sourceDrafts[language];
+  renderSource();
+  markDirty();
+  showToast(`${sourceLanguageMeta[language]?.label || 'Source'} regenerated from pseudocode.`);
 }
 
 async function copyGeneratedSource() {
   const language = $('#languageSelect').value;
   const meta = sourceLanguageMeta[language] || sourceLanguageMeta.java;
-  const source = sourceFor(language);
+  const source = sourceEditorValue(language);
   try {
     if (navigator.clipboard?.writeText) {
       await navigator.clipboard.writeText(source);
@@ -2531,10 +2749,16 @@ function savedLocationMessage(action, path) {
 function activateTab(tab) {
   $$('.segmented button').forEach(button => button.classList.toggle('active', button.dataset.tab === tab));
   $$('.tab-pane').forEach(pane => pane.classList.remove('active'));
-  $(`#${tab}Pane`).classList.add('active');
+  $('.tab-content').classList.toggle('split-active', tab === 'split');
+  if (tab === 'split') {
+    $('#pseudoPane').classList.add('active');
+    $('#flowPane').classList.add('active');
+  } else {
+    $(`#${tab}Pane`).classList.add('active');
+  }
   document.body.dataset.activeTab = tab;
-  $('#zoomControls').style.visibility = tab === 'flow' ? 'visible' : 'hidden';
-  if (tab === 'flow') requestAnimationFrame(() => {
+  $('#zoomControls').style.visibility = tab === 'flow' || tab === 'split' ? 'visible' : 'hidden';
+  if (tab === 'flow' || tab === 'split') requestAnimationFrame(() => {
     drawDecisionConnectors();
     centerFlowchart();
   });
@@ -2588,6 +2812,7 @@ async function openProject() {
 
 function loadProject(result) {
   state.filePath = result.filePath;
+  state.projectDocument = result.project;
   state.createdAt = result.project.createdAt || null;
   state.dirty = false;
   state.projectNameEdited = true;
@@ -2599,6 +2824,12 @@ function loadProject(result) {
   $('#dbDependencies').value = result.project.database?.dependencies || '';
   $('#pythonEditor').value = result.project.python?.code || '';
   $('#pythonInput').value = result.project.python?.input || '';
+  state.sourceDrafts = { ...(result.project.generatedSource?.drafts || {}) };
+  state.customConnections = Array.isArray(result.project.diagramConnections)
+    ? result.project.diagramConnections.map(connection => ({ ...connection }))
+    : [];
+  state.selectedConnectionId = null;
+  state.connectionSourceLine = null;
   $('#saveState').textContent = 'Saved';
   $('#fileStatus').textContent = `✓ ${fileName(state.filePath)}`;
   localStorage.removeItem(recoveryKey);
@@ -2607,6 +2838,11 @@ function loadProject(result) {
 
 function newProject() {
   state.filePath = null; state.createdAt = null; state.dirty = false; state.selectedLine = null; state.variables = {};
+  state.projectDocument = null;
+  state.sourceDrafts = {};
+  state.customConnections = [];
+  state.selectedConnectionId = null;
+  state.connectionSourceLine = null;
   state.projectNameEdited = false;
   $('#projectName').value = 'Untitled Algorithm';
   $('#codeEditor').value = templates[0].code;
@@ -2625,6 +2861,11 @@ function newProject() {
 function loadTemplate(index) {
   const template = templates[index];
   state.filePath = null; state.createdAt = null; state.selectedLine = null; state.variables = {};
+  state.projectDocument = null;
+  state.sourceDrafts = {};
+  state.customConnections = [];
+  state.selectedConnectionId = null;
+  state.connectionSourceLine = null;
   state.projectNameEdited = false;
   $('#projectName').value = template.name; $('#codeEditor').value = template.code;
   $('#pythonEditor').value = '';
@@ -2645,22 +2886,33 @@ function clearRuntime() {
 
 function makeFlowchartSVG() {
   const host = $('#flowchart');
+  const exportPadding = 110;
   const previousZoom = host.style.zoom;
   host.style.zoom = 1;
-  const width = Math.ceil(host.scrollWidth);
-  const height = Math.ceil(host.scrollHeight);
+  const contentWidth = Math.ceil(host.scrollWidth);
+  const contentHeight = Math.ceil(host.scrollHeight);
+  const width = contentWidth + exportPadding * 2;
+  const height = contentHeight + exportPadding * 2;
   const clone = host.cloneNode(true);
   host.style.zoom = previousZoom;
   clone.style.zoom = 1;
   clone.style.transform = 'none';
   clone.style.margin = '0';
+  clone.style.width = `${contentWidth}px`;
+  clone.style.minWidth = `${contentWidth}px`;
+  clone.style.height = `${contentHeight}px`;
+  clone.style.minHeight = `${contentHeight}px`;
   clone.querySelectorAll('.selected').forEach(node => node.classList.remove('selected'));
   clone.querySelector('.connector-layer')?.remove();
   const connector = host.querySelector('.connector-layer');
-  const connectorPaths = connector ? [...connector.querySelectorAll(':scope > path')].map(path => {
+  const connectorPaths = connector ? [...connector.querySelectorAll(':scope > path:not(.custom-connection-hit)')].map(path => {
     const marker = path.hasAttribute('marker-end') ? ' marker-end="url(#export-flow-arrow)"' : '';
-    return `<path d="${escapeHTML(path.getAttribute('d') || '')}"${marker}></path>`;
+    const weight = path.style.strokeWidth ? ` stroke-width="${escapeHTML(path.style.strokeWidth)}"` : '';
+    return `<path d="${escapeHTML(path.getAttribute('d') || '')}"${weight}${marker}></path>`;
   }).join('') : '';
+  const connectorLabels = connector ? [...connector.querySelectorAll(':scope > .custom-connection-label')].map(label =>
+    `<text x="${escapeHTML(label.getAttribute('x') || '0')}" y="${escapeHTML(label.getAttribute('y') || '0')}" fill="#30455f" font-family="Arial,Helvetica,sans-serif" font-size="12" font-weight="700">${escapeHTML(label.textContent || '')}</text>`
+  ).join('') : '';
   const styles = [...document.styleSheets].map(sheet => {
     try { return [...sheet.cssRules].map(rule => rule.cssText).join('\n'); }
     catch { return ''; }
@@ -2672,13 +2924,14 @@ function makeFlowchartSVG() {
     svg: `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
       <rect width="100%" height="100%" fill="#fbfaf5"></rect>
       <defs>
-        <marker id="export-flow-arrow" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto" markerUnits="userSpaceOnUse">
-          <path d="M0,0 L9,4.5 L0,9 Z" fill="#30455f"></path>
+        <marker id="export-flow-arrow" markerWidth="8" markerHeight="8" refX="7.4" refY="4" orient="auto" markerUnits="userSpaceOnUse">
+          <path d="M0,0 L8,4 L0,8 Z" fill="#30455f"></path>
         </marker>
       </defs>
-      <g fill="none" stroke="#30455f" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">${connectorPaths}</g>
-      <foreignObject width="100%" height="100%">
-        <div xmlns="http://www.w3.org/1999/xhtml" style="width:${width}px;height:${height}px;background:transparent;color:#101828;font-family:Arial,Helvetica,sans-serif">
+      <g transform="translate(${exportPadding} ${exportPadding})" fill="none" stroke="#30455f" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round">${connectorPaths}</g>
+      <g transform="translate(${exportPadding} ${exportPadding})">${connectorLabels}</g>
+      <foreignObject x="${exportPadding}" y="${exportPadding}" width="${contentWidth}" height="${contentHeight}">
+        <div xmlns="http://www.w3.org/1999/xhtml" style="width:${contentWidth}px;height:${contentHeight}px;background:transparent;color:#101828;font-family:Arial,Helvetica,sans-serif">
           <style>${styles}</style>${markup}
         </div>
       </foreignObject>
@@ -2790,7 +3043,24 @@ function init() {
     localStorage.setItem('augorithm.sourceLanguage', event.target.value);
     renderSource();
   });
+  $('#regenerateSourceBtn').addEventListener('click', regenerateSource);
   $('#copySourceBtn').addEventListener('click', copyGeneratedSource);
+  $('#sourceCode').addEventListener('input', event => {
+    const language = $('#languageSelect').value;
+    state.sourceDrafts[language] = event.target.value;
+    updateSourceMetrics(language, event.target.value, true);
+    markDirty();
+  });
+  $('#sourceCode').addEventListener('scroll', event => {
+    $('#sourceLineNumbers').scrollTop = event.target.scrollTop;
+  });
+  $('#sourceCode').addEventListener('keydown', event => {
+    if (event.key !== 'Tab') return;
+    event.preventDefault();
+    const editor = event.currentTarget;
+    editor.setRangeText('    ', editor.selectionStart, editor.selectionEnd, 'end');
+    editor.dispatchEvent(new Event('input', { bubbles: true }));
+  });
   $('#wrapSourceBtn').addEventListener('click', event => {
     const enabled = !$('#sourceEditor').classList.contains('wrap-lines');
     $('#sourceEditor').classList.toggle('wrap-lines', enabled);
@@ -2827,6 +3097,7 @@ function init() {
     event.target.value = '';
     if (kind) insertSnippet(kind, true);
   });
+  $('#connectShapes').addEventListener('click', () => setConnectionMode(!state.connectionMode));
   $('#copyFlowchart').addEventListener('click', copyFlowchart);
   $('#exportSVG').addEventListener('click', () => exportFlowchart('svg'));
   $('#exportPNG').addEventListener('click', () => exportFlowchart('png'));
@@ -2837,7 +3108,7 @@ function init() {
     const exportName = fileName.slice(0, -(meta.extension.length + 1));
     const path = await window.augorithm.exportSource({
       name: exportName,
-      content: sourceFor(language),
+      content: sourceEditorValue(language),
       extension: meta.extension
     });
     if (path) {
@@ -2920,6 +3191,10 @@ function init() {
       $('#dbDependencies').value = recovery.project.database?.dependencies || '';
       $('#pythonEditor').value = recovery.project.python?.code || '';
       $('#pythonInput').value = recovery.project.python?.input || '';
+      state.sourceDrafts = { ...(recovery.project.generatedSource?.drafts || {}) };
+      state.customConnections = Array.isArray(recovery.project.diagramConnections)
+        ? recovery.project.diagramConnections.map(connection => ({ ...connection }))
+        : [];
       $('#saveState').textContent = 'Recovered';
       $('#fileStatus').textContent = '◇ Recovered unsaved work';
     }

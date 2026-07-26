@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.4.7] — 2026-07-27
+
+- Added generous, consistent outer whitespace to PNG, SVG, and clipboard flowchart exports.
+- Corrected connector endpoint arrowheads so every arrow remains small, fixed-size, and points precisely at its destination.
+- Increased nested-loop routing clearance to keep return paths separated from nodes and neighboring connectors.
+- Applied the same padded export and fixed arrowhead behavior to the web editor.
+- Reworked the public Augorithm landing page into a bright, accessible light theme.
+
+## [1.4.6] — 2026-07-27
+
+- Added a native Split view for editing pseudocode beside the live flowchart.
+- Made generated Java, Python, JavaScript, Swift, and pseudocode source editable with saved per-language drafts.
+- Added shape-to-shape connection mode, selectable custom lines, adjustable labels, weights, arrowheads, and draggable routing points.
+- Reduced connector and arrowhead sizes in the canvas, SVG, PNG, and clipboard exports.
+- Persisted generated source drafts and custom connections inside `.augo` projects and recovery snapshots.
+
 All notable Augorithm changes are documented here.
 
 ## [1.4.5] — 2026-07-26
