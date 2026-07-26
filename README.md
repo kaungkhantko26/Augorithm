@@ -1,86 +1,130 @@
-# Augorithm
+<div align="center">
+  <img src="app/assets/icon.png" alt="Augorithm app icon" width="112" height="112">
 
-Augorithm is a pseudocode-to-flowchart learning environment for macOS, Windows, and iPad. It converts beginner-friendly pseudocode into connected flowcharts, validates syntax, executes algorithms with interactive input, and exports flowcharts as PNG or SVG.
+  # Augorithm
 
-Built by **Kaung Khant Ko**.
+  **Think it. Chart it. Run it.**
 
-## Download
+  A visual pseudocode editor, standards-based flowchart generator, and algorithm runner for macOS, Windows, and iPad.
 
-Get the newest packages from [GitHub Releases](https://github.com/kaungkhantko26/Augorithm/releases/latest):
+  [![Latest release](https://img.shields.io/github/v/release/kaungkhantko26/Augorithm?display_name=tag&sort=semver)](https://github.com/kaungkhantko26/Augorithm/releases/latest)
+  [![GitHub Pages](https://github.com/kaungkhantko26/Augorithm/actions/workflows/pages.yml/badge.svg)](https://kaungkhantko26.github.io/Augorithm/)
+  [![Platforms](https://img.shields.io/badge/platforms-macOS%20%7C%20Windows%20%7C%20iPad-0A376D)](#install-augorithm)
+  [![License: MIT](https://img.shields.io/badge/license-MIT-F5A800)](LICENSE)
 
-- Windows 10/11 x64 installer: `Augorithm-1.3.9-x64.exe`
-- Apple-silicon macOS app: `Augorithm-1.3.9-arm64.zip`
+  [Web app](https://kaungkhantko26.github.io/Augorithm/) ·
+  [Download](https://github.com/kaungkhantko26/Augorithm/releases/latest) ·
+  [Report a problem](https://github.com/kaungkhantko26/Augorithm/issues)
+</div>
 
-## Install on Windows
+---
 
-1. Download `Augorithm-1.3.9-x64.exe` from Releases.
-2. Double-click the installer and choose the installation folder.
-3. Open Augorithm from the Start menu or desktop shortcut.
-4. If Microsoft Defender SmartScreen appears, review the unknown-publisher warning before deciding whether to continue.
+Augorithm turns beginner-friendly pseudocode into connected, editable flowcharts in real time. It validates and runs algorithms with guided console input, exports presentation-ready PNG and SVG diagrams, and supports English and Burmese interfaces.
 
-The portable build is not Authenticode-signed, so Windows may report an unknown publisher.
+Augorithm is built by **Kaung Khant Ko** as an independent computer-science learning tool inspired by visual algorithm-design workflows.
 
-## Install on macOS
+## What you can do
 
-1. Download `Augorithm-1.3.9-arm64.zip` from Releases.
-2. Double-click the ZIP and drag **Augorithm.app** into **Applications**.
-3. Control-click Augorithm in Applications and choose **Open**.
-4. Confirm **Open** if macOS displays an unidentified-developer warning.
+- Write classroom pseudocode in an IDE-style editor with formatting, indentation, validation, and safe syntax repair.
+- Generate standard flowchart symbols with clear `True`/`False`, `Next`, `Done`, branch, and loop routing.
+- Edit flowchart symbols directly, then zoom, pan, fit, copy, or export the canvas as PNG or editable SVG.
+- Run algorithms with interactive `INPUT`, expressions, variables, loops, decisions, and common functions.
+- Save and reopen complete `.augo` projects, including recovery for unsaved work.
+- Translate the interface between English and Burmese.
+- Use the database-normalization workspace for guided 1NF, 2NF, and 3NF decomposition.
+- Write and run Python in the desktop app.
+- Install the offline-capable web app on iPad.
 
-The macOS download is not Apple-notarized. If macOS blocks the first launch, use the Control-click **Open** step above.
+## Install Augorithm
 
-## Use on iPad
+The current source and package version is **1.4.3**.
 
-1. Open the Augorithm web app in Safari at `https://kaungkhantko26.github.io/Augorithm/`.
-2. Tap **Share**, then **Add to Home Screen**.
-3. Open Augorithm from the Home Screen for a full-screen app experience.
-4. Tap the **✎ Note Mode** button for a focused, touch-friendly pseudocode notebook.
+### macOS
 
-The iPad app works offline after its first successful load. Projects can be opened from Files and saved as `.augo` downloads. Source code and flowcharts can also be exported directly from Safari.
+1. Open [the latest release](https://github.com/kaungkhantko26/Augorithm/releases/latest).
+2. Download `Augorithm-1.4.3-arm64.zip`.
+3. Open the ZIP and drag **Augorithm.app** into **Applications**.
+4. On first launch, Control-click the app, choose **Open**, then confirm.
 
-## Open and save projects
+The current macOS build supports Apple silicon. It is not Apple-notarized, so macOS may show an unidentified-developer warning.
 
-Projects use the `.augo` extension. The installers register this file type, so saved projects can be opened by double-clicking them in Finder or File Explorer.
+### Windows
 
-Use **File → Save As…** for a new project and **File → Save** afterward. Augorithm keeps a recovery draft for unsaved work.
+1. Open [the latest release](https://github.com/kaungkhantko26/Augorithm/releases/latest).
+2. Download `Augorithm-1.4.3-x64.exe`.
+3. Run the installer and choose an installation folder.
+4. Open Augorithm from the Start menu or desktop shortcut.
 
-## Version and automatic updates
+The current Windows build is not Authenticode-signed, so Microsoft Defender SmartScreen may show an unknown-publisher warning.
 
-The installed macOS and Windows apps check GitHub Releases automatically. Click the version badge in the bottom bar, or choose **Help → Check for Updates…**, to check immediately. New versions download inside Augorithm; select **Restart to update** when the download finishes. A downloaded update is also installed automatically when the app closes.
+### iPad
 
-On iPad, tap the version badge and select **Reload to update** when a newer web release is available.
+1. Open the [Augorithm web app](https://kaungkhantko26.github.io/Augorithm/) in Safari.
+2. Tap **Share** → **Add to Home Screen**.
+3. Launch Augorithm from the Home Screen.
+4. Use **Note Mode** for a focused, touch-friendly pseudocode workspace.
 
-## Features
+After the first successful load, the iPad app can work offline. Projects can be opened from Files and saved as `.augo` downloads.
 
-- Flexible pseudocode parser with common classroom formats
-- Natural classroom statements including `Set row to 1`, `Add 2 to col`, `Display value`, `Display newline`, and compact `Endwhile`
-- Quote-aware inline statements: forms such as `Output "Fail" End If` are separated safely without changing quoted text
-- IDE-style pseudocode editor with an active-line gutter, cursor position, and problem markers
-- Persistent light/dark theme toggle with high-contrast editor and flowchart colors
-- Fully closed two-layer outlines for decision, input/output, and loop symbols
-- Real-time connector regeneration after edits, resizing, theme changes, fitting, and zooming
-- Tab/Shift+Tab indentation, smart Enter, automatic block completion, and four-space formatting
-- Safe syntax repair on Build/Run for missing program wrappers, block endings, `NEXT` variables, and common assignment forms
-- One-click Format and Fix Errors commands with macOS/Windows keyboard shortcuts
-- Flowgorithm-style `For` loops with a hexagonal control node, right-side `Next` path, downward `Done` path, and body return connector
-- Collision-free loop routing with a dedicated left-side Done lane and right-side return lane
-- Continuous, gap-free loop and True/False branch connectors with bold export-safe lines
-- Flowgorithm-style declaration, assignment, input, output, start, and end symbol colors and shapes
-- Flowchart zoom, fit, and pan
-- PNG and editable SVG export
-- Guided console input and executable expressions
-- Extended functions: `Round`, `Floor`, `Ceiling`, `Pow`, `Upper`, `Lower`, `Trim`, `Substring`, `Min`, `Max`, trigonometry, and type conversion
-- Variables inspector and line-level validation
-- Pseudocode, Python, Swift, and JavaScript source views
-- English and Burmese interface modes
-- `.augo` save, open, recovery, and double-click support
-- Native Windows x64 and Apple-silicon macOS packages
-- Visible version information with automatic in-app update checks, download progress, and restart-to-install
-- Installable, offline-capable iPad web app with touch controls and focused Note Mode
+## Quick start
+
+Enter an algorithm such as:
+
+```text
+Start
+    Set total to 0
+    For count = 1 to 5
+        Input number
+        Set total to total + number
+    Next
+    Display total
+End
+```
+
+Then:
+
+1. Select **Build** to validate and generate the flowchart.
+2. Select **Run** and provide values when Augorithm prompts for input.
+3. Open **Flowchart** to edit or inspect the diagram.
+4. Use **Copy**, **PNG**, or **SVG** to place the flowchart in Canva, PowerPoint, documents, or other design tools.
+
+## Pseudocode support
+
+Augorithm accepts several common teaching styles, including:
+
+- Assignment: `Set score to 80`, `score = 80`, `Add 2 to score`
+- Input/output: `Input name`, `Display name`, `Output "Hello"`
+- Decisions: `If ... Then`, `Else If`, `Else`, `End If`
+- Loops: `While ...`, `End While`, `For ... To ... Step ...`, `Next`
+- Compact endings such as `Endwhile`
+- Quote-aware inline statements such as `Output "Fail" End If`
+
+The formatter uses four-space indentation and supports Tab, Shift+Tab, smart Enter, and automatic block completion.
+
+## Flowcharts and exports
+
+- Standard start/end, declaration, assignment, input/output, decision, and loop shapes
+- Fully closed, high-contrast symbol outlines
+- Independent connector ports to prevent duplicate arrows and overlapping routes
+- Continuous export-safe branch and loop lines
+- Direct symbol editing in the flowchart canvas
+- Zoom, fit, pan, PNG export, editable SVG export, and clipboard copy
+- Automatic project and export filenames based on the algorithm
+
+## Projects, files, and updates
+
+Augorithm projects use the `.augo` extension. The desktop installers register this file type so projects can be opened from Finder or File Explorer.
+
+Use **File → Save As…** for a new project and **File → Save** for later changes. After a desktop save or export, Augorithm opens Finder or File Explorer with the new file selected.
+
+The macOS and Windows apps check GitHub Releases for updates. Click the version badge or choose **Help → Check for Updates…**. After a download finishes, choose **Restart to update**. On iPad, use the version panel’s **Reload to update** action.
 
 ## Build from source
 
-Requires Node.js 20 or newer and npm.
+Requirements:
+
+- Node.js 20 or newer
+- npm
 
 ```bash
 npm install
@@ -91,29 +135,38 @@ Build desktop packages:
 
 ```bash
 npm run windows
-npm run pack
+npm run dmg
 ```
 
 Build output is written to `dist/`.
 
-To test the iPad/web app locally:
+Test the iPad/web app locally:
 
 ```bash
 python3 -m http.server 4173 --directory app
 ```
 
-Then open `http://localhost:4173`. The GitHub Pages workflow deploys the same `app/` directory whenever its files change on `main`.
+Then open `http://localhost:4173`. The Pages workflow deploys `app/` when web-app files change on `main`.
 
 ## Project structure
 
 ```text
-app/          Interface, parser, interpreter, and flowchart renderer
-electron/     Desktop integration, dialogs, and file handling
-package.json  Build and packaging configuration
+app/             Interface, parser, interpreter, flowchart renderer, and PWA
+electron/        Desktop integration, native dialogs, updates, and file handling
+.github/         GitHub Pages workflow and repository metadata guidance
+package.json     Application metadata, scripts, and packaging configuration
 ```
+
+## Support and feedback
+
+Please use [GitHub Issues](https://github.com/kaungkhantko26/Augorithm/issues) for reproducible bugs and feature requests. Include your operating system, Augorithm version, pseudocode sample, and a screenshot when relevant.
 
 ## License
 
-MIT License. See [LICENSE](LICENSE).
+Augorithm is available under the [MIT License](LICENSE).
 
-Augorithm is an original educational project inspired by visual flowchart-learning workflows. It is not affiliated with Flowgorithm or Auston College.
+Copyright © 2026 Kaung Khant Ko.
+
+## Independence notice
+
+Augorithm is an original, independent educational project. It is not affiliated with, endorsed by, or sponsored by Flowgorithm or Auston College.

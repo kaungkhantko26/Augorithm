@@ -1,7 +1,9 @@
-const { app, BrowserWindow, ipcMain, dialog, shell, Menu } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, shell, Menu, clipboard, nativeImage } = require('electron');
 const { autoUpdater } = require('electron-updater');
+const { spawn } = require('child_process');
 const fs = require('fs');
 const path = require('path');
+const { isNewerVersion } = require('./version');
 
 let mainWindow;
 let pendingProjectPath = null;
@@ -53,8 +55,14 @@ function configureUpdater() {
   autoUpdater.autoDownload = true;
   autoUpdater.autoInstallOnAppQuit = true;
   autoUpdater.allowPrerelease = false;
+  autoUpdater.allowDowngrade = false;
   autoUpdater.on('checking-for-update', () => sendUpdateState({ status: 'checking' }));
   autoUpdater.on('update-available', info => {
+    if (!isNewerVersion(info?.version, app.getVersion())) {
+      availableUpdateVersion = null;
+      sendUpdateState({ status: 'current', version: app.getVersion() });
+      return;
+    }
     availableUpdateVersion = info.version;
     sendUpdateState({ status: 'available', version: info.version });
   });
@@ -68,6 +76,12 @@ function configureUpdater() {
     total: progress.total
   }));
   autoUpdater.on('update-downloaded', info => {
+    if (!isNewerVersion(info?.version, app.getVersion())) {
+      updateDownloaded = false;
+      availableUpdateVersion = null;
+      sendUpdateState({ status: 'current', version: app.getVersion() });
+      return;
+    }
     updateDownloaded = true;
     availableUpdateVersion = info.version;
     sendUpdateState({ status: 'downloaded', version: info.version });
@@ -91,12 +105,12 @@ async function checkForUpdates() {
   }
   if (updateCheckPromise) return updateCheckPromise;
   updateCheckPromise = autoUpdater.checkForUpdates()
-    .then(result => ({
-      status: result?.updateInfo?.version && result.updateInfo.version !== app.getVersion()
-        ? 'available'
-        : 'current',
-      version: result?.updateInfo?.version || app.getVersion()
-    }))
+    .then(result => {
+      const candidate = result?.updateInfo?.version;
+      return isNewerVersion(candidate, app.getVersion())
+        ? { status: 'available', version: candidate }
+        : { status: 'current', version: app.getVersion() };
+    })
     .finally(() => { updateCheckPromise = null; });
   return updateCheckPromise;
 }
@@ -183,6 +197,7 @@ app.whenReady().then(() => {
       label: 'Program',
       submenu: [
         { label: 'Build Flowchart', accelerator: 'CmdOrCtrl+B', click: () => mainWindow.webContents.send('menu-action', 'build') },
+        { label: 'Copy Flowchart as Image', accelerator: 'CmdOrCtrl+Shift+C', click: () => mainWindow.webContents.send('menu-action', 'copyFlowchart') },
         { label: 'Run', accelerator: 'CmdOrCtrl+R', click: () => mainWindow.webContents.send('menu-action', 'run') },
         { label: 'Stop / Clear', accelerator: 'CmdOrCtrl+.', click: () => mainWindow.webContents.send('menu-action', 'clear') }
       ]
@@ -220,6 +235,12 @@ ipcMain.handle('app:install-update', () => {
   return true;
 });
 
+ipcMain.handle('file:reveal', (_event, filePath) => {
+  if (!filePath || !path.isAbsolute(filePath) || !fs.existsSync(filePath)) return false;
+  shell.showItemInFolder(filePath);
+  return true;
+});
+
 ipcMain.handle('project:save', async (_event, project, existingPath) => {
   let filePath = existingPath;
   if (!filePath) {
@@ -240,7 +261,9 @@ ipcMain.handle('project:save', async (_event, project, existingPath) => {
       throw new Error('The saved pseudocode did not match the editor.');
     }
     await fs.promises.rename(temporaryPath, filePath);
-    return readProject(filePath);
+    const result = readProject(filePath);
+    shell.showItemInFolder(filePath);
+    return result;
   } catch (error) {
     await fs.promises.rm(temporaryPath, { force: true }).catch(() => {});
     throw error;
@@ -264,8 +287,29 @@ ipcMain.handle('source:export', async (_event, { name, content, extension }) => 
   });
   if (result.canceled) return null;
   fs.writeFileSync(result.filePath, content);
+  shell.showItemInFolder(result.filePath);
   return result.filePath;
 });
+
+async function renderFlowchartPNG(data, width, height) {
+  const exportWindow = new BrowserWindow({
+    show: false,
+    width: Math.max(320, Math.min(8192, Math.ceil(width))),
+    height: Math.max(240, Math.min(8192, Math.ceil(height))),
+    backgroundColor: '#fbfaf5',
+    webPreferences: { offscreen: true, backgroundThrottling: false }
+  });
+  try {
+    const encoded = Buffer.from(data, 'utf8').toString('base64');
+    await exportWindow.loadURL(`data:image/svg+xml;base64,${encoded}`);
+    await exportWindow.webContents.executeJavaScript(
+      'document.fonts.ready.then(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))))'
+    );
+    return (await exportWindow.webContents.capturePage()).toPNG();
+  } finally {
+    exportWindow.destroy();
+  }
+}
 
 ipcMain.handle('flowchart:export', async (_event, { name, format, data, width, height }) => {
   const extension = format === 'png' ? 'png' : 'svg';
@@ -276,26 +320,80 @@ ipcMain.handle('flowchart:export', async (_event, { name, format, data, width, h
   });
   if (result.canceled) return null;
   if (format === 'png') {
-    const exportWindow = new BrowserWindow({
-      show: false,
-      width: Math.max(320, Math.min(8192, Math.ceil(width))),
-      height: Math.max(240, Math.min(8192, Math.ceil(height))),
-      backgroundColor: '#fbfaf5',
-      webPreferences: { offscreen: true, backgroundThrottling: false }
-    });
-    try {
-      const encoded = Buffer.from(data, 'utf8').toString('base64');
-      await exportWindow.loadURL(`data:image/svg+xml;base64,${encoded}`);
-      await exportWindow.webContents.executeJavaScript(
-        'document.fonts.ready.then(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))))'
-      );
-      const image = await exportWindow.webContents.capturePage();
-      fs.writeFileSync(result.filePath, image.toPNG());
-    } finally {
-      exportWindow.destroy();
-    }
+    fs.writeFileSync(result.filePath, await renderFlowchartPNG(data, width, height));
   } else {
     fs.writeFileSync(result.filePath, data, 'utf8');
   }
+  shell.showItemInFolder(result.filePath);
   return result.filePath;
+});
+
+ipcMain.handle('flowchart:copy', async (_event, { data, width, height }) => {
+  const image = nativeImage.createFromBuffer(await renderFlowchartPNG(data, width, height));
+  if (image.isEmpty()) throw new Error('The flowchart image could not be created.');
+  clipboard.writeImage(image);
+  return true;
+});
+
+function runPythonProcess(command, prefixArgs, scriptPath, input) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(command, [...prefixArgs, '-I', '-u', scriptPath], {
+      stdio: ['pipe', 'pipe', 'pipe'],
+      windowsHide: true
+    });
+    let stdout = '';
+    let stderr = '';
+    let finished = false;
+    const finish = result => {
+      if (finished) return;
+      finished = true;
+      resolve(result);
+    };
+    const timer = setTimeout(() => {
+      child.kill();
+      finish({ success: false, stdout, stderr: `${stderr}\nExecution stopped after 10 seconds.`.trim(), exitCode: null, command });
+    }, 10000);
+    child.stdout.on('data', chunk => {
+      if (stdout.length < 1_000_000) stdout += chunk.toString();
+    });
+    child.stderr.on('data', chunk => {
+      if (stderr.length < 1_000_000) stderr += chunk.toString();
+    });
+    child.on('error', error => {
+      clearTimeout(timer);
+      reject(error);
+    });
+    child.on('close', exitCode => {
+      clearTimeout(timer);
+      finish({ success: exitCode === 0, stdout, stderr, exitCode, command });
+    });
+    child.stdin.end(String(input || ''));
+  });
+}
+
+ipcMain.handle('python:run', async (_event, { code, input }) => {
+  const temporaryDirectory = await fs.promises.mkdtemp(path.join(app.getPath('temp'), 'augorithm-python-'));
+  const scriptPath = path.join(temporaryDirectory, 'main.py');
+  await fs.promises.writeFile(scriptPath, String(code || ''), 'utf8');
+  const candidates = process.platform === 'win32'
+    ? [['py', ['-3']], ['python', []]]
+    : [['python3', []], ['python', []]];
+  try {
+    for (const [command, args] of candidates) {
+      try {
+        return await runPythonProcess(command, args, scriptPath, input);
+      } catch (error) {
+        if (error.code !== 'ENOENT') throw error;
+      }
+    }
+    return {
+      success: false,
+      stdout: '',
+      stderr: 'Python 3 was not found. Install Python 3 and reopen Augorithm.',
+      exitCode: null,
+      command: null
+    };
+  } finally {
+    await fs.promises.rm(temporaryDirectory, { recursive: true, force: true }).catch(() => {});
+  }
 });

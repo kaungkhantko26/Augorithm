@@ -69,8 +69,22 @@
           <button class="active" data-tab="flow">⌘ <span data-i18n="flowchart">Flowchart</span></button>
           <button data-tab="pseudo">☷ <span data-i18n="pseudocode">Pseudocode</span></button>
           <button data-tab="source">&lt;/&gt; <span data-i18n="source">Source</span></button>
+          <button data-tab="database">▦ <span data-i18n="database">Database</span></button>
+          <button data-tab="python">Py <span data-i18n="pythonEditor">Python</span></button>
         </div>
         <div class="zoom-controls" id="zoomControls">
+          <select id="flowAddSymbol" title="Add a flowchart node" aria-label="Add a flowchart node">
+            <option value="" data-i18n="addNode">＋ Add node</option>
+            <option value="input" data-i18n="input">Input</option>
+            <option value="output" data-i18n="output">Output</option>
+            <option value="declare" data-i18n="declare">Declare</option>
+            <option value="assign" data-i18n="assign">Assign</option>
+            <option value="if" data-i18n="if">If</option>
+            <option value="while" data-i18n="while">While</option>
+            <option value="for" data-i18n="for">For</option>
+            <option value="comment" data-i18n="comment">Comment</option>
+          </select>
+          <button id="copyFlowchart" title="Copy flowchart to clipboard">⧉ <span data-i18n="copyFlowchart">Copy</span></button>
           <button id="exportSVG" title="Export scalable flowchart">SVG</button>
           <button id="exportPNG" title="Export flowchart image">PNG</button>
           <i></i>
@@ -113,6 +127,39 @@
           </div>
           <pre id="sourceCode"></pre>
         </div>
+        <div class="tab-pane database-pane" id="databasePane">
+          <div class="feature-toolbar">
+            <div><strong data-i18n="normalizationLab">DATABASE NORMALIZATION</strong><span data-i18n="normalizationHint">Design a relation and analyze it through 1NF, 2NF, and 3NF.</span></div>
+            <div><button id="databaseExampleBtn" data-i18n="loadExample">Load example</button><button id="normalizeBtn" class="primary-feature-button" data-i18n="analyzeNormalize">Analyze &amp; normalize</button></div>
+          </div>
+          <div class="database-workspace">
+            <form class="normalization-form" id="normalizationForm">
+              <label><span data-i18n="relationName">Relation name</span><input id="relationName" value="Enrollment" placeholder="Enrollment"></label>
+              <label><span data-i18n="attributes">Attributes (comma-separated)</span><textarea id="dbAttributes" placeholder="StudentID, CourseID, StudentName, CourseName, Grade"></textarea></label>
+              <label><span data-i18n="primaryKey">Primary key</span><input id="dbPrimaryKey" placeholder="StudentID, CourseID"></label>
+              <label><span data-i18n="functionalDependencies">Functional dependencies (one per line)</span><textarea id="dbDependencies" placeholder="StudentID -> StudentName&#10;CourseID -> CourseName&#10;StudentID, CourseID -> Grade"></textarea></label>
+            </form>
+            <section class="normalization-results" id="normalizationResults" aria-live="polite">
+              <div class="feature-empty"><b>1NF → 2NF → 3NF</b><span data-i18n="normalizationEmpty">Enter a table definition, then analyze it.</span></div>
+            </section>
+          </div>
+        </div>
+        <div class="tab-pane python-pane" id="pythonPane">
+          <div class="feature-toolbar">
+            <div><strong data-i18n="pythonWorkspace">PYTHON EDITOR</strong><span data-i18n="pythonHint">Generate Python from pseudocode, edit it, and run it in the desktop app.</span></div>
+            <div><button id="generatePythonBtn" data-i18n="generatePython">Generate from pseudocode</button><button id="exportPythonBtn" data-i18n="exportPython">Export .py</button><button id="runPythonBtn" class="primary-feature-button">▶ <span data-i18n="runPython">Run Python</span></button></div>
+          </div>
+          <div class="python-workspace">
+            <div class="python-editor-wrap">
+              <label for="pythonEditor">main.py</label>
+              <textarea id="pythonEditor" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="Python editor"></textarea>
+            </div>
+            <div class="python-io">
+              <label><span data-i18n="standardInput">STANDARD INPUT</span><textarea id="pythonInput" placeholder="One input value per line"></textarea></label>
+              <div class="python-output"><strong data-i18n="pythonOutput">OUTPUT</strong><pre id="pythonOutput">Python is ready.</pre></div>
+            </div>
+          </div>
+        </div>
       </div>
       <section class="console" id="consolePanel">
         <div class="console-title">
@@ -148,7 +195,7 @@
 
   <footer>
     <span id="fileStatus">◇ Not saved</span>
-    <span class="creator-credit">Built by Kaung Khant Ko · <button id="versionBtn" class="version-link" type="button">v1.3.9</button></span>
+    <span class="creator-credit">Built by Kaung Khant Ko · <button id="versionBtn" class="version-link" type="button">v1.4.3</button></span>
     <div><button id="showConsole" hidden>▰ Console</button><span id="symbolCount">0 symbols</span><span id="issueCount" class="ready">● Ready</span></div>
   </footer>
 
@@ -189,7 +236,7 @@ ToInteger, ToReal, ToString, Sin, Cos, Tan, Log</pre>
     <div class="version-content">
       <div class="version-identity">
         <img src="assets/icon.png" alt="">
-        <div><strong>Augorithm</strong><span id="currentVersion">Version 1.3.9</span><small>Built by Kaung Khant Ko</small></div>
+        <div><strong>Augorithm</strong><span id="currentVersion">Version 1.4.3</span><small>Built by Kaung Khant Ko</small></div>
       </div>
       <div class="update-card">
         <div class="update-status-icon" id="updateStatusIcon">✓</div>

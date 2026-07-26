@@ -1,12 +1,13 @@
 const $ = selector => document.querySelector(selector);
 const $$ = selector => [...document.querySelectorAll(selector)];
-const APP_VERSION = '1.3.9';
+const APP_VERSION = '1.4.3';
 
 // Browser/iPad fallback; Electron replaces this with the secure preload bridge.
 if (!window.augorithm) {
   const updateListeners = [];
   const emitUpdateState = state => updateListeners.forEach(listener => listener(state));
-  const versionParts = value => String(value || '').replace(/^v/i, '').split('.').map(part => parseInt(part, 10) || 0);
+  const versionParts = value => String(value || '0').trim().replace(/^v/i, '')
+    .split(/[+-]/, 1)[0].split('.').map(part => parseInt(part, 10) || 0);
   const isNewerVersion = (candidate, current) => {
     const next = versionParts(candidate);
     const installed = versionParts(current);
@@ -31,6 +32,27 @@ if (!window.augorithm) {
       .replace(/[^\p{L}\p{N}_-]+/gu, '-').replace(/^-+|-+$/g, '') || 'Augorithm';
     return `${base}.${extension}`;
   };
+  const rasterizeFlowchart = async ({ data, width, height }) => {
+    const url = URL.createObjectURL(new Blob([data], { type: 'image/svg+xml;charset=utf-8' }));
+    try {
+      const image = new Image();
+      await new Promise((resolve, reject) => {
+        image.onload = resolve;
+        image.onerror = reject;
+        image.src = url;
+      });
+      const scale = Math.max(1, Math.min(3, window.devicePixelRatio || 2));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.ceil(width * scale);
+      canvas.height = Math.ceil(height * scale);
+      const context = canvas.getContext('2d');
+      context.scale(scale, scale);
+      context.drawImage(image, 0, 0, width, height);
+      return new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+    } finally {
+      URL.revokeObjectURL(url);
+    }
+  };
   const openBrowserProject = () => new Promise(resolve => {
     const input = document.createElement('input');
     input.type = 'file';
@@ -53,26 +75,8 @@ if (!window.augorithm) {
     if (extension === 'svg') {
       return downloadBlob(new Blob([data], { type: 'image/svg+xml;charset=utf-8' }), targetName);
     }
-    const url = URL.createObjectURL(new Blob([data], { type: 'image/svg+xml;charset=utf-8' }));
-    try {
-      const image = new Image();
-      await new Promise((resolve, reject) => {
-        image.onload = resolve;
-        image.onerror = reject;
-        image.src = url;
-      });
-      const scale = Math.max(1, Math.min(3, window.devicePixelRatio || 2));
-      const canvas = document.createElement('canvas');
-      canvas.width = Math.ceil(width * scale);
-      canvas.height = Math.ceil(height * scale);
-      const context = canvas.getContext('2d');
-      context.scale(scale, scale);
-      context.drawImage(image, 0, 0, width, height);
-      const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
-      return blob ? downloadBlob(blob, targetName) : null;
-    } finally {
-      URL.revokeObjectURL(url);
-    }
+    const blob = await rasterizeFlowchart({ data, width, height });
+    return blob ? downloadBlob(blob, targetName) : null;
   };
   const isIPad = /iPad/.test(navigator.userAgent) ||
     (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
@@ -113,6 +117,14 @@ if (!window.augorithm) {
       return true;
     },
     onUpdateState: callback => updateListeners.push(callback),
+    revealFile: async () => false,
+    runPython: async () => ({
+      success: false,
+      stdout: '',
+      stderr: 'Python execution is available in the installed macOS and Windows apps.',
+      exitCode: null,
+      command: null
+    }),
     saveProject: async project => {
       const filePath = safeDownloadName(project?.name, 'augo');
       downloadBlob(new Blob([JSON.stringify(project, null, 2)], { type: 'application/json' }), filePath);
@@ -122,6 +134,15 @@ if (!window.augorithm) {
     exportSource: async ({ name, content, extension }) =>
       downloadBlob(new Blob([content], { type: 'text/plain;charset=utf-8' }), safeDownloadName(name, extension)),
     exportFlowchart: exportBrowserFlowchart,
+    copyFlowchart: async chart => {
+      if (!navigator.clipboard?.write || typeof ClipboardItem === 'undefined') {
+        throw new Error('Image clipboard access is not supported by this browser.');
+      }
+      const blob = await rasterizeFlowchart(chart);
+      if (!blob) throw new Error('The flowchart image could not be created.');
+      await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+      return true;
+    },
     onMenuAction: () => {},
     onOpenProjectFile: () => {}
   };
@@ -134,7 +155,12 @@ const translations = {
     assign: 'Assign', control: 'CONTROL', if: 'If', looping: 'LOOPING', while: 'While',
     for: 'For', miscellaneous: 'MISCELLANEOUS', comment: 'Comment',
     browseExamples: 'Browse examples', flowchart: 'Flowchart', pseudocode: 'Pseudocode',
-    source: 'Source', fit: 'Fit', generatedSource: 'GENERATED SOURCE', export: 'Export',
+    source: 'Source', database: 'Database', pythonEditor: 'Python', fit: 'Fit',
+    addNode: '＋ Add node', copyFlowchart: 'Copy',
+    flowchartCopied: 'Flowchart copied — paste it into Canva or PowerPoint.',
+    flowchartCopyFailed: 'Could not copy the flowchart: {message}',
+    editNodeHint: 'Double-click to edit this statement',
+    generatedSource: 'GENERATED SOURCE', export: 'Export',
     clear: 'Clear', inspector: 'INSPECTOR', validation: 'VALIDATION', console: 'CONSOLE',
     pressRun: 'Press Run to execute your algorithm.', consoleInput: 'CONSOLE INPUT',
     inputHint: 'Augorithm prompts for every INPUT statement.', runAgain: 'Run again',
@@ -174,6 +200,16 @@ const translations = {
     updateCurrent: 'You are using the latest version.',
     updateDevelopment: 'Automatic updates are enabled in installed builds.',
     automaticUpdates: 'Updates are checked automatically. Downloaded updates install when Augorithm restarts.'
+    , normalizationLab: 'DATABASE NORMALIZATION',
+    normalizationHint: 'Design a relation and analyze it through 1NF, 2NF, and 3NF.',
+    loadExample: 'Load example', analyzeNormalize: 'Analyze & normalize',
+    relationName: 'Relation name', attributes: 'Attributes (comma-separated)',
+    primaryKey: 'Primary key', functionalDependencies: 'Functional dependencies (one per line)',
+    normalizationEmpty: 'Enter a table definition, then analyze it.',
+    pythonWorkspace: 'PYTHON EDITOR',
+    pythonHint: 'Generate Python from pseudocode, edit it, and run it in the desktop app.',
+    generatePython: 'Generate from pseudocode', exportPython: 'Export .py',
+    runPython: 'Run Python', standardInput: 'STANDARD INPUT', pythonOutput: 'OUTPUT'
   },
   my: {
     build: 'တည်ဆောက်', run: 'လုပ်ဆောင်', symbols: 'သင်္ကေတများ', inputOutput: 'အဝင် / အထွက်',
@@ -182,7 +218,12 @@ const translations = {
     looping: 'ထပ်ခါလုပ်ဆောင်ခြင်း', while: 'မှန်နေစဉ်', for: 'အကြိမ်ရေဖြင့်',
     miscellaneous: 'အခြား', comment: 'မှတ်ချက်', browseExamples: 'နမူနာများကြည့်ရန်',
     flowchart: 'လုပ်ငန်းစဉ်ပုံကြမ်း', pseudocode: 'ပရိုဂရမ်အကြမ်းကုဒ်', source: 'ရင်းမြစ်ကုဒ်',
-    fit: 'အံကိုက်', generatedSource: 'ထုတ်ပေးထားသော ရင်းမြစ်ကုဒ်', export: 'ထုတ်ယူ',
+    database: 'ဒေတာဘေ့စ်', pythonEditor: 'Python',
+    fit: 'အံကိုက်', addNode: '＋ Node ထည့်မည်', copyFlowchart: 'ကူးယူ',
+    flowchartCopied: 'ပုံကြမ်းကို ကူးယူပြီးပါပြီ — Canva သို့မဟုတ် PowerPoint တွင် ထည့်နိုင်ပါသည်။',
+    flowchartCopyFailed: 'ပုံကြမ်းကို ကူးယူ၍မရပါ: {message}',
+    editNodeHint: 'ဤဖော်ပြချက်ကို ပြင်ရန် နှစ်ချက်နှိပ်ပါ',
+    generatedSource: 'ထုတ်ပေးထားသော ရင်းမြစ်ကုဒ်', export: 'ထုတ်ယူ',
     clear: 'ရှင်းလင်း', inspector: 'စစ်ဆေးရန်', validation: 'အတည်ပြုစစ်ဆေးမှု',
     console: 'လုပ်ဆောင်မှုမှတ်တမ်း', pressRun: 'လုပ်ဆောင်ရန် “Run” ကိုနှိပ်ပါ။',
     consoleInput: 'ထည့်သွင်းတန်ဖိုး', inputHint: 'INPUT တစ်ခုချင်းစီအတွက် တန်ဖိုးတောင်းပါမည်။',
@@ -231,7 +272,17 @@ const translations = {
     updateDownloaded: 'ဗားရှင်း {version} အဆင်သင့်ဖြစ်ပါပြီ', updateError: 'အပ်ဒိတ်စစ်ဆေးမှု မအောင်မြင်ပါ',
     updateCurrent: 'နောက်ဆုံးဗားရှင်းကို အသုံးပြုနေပါသည်။',
     updateDevelopment: 'ထည့်သွင်းထားသော app တွင် အလိုအလျောက်အပ်ဒိတ် ရရှိနိုင်သည်။',
-    automaticUpdates: 'အပ်ဒိတ်များကို အလိုအလျောက်စစ်ဆေးသည်။ ဒေါင်းလုဒ်ပြီးသောအပ်ဒိတ်ကို Augorithm ပြန်ဖွင့်ချိန်တွင် ထည့်သွင်းမည်။'
+    automaticUpdates: 'အပ်ဒိတ်များကို အလိုအလျောက်စစ်ဆေးသည်။ ဒေါင်းလုဒ်ပြီးသောအပ်ဒိတ်ကို Augorithm ပြန်ဖွင့်ချိန်တွင် ထည့်သွင်းမည်။',
+    normalizationLab: 'ဒေတာဘေ့စ် NORMALIZATION',
+    normalizationHint: 'ဇယားတစ်ခုကို သတ်မှတ်ပြီး 1NF၊ 2NF နှင့် 3NF အထိ စစ်ဆေးပါ။',
+    loadExample: 'နမူနာထည့်မည်', analyzeNormalize: 'စစ်ဆေးပြီး ခွဲမည်',
+    relationName: 'Relation အမည်', attributes: 'Attribute များ (ကော်မာဖြင့်ခွဲရန်)',
+    primaryKey: 'Primary key', functionalDependencies: 'Functional dependency များ (တစ်ကြောင်းလျှင်တစ်ခု)',
+    normalizationEmpty: 'ဇယားအချက်အလက်ထည့်ပြီး စစ်ဆေးပါ။',
+    pythonWorkspace: 'PYTHON စာတည်းဖြတ်စနစ်',
+    pythonHint: 'Pseudocode မှ Python ထုတ်ပြီး desktop app တွင် ပြင်ဆင်ကာ လုပ်ဆောင်ပါ။',
+    generatePython: 'Pseudocode မှထုတ်မည်', exportPython: '.py ထုတ်မည်',
+    runPython: 'Python လုပ်ဆောင်မည်', standardInput: 'ထည့်သွင်းတန်ဖိုး', pythonOutput: 'အထွက်'
   }
 };
 
@@ -334,7 +385,7 @@ function localizedDiagnostic(message) {
   const exact = {
     'End If has no matching If.': 'End If နှင့် ကိုက်ညီသော If မရှိပါ။',
     'End While has no matching loop.': 'End While နှင့် ကိုက်ညီသော While မရှိပါ။',
-    'End For has no matching For.': 'End For နှင့် ကိုက်ညီသော For မရှိပါ။',
+    'Next has no matching For.': 'Next နှင့် ကိုက်ညီသော For မရှိပါ။',
     'Else If has no matching If.': 'Else If နှင့် ကိုက်ညီသော If မရှိပါ။',
     'Else has no matching If.': 'Else နှင့် ကိုက်ညီသော If မရှိပါ။',
     'Add a type: Declare name As Integer.': 'ဒေတာအမျိုးအစားထည့်ပါ: Declare name As Integer.',
@@ -355,7 +406,7 @@ function localizedDiagnostic(message) {
 function localizedNodeText(value) {
   const key = {
     Start: 'start', End: 'end', Main: 'main', If: 'if', 'Else If': 'elseIf', Else: 'else',
-    'End If': 'endIf', 'End While': 'endWhile', 'End For': 'endFor',
+    'End If': 'endIf', 'End While': 'endWhile', 'End For': 'endFor', Next: 'next',
     Input: 'input', Output: 'output', Declare: 'declare', Assign: 'assign',
     While: 'while', For: 'for', Comment: 'comment',
     'Program entry': 'programEntry', 'Program exit': 'programExit'
@@ -376,6 +427,7 @@ function applyUILanguage(language) {
   uiLanguage = language === 'my' ? 'my' : 'en';
   localStorage.setItem('augorithm.uiLanguage', uiLanguage);
   document.documentElement.lang = uiLanguage === 'my' ? 'my' : 'en';
+  document.body.dataset.language = uiLanguage;
   $('#uiLanguage').value = uiLanguage;
   $$('[data-i18n]').forEach(element => { element.textContent = t(element.dataset.i18n); });
   $('#consoleInput').placeholder = t('runToEnter');
@@ -537,7 +589,7 @@ const snippets = {
   assign: 'Set value = 0',
   if: 'If value > 0 Then\n    Output "Positive"\nElse\n    Output "Not positive"\nEnd If',
   while: 'While value < 10\n    Set value = value + 1\nEnd While',
-  for: 'For index = 1 To 10 Step 1\n    Output index\nEnd For',
+  for: 'For index = 1 To 10 Step 1\n    Output index\nNext index',
   comment: '// Explain this step'
 };
 
@@ -555,11 +607,16 @@ const state = {
   guidedInputs: [],
   awaitingInput: null,
   recoveryTimer: null,
-  flowObserver: null
+  flowObserver: null,
+  projectNameEdited: false
 };
 
 const recoveryKey = 'augorithm.recovery.v1';
 const fileName = filePath => String(filePath || '').split(/[\\/]/).at(-1);
+const modernizeForClosers = source => String(source || '').replace(
+  /^(\s*)end\s*for(?:\s+([A-Za-z_]\w*))?\s*$/gim,
+  (_match, indent, variable) => `${indent}Next${variable ? ` ${variable}` : ''}`
+);
 
 function updateEditorFileName() {
   const target = $('#editorFileName');
@@ -569,11 +626,66 @@ function updateEditorFileName() {
   target.textContent = `${name}.augo`;
 }
 
+function humanizeIdentifier(value) {
+  return String(value || '')
+    .replace(/([a-z\d])([A-Z])/g, '$1 $2')
+    .replace(/[_-]+/g, ' ')
+    .replace(/[^\p{L}\p{N}\s]+/gu, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/\b\p{L}/gu, letter => letter.toUpperCase());
+}
+
+function suggestedProjectName() {
+  const lines = logicalSourceLines($('#codeEditor').value)
+    .map(entry => normalizeStatement(entry.raw).trim())
+    .filter(Boolean);
+  const inputs = lines
+    .filter(line => /^(input|read)\s+/i.test(line))
+    .map(line => humanizeIdentifier(line.replace(/^(input|read)\s+/i, '').split(/[,\s]/)[0]))
+    .filter(Boolean);
+  const output = lines.find(line => /^(output|display|print)\b/i.test(line));
+  if (output) {
+    const expression = output.replace(/^(output|display|print)\s*/i, '').trim();
+    const quoted = expression.match(/["“](.+?)["”]/)?.[1];
+    if (quoted) return humanizeIdentifier(quoted).split(' ').slice(0, 6).join(' ') || 'Output';
+    const result = humanizeIdentifier(expression.split(',')[0]);
+    const normalized = result.toLowerCase();
+    const action = normalized === 'max' ? 'Find Maximum'
+      : normalized === 'min' ? 'Find Minimum'
+        : normalized === 'average' ? 'Calculate Average'
+          : normalized === 'sum' ? 'Calculate Sum'
+            : result;
+    const usefulInput = [...inputs].reverse().find(name => !/^(First )?Data$/i.test(name)) || inputs.at(-1);
+    const alreadyNamed = usefulInput && action.toLowerCase().includes(usefulInput.toLowerCase());
+    return `${action || 'Output'}${usefulInput && !alreadyNamed ? ` of ${usefulInput}` : ''}`;
+  }
+  if (inputs.length) return `${inputs.slice(0, 2).join(' and ')} Input`;
+  const firstAction = lines.find(line => !/^(start|end|program\b)/i.test(line));
+  return humanizeIdentifier(firstAction || 'Untitled Algorithm').split(' ').slice(0, 6).join(' ');
+}
+
+function syncAutomaticProjectName(force = false) {
+  if (state.projectNameEdited && !force) return;
+  $('#projectName').value = suggestedProjectName() || 'Untitled Algorithm';
+  updateEditorFileName();
+}
+
 function currentProject() {
   return {
     name: $('#projectName').value || 'Untitled Algorithm',
-    code: $('#codeEditor').value,
-    version: 2,
+    code: modernizeForClosers($('#codeEditor').value),
+    database: {
+      name: $('#relationName')?.value || '',
+      attributes: $('#dbAttributes')?.value || '',
+      primaryKey: $('#dbPrimaryKey')?.value || '',
+      dependencies: $('#dbDependencies')?.value || ''
+    },
+    python: {
+      code: $('#pythonEditor')?.value || '',
+      input: $('#pythonInput')?.value || ''
+    },
+    version: 3,
     createdAt: state.createdAt || new Date().toISOString()
   };
 }
@@ -775,7 +887,7 @@ function canonicalStatement(raw) {
   if (lower.startsWith('end while')) return 'End While';
   if (lower.startsWith('end for')) {
     const variable = text.slice(7).trim();
-    return `End For${variable ? ` ${variable}` : ''}`;
+    return `Next${variable ? ` ${variable}` : ''}`;
   }
   if (lower.startsWith('else if ')) {
     return `Else If ${text.replace(/^else\s+if\s+|\s+then$/gi, '')} Then`;
@@ -800,7 +912,7 @@ function blockRole(statement) {
   if (lower === 'end' || lower === 'end program') return { action: 'close', type: 'program' };
   if (lower.startsWith('end if')) return { action: 'close', type: 'if' };
   if (lower.startsWith('end while')) return { action: 'close', type: 'while' };
-  if (lower.startsWith('end for')) return { action: 'close', type: 'for' };
+  if (lower.startsWith('end for') || lower === 'next' || lower.startsWith('next ')) return { action: 'close', type: 'for' };
   if (lower.startsWith('else if ') || lower === 'else') return { action: 'branch', type: 'if' };
   if (lower.startsWith('if ')) return { action: 'open', type: 'if' };
   if (lower.startsWith('while ')) return { action: 'open', type: 'while' };
@@ -812,7 +924,7 @@ function closingStatement(block) {
   if (block.type === 'program') return block.keyword === 'start' ? 'END' : 'End Program';
   if (block.type === 'if') return 'End If';
   if (block.type === 'while') return 'End While';
-  return `End For${block.variable ? ` ${block.variable}` : ''}`;
+  return `Next${block.variable ? ` ${block.variable}` : ''}`;
 }
 
 function formatPseudocodeSource(source) {
@@ -966,7 +1078,7 @@ function indentEditorSelection(outdent = false) {
 function expectedCloser(statement) {
   const role = blockRole(canonicalStatement(statement));
   if (role.action !== 'open' || role.type === 'program') return null;
-  return role.type === 'if' ? 'End If' : role.type === 'while' ? 'End While' : 'End For';
+  return role.type === 'if' ? 'End If' : role.type === 'while' ? 'End While' : 'Next';
 }
 
 function handleEditorKeyDown(event) {
@@ -1069,7 +1181,7 @@ function parse(source) {
       else diagnostics.push({ line, type: 'error', message: 'End While has no matching loop.' });
       branch = null;
     } else if (lower.startsWith('end for')) {
-      closing = true; depth = Math.max(0, depth - 1); kind = 'for'; title = 'End For';
+      closing = true; depth = Math.max(0, depth - 1); kind = 'for'; title = 'Next';
       const closingVariable = text.slice(7).trim();
       const openLoop = stack.at(-1);
       detail = closingVariable ? `Next ${closingVariable} / exit` : 'Next value / exit';
@@ -1079,7 +1191,7 @@ function parse(source) {
         }
         stack.pop();
       }
-      else diagnostics.push({ line, type: 'error', message: 'End For has no matching For.' });
+      else diagnostics.push({ line, type: 'error', message: 'Next has no matching For.' });
       branch = null;
     } else if (lower.startsWith('else if ')) {
       kind = 'if'; title = 'Else If';
@@ -1218,6 +1330,13 @@ function drawDecisionConnectors() {
       y: (rect.top + rect.height / 2 - hostRect.top) / scale
     };
   };
+  const bottomPort = (element, offset = 0) => {
+    const rect = element.getBoundingClientRect();
+    return {
+      x: (rect.left + rect.width / 2 - hostRect.left) / scale + offset,
+      y: (rect.bottom - hostRect.top) / scale
+    };
+  };
   const visualBounds = element => {
     const elements = [element, ...element.querySelectorAll('.node, .decision-merge, .loop-exit, .empty-path')];
     const rectangles = elements.map(item => item.getBoundingClientRect());
@@ -1293,22 +1412,21 @@ function drawDecisionConnectors() {
     const exit = group.querySelector(':scope > .loop-exit');
     if (!control || !body || !exit) return;
 
-    const start = point(control, 'bottom');
+    const nextPort = sidePoint(control, 'right');
+    const donePort = bottomPort(control, -72);
+    const returnPort = bottomPort(control, 72);
     const entry = point(entryNode(body), 'top');
     const bodyExit = point(exitNode(body), 'bottom');
+    const exitTop = point(exit, 'top');
     const exitBottom = point(exit, 'bottom');
-    const splitY = start.y + 20;
-    const returnY = bodyExit.y + 22;
-    const groupBounds = visualBounds(group);
+    const returnY = bodyExit.y + 24;
     const bodyBounds = visualBounds(body);
-    const controlReturn = sidePoint(control, 'right');
-    const doneX = Math.max(18, groupBounds.left + 24);
-    const returnX = Math.min(width - 18, Math.max(groupBounds.right - 24, bodyBounds.right + 34, controlReturn.x + 54));
+    const returnX = Math.min(width - 18, Math.max(bodyBounds.right + 38, nextPort.x + 44));
 
-    path(`M ${start.x} ${start.y} V ${splitY} H ${entry.x} V ${entry.y}`, true, 'loop-next-path');
-    path(`M ${start.x} ${splitY} H ${doneX} V ${exitBottom.y} H ${exitBottom.x}`, false, 'loop-done-path');
+    path(`M ${nextPort.x} ${nextPort.y} H ${entry.x} V ${entry.y}`, true, 'loop-next-path');
+    path(`M ${donePort.x} ${donePort.y} V ${exitTop.y} H ${exitTop.x} V ${exitBottom.y}`, false, 'loop-done-path');
     path(
-      `M ${bodyExit.x} ${bodyExit.y} V ${returnY} H ${returnX} V ${controlReturn.y} H ${controlReturn.x}`,
+      `M ${bodyExit.x} ${bodyExit.y} V ${returnY} H ${returnX} V ${returnPort.y + 24} H ${returnPort.x} V ${returnPort.y}`,
       true,
       'loop-return-path'
     );
@@ -1317,7 +1435,7 @@ function drawDecisionConnectors() {
     const doneLabel = layout?.querySelector(':scope > .loop-path-label.done');
     if (layout && doneLabel) {
       const layoutRect = layout.getBoundingClientRect();
-      const labelLeft = doneX - (layoutRect.left - hostRect.left) / scale - doneLabel.offsetWidth / 2;
+      const labelLeft = donePort.x - (layoutRect.left - hostRect.left) / scale - doneLabel.offsetWidth - 13;
       doneLabel.style.left = `${Math.max(4, labelLeft)}px`;
     }
   });
@@ -1400,15 +1518,73 @@ function buildVisualProgram() {
 
 function createFlowNode(item) {
   const info = kindInfo[item.kind];
-  const node = document.createElement('button');
+  const node = document.createElement('div');
   node.className = `node ${item.kind}${state.selectedLine === item.line ? ' selected' : ''}`;
   node.style.setProperty('--node-color', info.color);
+  node.setAttribute('role', 'button');
+  node.dataset.line = String(item.line);
+  node.setAttribute('aria-label', `${localizedNodeText(item.title)}: ${localizedNodeText(item.detail)}`);
+  node.title = item.virtual ? '' : t('editNodeHint');
   node.innerHTML = `<span class="node-icon">${info.icon}</span>
     <span class="node-copy"><strong>${escapeHTML(localizedNodeText(item.title))}</strong><p>${escapeHTML(localizedNodeText(item.detail))}</p></span>
     <small>L${item.line}</small>`;
-  if (!item.virtual) node.addEventListener('click', () => selectLine(item.line));
-  else node.disabled = true;
+  if (!item.virtual) {
+    node.tabIndex = 0;
+    node.addEventListener('click', () => selectLine(item.line, false));
+    node.addEventListener('dblclick', event => beginInlineNodeEdit(event, node, item));
+    node.addEventListener('keydown', event => {
+      if (event.key === 'Enter') beginInlineNodeEdit(event, node, item);
+      if (event.key === ' ') {
+        event.preventDefault();
+        selectLine(item.line, false);
+      }
+    });
+  } else {
+    node.tabIndex = -1;
+    node.setAttribute('aria-disabled', 'true');
+  }
   return node;
+}
+
+function beginInlineNodeEdit(event, node, item) {
+  event.preventDefault();
+  event.stopPropagation();
+  if (node.classList.contains('editing')) return;
+  selectLine(item.line, false);
+  const sourceLine = $('#codeEditor').value.split(/\r?\n/)[item.line - 1]?.trim() || '';
+  const editor = document.createElement('input');
+  editor.className = 'inline-node-editor';
+  editor.value = sourceLine;
+  editor.setAttribute('aria-label', t('statement'));
+  node.classList.add('editing');
+  node.appendChild(editor);
+  editor.focus();
+  editor.select();
+  let finished = false;
+  const finish = commit => {
+    if (finished) return;
+    finished = true;
+    const value = editor.value.trim();
+    if (commit && value && value !== sourceLine) {
+      updateSelectedLine(value);
+    } else {
+      editor.remove();
+      node.classList.remove('editing');
+    }
+  };
+  editor.addEventListener('click', nestedEvent => nestedEvent.stopPropagation());
+  editor.addEventListener('dblclick', nestedEvent => nestedEvent.stopPropagation());
+  editor.addEventListener('keydown', keyEvent => {
+    keyEvent.stopPropagation();
+    if (keyEvent.key === 'Enter') {
+      keyEvent.preventDefault();
+      finish(true);
+    } else if (keyEvent.key === 'Escape') {
+      keyEvent.preventDefault();
+      finish(false);
+    }
+  });
+  editor.addEventListener('blur', () => finish(true), { once: true });
 }
 
 function appendVisualSequence(container, nodes, connectorBeforeFirst = false) {
@@ -1521,9 +1697,14 @@ function renderLineNumbers() {
     `<div class="${errors.has(i + 1) ? 'error-line' : warnings.has(i + 1) ? 'warning-line' : active === i + 1 ? 'active-line' : ''}" title="${escapeHTML(messages.get(i + 1) || '')}">${i + 1}</div>`).join('');
 }
 
-function selectLine(line) {
+function selectLine(line, rerenderFlowchart = true) {
   state.selectedLine = line;
-  renderFlowchart();
+  if (rerenderFlowchart) {
+    renderFlowchart();
+  } else {
+    $$('#flowchart .node.selected').forEach(node => node.classList.remove('selected'));
+    $(`#flowchart .node[data-line="${line}"]`)?.classList.add('selected');
+  }
   const item = state.items.find(x => x.line === line);
   const host = $('#inspectorContent');
   if (!item) {
@@ -1551,6 +1732,7 @@ function updateSelectedLine(value) {
   const indent = old.match(/^\s*/)?.[0] || '';
   lines[state.selectedLine - 1] = indent + value.trim();
   $('#codeEditor').value = lines.join('\n');
+  syncAutomaticProjectName();
   markDirty(); build(); selectLine(state.selectedLine);
 }
 
@@ -1559,10 +1741,11 @@ function deleteSelectedLine() {
   const lines = $('#codeEditor').value.split(/\r?\n/);
   lines.splice(state.selectedLine - 1, 1);
   $('#codeEditor').value = lines.join('\n');
+  syncAutomaticProjectName();
   state.selectedLine = null; markDirty(); build(); selectLine(null);
 }
 
-function insertSnippet(kind) {
+function insertSnippet(kind, stayOnFlowchart = false) {
   const editor = $('#codeEditor');
   const lines = editor.value.split(/\r?\n/);
   let index = lines.findIndex(line => line.trim().toLowerCase() === 'end program');
@@ -1570,10 +1753,15 @@ function insertSnippet(kind) {
   const snippetLines = snippets[kind].split('\n').map(line => `    ${line}`);
   lines.splice(index, 0, ...snippetLines);
   editor.value = lines.join('\n');
+  syncAutomaticProjectName();
   markDirty(); build();
-  activateTab('pseudo');
-  editor.focus();
-  editor.setSelectionRange(editor.value.length, editor.value.length);
+  if (stayOnFlowchart) {
+    activateTab('flow');
+  } else {
+    activateTab('pseudo');
+    editor.focus();
+    editor.setSelectionRange(editor.value.length, editor.value.length);
+  }
 }
 
 function evaluate(expression, variables) {
@@ -1869,7 +2057,19 @@ function sourceFor(language) {
   const out = [];
   let indent = 0;
   const unit = '    ';
-  if (language === 'python') out.push('# Generated by Augorithm');
+  if (language === 'python') out.push(
+    '# Generated by Augorithm',
+    'def _augo_input():',
+    '    value = input()',
+    '    try:',
+    '        return int(value)',
+    '    except ValueError:',
+    '        try:',
+    '            return float(value)',
+    '        except ValueError:',
+    '            return value',
+    ''
+  );
   if (language === 'javascript') out.push('// Generated by Augorithm');
   if (language === 'swift') out.push('import Foundation', '');
   logicalSourceLines(source).forEach(({ raw }) => {
@@ -1914,7 +2114,7 @@ function sourceFor(language) {
       line = language === 'javascript' ? `console.log(${args});` : `print(${args})`;
     } else if (lower.startsWith('input ')) {
       const name = text.slice(6);
-      line = language === 'python' ? `${name} = input()` : language === 'swift' ? `${name} = Double(readLine() ?? "0") ?? 0` : `${name} = prompt("");`;
+      line = language === 'python' ? `${name} = _augo_input()` : language === 'swift' ? `${name} = Double(readLine() ?? "0") ?? 0` : `${name} = prompt("");`;
     } else if (lower.startsWith('if ')) {
       const condition = normalizeExpression(text.replace(/^if\s+|\s+then$/gi, ''));
       out.push(unit.repeat(indent) + (language === 'python' ? `if ${condition}:` : `if (${condition}) {`)); indent++; return;
@@ -1944,16 +2144,171 @@ function renderSource() {
   $('#sourceCode').textContent = sourceFor($('#languageSelect').value);
 }
 
+const splitNames = value => [...new Set(String(value || '').split(',').map(item => item.trim()).filter(Boolean))];
+
+function parseDependencies(value, attributes) {
+  const known = new Set(attributes.map(attribute => attribute.toLowerCase()));
+  const dependencies = [];
+  const errors = [];
+  String(value || '').split(/\r?\n/).forEach((line, index) => {
+    if (!line.trim()) return;
+    const parts = line.split(/(?:->|→)/);
+    if (parts.length !== 2) {
+      errors.push(`Dependency ${index + 1} must use “->”.`);
+      return;
+    }
+    const left = splitNames(parts[0]);
+    const right = splitNames(parts[1]);
+    const unknown = [...left, ...right].filter(name => !known.has(name.toLowerCase()));
+    if (!left.length || !right.length) errors.push(`Dependency ${index + 1} is incomplete.`);
+    else if (unknown.length) errors.push(`Unknown attribute: ${unknown.join(', ')}.`);
+    else dependencies.push({ left, right });
+  });
+  return { dependencies, errors };
+}
+
+function uniqueRelations(relations) {
+  const normalized = relations
+    .map(relation => [...new Set(relation)])
+    .filter(relation => relation.length);
+  return normalized.filter((relation, index) => !normalized.some((other, otherIndex) =>
+    otherIndex !== index && relation.length < other.length &&
+    relation.every(attribute => other.some(item => item.toLowerCase() === attribute.toLowerCase()))
+  )).filter((relation, index, all) =>
+    all.findIndex(other => other.map(item => item.toLowerCase()).sort().join('|') ===
+      relation.map(item => item.toLowerCase()).sort().join('|')) === index
+  );
+}
+
+function analyzeNormalization() {
+  const relationName = ($('#relationName').value || 'Relation').trim();
+  const attributes = splitNames($('#dbAttributes').value);
+  const primaryKey = splitNames($('#dbPrimaryKey').value);
+  const parsed = parseDependencies($('#dbDependencies').value, attributes);
+  const errors = [...parsed.errors];
+  const attributeNames = new Set(attributes.map(attribute => attribute.toLowerCase()));
+  primaryKey.filter(key => !attributeNames.has(key.toLowerCase()))
+    .forEach(key => errors.push(`Primary-key attribute “${key}” is not in the relation.`));
+  if (!attributes.length) errors.push('Add at least one attribute.');
+  if (!primaryKey.length) errors.push('Add a primary key.');
+  if (errors.length) {
+    $('#normalizationResults').innerHTML = `<div class="normalization-error"><strong>Cannot analyze this relation</strong>${errors.map(error => `<span>• ${escapeHTML(error)}</span>`).join('')}</div>`;
+    return;
+  }
+
+  const prime = new Set(primaryKey.map(key => key.toLowerCase()));
+  const partials = parsed.dependencies.filter(fd =>
+    primaryKey.length > 1 &&
+    fd.left.length < primaryKey.length &&
+    fd.left.every(item => prime.has(item.toLowerCase())) &&
+    fd.right.some(item => !prime.has(item.toLowerCase()))
+  );
+  const transitive = parsed.dependencies.filter(fd =>
+    fd.left.some(item => !prime.has(item.toLowerCase())) &&
+    fd.right.some(item => !prime.has(item.toLowerCase()))
+  );
+
+  let secondRelations = partials.map(fd => [...fd.left, ...fd.right]);
+  const movedByPartial = new Set(partials.flatMap(fd => fd.right).map(item => item.toLowerCase()));
+  secondRelations.push(attributes.filter(attribute => !movedByPartial.has(attribute.toLowerCase()) || prime.has(attribute.toLowerCase())));
+  secondRelations = uniqueRelations(secondRelations);
+
+  let thirdRelations = parsed.dependencies.map(fd => [...fd.left, ...fd.right]);
+  if (!thirdRelations.some(relation => primaryKey.every(key =>
+    relation.some(attribute => attribute.toLowerCase() === key.toLowerCase())
+  ))) thirdRelations.push(primaryKey);
+  const covered = new Set(thirdRelations.flat().map(item => item.toLowerCase()));
+  const uncovered = attributes.filter(attribute => !covered.has(attribute.toLowerCase()));
+  if (uncovered.length) thirdRelations.push([...primaryKey, ...uncovered]);
+  thirdRelations = uniqueRelations(thirdRelations);
+
+  const relationCard = (title, status, relations, note) => `<article class="normal-form-card">
+    <header><b>${escapeHTML(title)}</b><span class="${status ? 'pass' : 'attention'}">${status ? '✓ Satisfied' : 'Needs decomposition'}</span></header>
+    <p>${escapeHTML(note)}</p>
+    ${relations.map((relation, index) => `<code>${escapeHTML(`${relationName}${relations.length > 1 ? `_${index + 1}` : ''}(${relation.join(', ')})`)}</code>`).join('')}
+  </article>`;
+  const safeSQLName = value => value.replace(/[^\p{L}\p{N}_]+/gu, '_').replace(/^(\d)/, '_$1') || 'Relation';
+  const sql = thirdRelations.map((relation, index) => {
+    const name = safeSQLName(`${relationName}${thirdRelations.length > 1 ? `_${index + 1}` : ''}`);
+    const keys = primaryKey.filter(key => relation.some(attribute => attribute.toLowerCase() === key.toLowerCase()));
+    const columns = relation.map(attribute => `  ${safeSQLName(attribute)} TEXT`).join(',\n');
+    const keySQL = keys.length ? `,\n  PRIMARY KEY (${keys.map(safeSQLName).join(', ')})` : '';
+    return `CREATE TABLE ${name} (\n${columns}${keySQL}\n);`;
+  }).join('\n\n');
+
+  $('#normalizationResults').innerHTML =
+    relationCard('First Normal Form (1NF)', true, [attributes], 'Values are treated as atomic and each attribute has one value per row.') +
+    relationCard('Second Normal Form (2NF)', !partials.length, secondRelations,
+      partials.length ? `${partials.length} partial dependency/dependencies were separated.` : 'No non-key attribute depends on only part of the primary key.') +
+    relationCard('Third Normal Form (3NF)', !transitive.length, thirdRelations,
+      transitive.length ? `${transitive.length} transitive dependency/dependencies were separated using synthesis.` : 'No non-key attribute determines another non-key attribute.') +
+    `<article class="normal-form-card sql-card"><header><b>SQL starting point</b><button id="copyNormalizationSQL">Copy</button></header><pre>${escapeHTML(sql)}</pre></article>`;
+  $('#copyNormalizationSQL').addEventListener('click', async event => {
+    await navigator.clipboard?.writeText(sql);
+    event.currentTarget.textContent = 'Copied';
+  });
+}
+
+function loadNormalizationExample(markChanged = true) {
+  $('#relationName').value = 'Enrollment';
+  $('#dbAttributes').value = 'StudentID, CourseID, StudentName, CourseName, Instructor, Grade';
+  $('#dbPrimaryKey').value = 'StudentID, CourseID';
+  $('#dbDependencies').value = 'StudentID -> StudentName\nCourseID -> CourseName, Instructor\nStudentID, CourseID -> Grade';
+  analyzeNormalization();
+  if (markChanged) markDirty();
+}
+
+function generatePython(markChanged = true) {
+  $('#pythonEditor').value = sourceFor('python');
+  $('#pythonOutput').textContent = 'Python regenerated from the current pseudocode.';
+  if (markChanged) markDirty();
+}
+
+async function runPythonEditor() {
+  const button = $('#runPythonBtn');
+  button.disabled = true;
+  $('#pythonOutput').textContent = 'Running…';
+  try {
+    const result = await window.augorithm.runPython({
+      code: $('#pythonEditor').value,
+      input: $('#pythonInput').value
+    });
+    const details = [];
+    if (result.command) details.push(`Python: ${result.command}`);
+    if (result.stdout) details.push(result.stdout.replace(/\s+$/, ''));
+    if (result.stderr) details.push(result.stderr.replace(/\s+$/, ''));
+    if (result.exitCode !== null && result.exitCode !== undefined) details.push(`Process exited with code ${result.exitCode}.`);
+    $('#pythonOutput').textContent = details.filter(Boolean).join('\n\n') || 'Program completed with no output.';
+  } catch (error) {
+    $('#pythonOutput').textContent = error.message;
+  } finally {
+    button.disabled = false;
+  }
+}
+
+function savedLocationMessage(action, path) {
+  const desktop = !['browser', 'ipad'].includes(window.augorithm.platform);
+  return desktop
+    ? `${action} ${fileName(path)} · Opened its folder`
+    : `${action} ${fileName(path)} · Check Downloads`;
+}
+
 function activateTab(tab) {
   $$('.segmented button').forEach(button => button.classList.toggle('active', button.dataset.tab === tab));
   $$('.tab-pane').forEach(pane => pane.classList.remove('active'));
   $(`#${tab}Pane`).classList.add('active');
+  document.body.dataset.activeTab = tab;
   $('#zoomControls').style.visibility = tab === 'flow' ? 'visible' : 'hidden';
   if (tab === 'flow') requestAnimationFrame(() => {
     drawDecisionConnectors();
     centerFlowchart();
   });
   if (tab === 'source') renderSource();
+  if (tab === 'database') {
+    if (!$('#dbAttributes').value.trim()) loadNormalizationExample(false);
+    else analyzeNormalization();
+  }
+  if (tab === 'python' && !$('#pythonEditor').value.trim()) generatePython(false);
 }
 
 function markDirty() {
@@ -1982,7 +2337,7 @@ async function saveProject(saveAs = false) {
     localStorage.removeItem(recoveryKey);
     $('#saveState').textContent = 'Saved';
     $('#fileStatus').textContent = `✓ ${fileName(path)}`;
-    $('#runtimeStatus').textContent = `Saved ${fileName(path)}`;
+    $('#runtimeStatus').textContent = savedLocationMessage('Saved', path);
   } catch (error) {
     $('#saveState').textContent = 'Save failed';
     $('#runtimeStatus').textContent = error.message;
@@ -2000,28 +2355,45 @@ function loadProject(result) {
   state.filePath = result.filePath;
   state.createdAt = result.project.createdAt || null;
   state.dirty = false;
+  state.projectNameEdited = true;
   $('#projectName').value = result.project.name || 'Untitled Algorithm';
-  $('#codeEditor').value = result.project.code || '';
+  $('#codeEditor').value = modernizeForClosers(result.project.code || '');
+  $('#relationName').value = result.project.database?.name || 'Enrollment';
+  $('#dbAttributes').value = result.project.database?.attributes || '';
+  $('#dbPrimaryKey').value = result.project.database?.primaryKey || '';
+  $('#dbDependencies').value = result.project.database?.dependencies || '';
+  $('#pythonEditor').value = result.project.python?.code || '';
+  $('#pythonInput').value = result.project.python?.input || '';
   $('#saveState').textContent = 'Saved';
   $('#fileStatus').textContent = `✓ ${fileName(state.filePath)}`;
   localStorage.removeItem(recoveryKey);
-  state.variables = {}; state.selectedLine = null; build(); renderVariables();
+  state.variables = {}; state.selectedLine = null; build(); renderVariables(); selectLine(null);
 }
 
 function newProject() {
   state.filePath = null; state.createdAt = null; state.dirty = false; state.selectedLine = null; state.variables = {};
+  state.projectNameEdited = false;
   $('#projectName').value = 'Untitled Algorithm';
   $('#codeEditor').value = templates[0].code;
+  $('#relationName').value = 'Enrollment';
+  $('#dbAttributes').value = '';
+  $('#dbPrimaryKey').value = '';
+  $('#dbDependencies').value = '';
+  $('#pythonEditor').value = '';
+  $('#pythonInput').value = '';
+  $('#pythonOutput').textContent = 'Python is ready.';
   $('#saveState').textContent = 'Not saved'; $('#fileStatus').textContent = '◇ Not saved';
   localStorage.removeItem(recoveryKey);
-  build(); renderVariables();
+  build(); renderVariables(); selectLine(null);
 }
 
 function loadTemplate(index) {
   const template = templates[index];
   state.filePath = null; state.createdAt = null; state.selectedLine = null; state.variables = {};
+  state.projectNameEdited = false;
   $('#projectName').value = template.name; $('#codeEditor').value = template.code;
-  $('#templateDialog').close(); markDirty(); build(); renderVariables(); activateTab('flow');
+  $('#pythonEditor').value = '';
+  $('#templateDialog').close(); markDirty(); build(); renderVariables(); selectLine(null); activateTab('flow');
 }
 
 function clearRuntime() {
@@ -2071,7 +2443,7 @@ function makeFlowchartSVG() {
       </defs>
       <g fill="none" stroke="#30455f" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">${connectorPaths}</g>
       <foreignObject width="100%" height="100%">
-        <div xmlns="http://www.w3.org/1999/xhtml" style="width:${width}px;height:${height}px;background:transparent">
+        <div xmlns="http://www.w3.org/1999/xhtml" style="width:${width}px;height:${height}px;background:transparent;color:#101828;font-family:Arial,Helvetica,sans-serif">
           <style>${styles}</style>${markup}
         </div>
       </foreignObject>
@@ -2088,7 +2460,29 @@ async function exportFlowchart(format) {
     width: chart.width,
     height: chart.height
   });
-  if (path) $('#runtimeStatus').textContent = `Exported ${format.toUpperCase()}: ${fileName(path)}`;
+  if (path) $('#runtimeStatus').textContent = savedLocationMessage(`Exported ${format.toUpperCase()}`, path);
+}
+
+async function copyFlowchart() {
+  const button = $('#copyFlowchart');
+  button.disabled = true;
+  try {
+    if (!$('#flowPane').classList.contains('active')) {
+      activateTab('flow');
+      await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    }
+    const chart = makeFlowchartSVG();
+    await window.augorithm.copyFlowchart({
+      data: chart.svg,
+      width: chart.width,
+      height: chart.height
+    });
+    $('#runtimeStatus').textContent = t('flowchartCopied');
+  } catch (error) {
+    $('#runtimeStatus').textContent = tf('flowchartCopyFailed', { message: error.message });
+  } finally {
+    button.disabled = false;
+  }
 }
 
 function escapeHTML(value) {
@@ -2097,12 +2491,18 @@ function escapeHTML(value) {
 
 function init() {
   document.body.dataset.platform = window.augorithm.platform || 'browser';
+  document.body.dataset.activeTab = 'flow';
   applyTheme(uiTheme);
   $('#codeEditor').value = templates[0].code;
   renderTemplateGrid();
   $$('.symbol').forEach(button => button.addEventListener('click', () => insertSnippet(button.dataset.kind)));
   $$('.segmented button').forEach(button => button.addEventListener('click', () => activateTab(button.dataset.tab)));
-  $('#codeEditor').addEventListener('input', () => { markDirty(); build(); updateEditorCursor(); });
+  $('#codeEditor').addEventListener('input', () => {
+    syncAutomaticProjectName();
+    markDirty();
+    build();
+    updateEditorCursor();
+  });
   $('#codeEditor').addEventListener('keydown', handleEditorKeyDown);
   ['click', 'keyup', 'select'].forEach(eventName =>
     $('#codeEditor').addEventListener(eventName, updateEditorCursor));
@@ -2111,7 +2511,11 @@ function init() {
   $('#fixErrorsBtn').addEventListener('click', () => autoFixPseudocode());
   $('#themeToggle').addEventListener('click', toggleTheme);
   $('#noteModeToggle').addEventListener('click', toggleNoteMode);
-  $('#projectName').addEventListener('input', () => { markDirty(); updateEditorFileName(); });
+  $('#projectName').addEventListener('input', () => {
+    state.projectNameEdited = true;
+    markDirty();
+    updateEditorFileName();
+  });
   $('#buildBtn').addEventListener('click', buildAndFix);
   $('#runBtn').addEventListener('click', startProgram);
   $('#runAgainBtn').addEventListener('click', submitInputOrRun);
@@ -2131,13 +2535,36 @@ function init() {
   $('#updateActionBtn').addEventListener('click', handleUpdateAction);
   $$('.dialog-close').forEach(button => button.addEventListener('click', () => button.closest('dialog').close()));
   $('#languageSelect').addEventListener('change', renderSource);
+  $('#databaseExampleBtn').addEventListener('click', () => loadNormalizationExample(true));
+  $('#normalizeBtn').addEventListener('click', event => { event.preventDefault(); analyzeNormalization(); });
+  ['relationName', 'dbAttributes', 'dbPrimaryKey', 'dbDependencies'].forEach(id =>
+    $(`#${id}`).addEventListener('input', markDirty));
+  $('#generatePythonBtn').addEventListener('click', () => generatePython(true));
+  $('#runPythonBtn').addEventListener('click', runPythonEditor);
+  $('#pythonEditor').addEventListener('input', markDirty);
+  $('#pythonInput').addEventListener('input', markDirty);
+  $('#exportPythonBtn').addEventListener('click', async () => {
+    const path = await window.augorithm.exportSource({
+      name: $('#projectName').value,
+      content: $('#pythonEditor').value,
+      extension: 'py'
+    });
+    if (path) $('#pythonOutput').textContent = savedLocationMessage('Exported', path);
+  });
   $('#uiLanguage').addEventListener('change', event => applyUILanguage(event.target.value));
+  $('#flowAddSymbol').addEventListener('change', event => {
+    const kind = event.target.value;
+    event.target.value = '';
+    if (kind) insertSnippet(kind, true);
+  });
+  $('#copyFlowchart').addEventListener('click', copyFlowchart);
   $('#exportSVG').addEventListener('click', () => exportFlowchart('svg'));
   $('#exportPNG').addEventListener('click', () => exportFlowchart('png'));
   $('#exportBtn').addEventListener('click', async () => {
     const language = $('#languageSelect').value;
     const extensions = { pseudocode: 'txt', python: 'py', swift: 'swift', javascript: 'js' };
-    await window.augorithm.exportSource({ name: $('#projectName').value, content: sourceFor(language), extension: extensions[language] });
+    const path = await window.augorithm.exportSource({ name: $('#projectName').value, content: sourceFor(language), extension: extensions[language] });
+    if (path) $('#runtimeStatus').textContent = savedLocationMessage('Exported', path);
   });
   $('#zoomOut').addEventListener('click', () => setZoom(state.zoom - .1));
   $('#zoomIn').addEventListener('click', () => setZoom(state.zoom + .1));
@@ -2189,7 +2616,8 @@ function init() {
   $('#closeConsole').addEventListener('click', () => { $('#consolePanel').hidden = true; $('#showConsole').hidden = false; });
   $('#showConsole').addEventListener('click', () => { $('#consolePanel').hidden = false; $('#showConsole').hidden = true; });
   window.augorithm.onMenuAction(action => ({
-    new: newProject, open: openProject, save: () => saveProject(false), saveAs: () => saveProject(true), build: buildAndFix, run: startProgram,
+    new: newProject, open: openProject, save: () => saveProject(false), saveAs: () => saveProject(true), build: buildAndFix,
+    copyFlowchart, run: startProgram,
     clear: clearRuntime, help: () => $('#helpDialog').showModal(), version: () => openVersionDialog(true)
   })[action]?.());
   window.augorithm.onUpdateState(renderUpdateState);
@@ -2200,8 +2628,15 @@ function init() {
       state.filePath = recovery.filePath || null;
       state.createdAt = recovery.project.createdAt || null;
       state.dirty = true;
+      state.projectNameEdited = true;
       $('#projectName').value = recovery.project.name || 'Recovered Algorithm';
-      $('#codeEditor').value = recovery.project.code;
+      $('#codeEditor').value = modernizeForClosers(recovery.project.code);
+      $('#relationName').value = recovery.project.database?.name || 'Enrollment';
+      $('#dbAttributes').value = recovery.project.database?.attributes || '';
+      $('#dbPrimaryKey').value = recovery.project.database?.primaryKey || '';
+      $('#dbDependencies').value = recovery.project.database?.dependencies || '';
+      $('#pythonEditor').value = recovery.project.python?.code || '';
+      $('#pythonInput').value = recovery.project.python?.input || '';
       $('#saveState').textContent = 'Recovered';
       $('#fileStatus').textContent = '◇ Recovered unsaved work';
     }
