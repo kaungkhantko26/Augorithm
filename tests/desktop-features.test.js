@@ -16,7 +16,7 @@ assert.match(renderer, /diagramConnections: state\.customConnections/);
 assert.match(renderer, /generatedSource:\s*\{\s*drafts:/);
 assert.match(renderer, /function chooseConnectionNode/);
 assert.match(renderer, /function beginConnectionWaypointDrag/);
-assert.match(renderer, /const exportPadding = 110/);
+assert.match(renderer, /const exportPadding = 180/);
 assert.match(renderer, /markerUnits="userSpaceOnUse"/);
 assert.match(renderer, /translate\(\$\{exportPadding\} \$\{exportPadding\}\)/);
 assert.match(styles, /\.custom-connection-hit/);

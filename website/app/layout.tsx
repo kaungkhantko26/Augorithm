@@ -15,7 +15,7 @@ export async function generateMetadata(): Promise<Metadata> {
       template: "%s · Augorithm",
     },
     description:
-      "See your logic take shape. Turn pseudocode into living flowcharts, trace every step, and generate Java, Python, JavaScript, and Swift.",
+      "Stop losing study time to disconnected arrows and strict syntax. Turn classroom pseudocode into clear, executable flowcharts on web, Mac, Windows, and iPad.",
     keywords: [
       "Augorithm",
       "flowchart",
@@ -34,17 +34,17 @@ export async function generateMetadata(): Promise<Metadata> {
     openGraph: {
       type: "website",
       url: origin,
-      title: "Augorithm — See your logic take shape.",
+      title: "Augorithm — Your algorithm makes sense. Your flowchart should too.",
       description:
-        "From idea to flowchart in 3D. Write pseudocode, run your logic, and generate real source code.",
+        "Write student-friendly pseudocode, build a clean flowchart, run it, and export work that is ready to submit.",
       siteName: "Augorithm",
-      images: [{ url: `${origin}/og.png`, width: 1731, height: 909, alt: "A luminous 3D Augorithm flowchart" }],
+      images: [{ url: `${origin}/og.png`, width: 1726, height: 911, alt: "Augorithm turns student pseudocode into a clean executable flowchart" }],
     },
     twitter: {
       card: "summary_large_image",
-      title: "Augorithm — See your logic take shape.",
+      title: "Augorithm — Your flowchart should explain your logic.",
       description:
-        "The immersive visual algorithm workspace for web, macOS, Windows, and iPad.",
+        "Pseudocode, flowcharts, execution, and source code in one student-friendly workspace.",
       images: [`${origin}/og.png`],
     },
   };

@@ -51,8 +51,8 @@ export function EditorToolbar({
   return (
     <header className="editor-topbar">
       <Link className="editor-brand" href="/" aria-label="Back to Augorithm home">
-        <Image src="/augorithm-icon.png" alt="" width={42} height={42} priority />
-        <span><strong>AUGORITHM</strong><small>Web Editor</small></span>
+        <Image src="/augorithm-icon.png" alt="" width={42} height={42} priority unoptimized />
+        <span><strong>AUGORITHM</strong><small>Think it. Chart it. Run it.</small></span>
       </Link>
 
       <nav className="editor-commandbar" aria-label="Editor commands">

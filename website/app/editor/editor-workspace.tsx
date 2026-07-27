@@ -47,7 +47,7 @@ function pageWithUpdates(project: ProjectV2, pageId: string, updates: Partial<Di
 }
 
 function exportSvg(page: DiagramPage): string {
-  const exportPadding = 96;
+  const exportPadding = 144;
   const nodeMap = new Map(page.nodes.map((node) => [node.id, node]));
   const routedPoints = page.edges.flatMap((edge) => {
     const source = nodeMap.get(edge.source);
@@ -145,7 +145,7 @@ export function EditorWorkspace() {
   const [inspectorCollapsed, setInspectorCollapsed] = useState(false);
   const [bottomCollapsed, setBottomCollapsed] = useState(false);
   const [bottomTab, setBottomTab] = useState<BottomTab>("console");
-  const [workspaceView, setWorkspaceView] = useState<"canvas" | "code" | "split" | "source">("split");
+  const [workspaceView, setWorkspaceView] = useState<"canvas" | "code" | "split" | "source">("canvas");
   const [zoom, setZoom] = useState(0.78);
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const [input, setInput] = useState("75");
@@ -642,12 +642,19 @@ export function EditorWorkspace() {
             </div>
             <div className="view-switcher" role="group" aria-label="Workspace view">
               {([
-                ["canvas", "Canvas"],
-                ["split", "Split"],
-                ["code", "Pseudocode"],
-                ["source", "Generated source"],
+                ["canvas", "⌘ Flowchart"],
+                ["code", "≡ Pseudocode"],
+                ["source", "</> Source"],
+                ["split", "◫ Split"],
               ] as const).map(([view, label]) => (
-                <button type="button" className={workspaceView === view ? "active" : ""} aria-pressed={workspaceView === view} onClick={() => setWorkspaceView(view)} key={view}>
+                <button
+                  type="button"
+                  className={workspaceView === view ? "active" : ""}
+                  aria-label={view === "code" ? "Pseudocode editor" : undefined}
+                  aria-pressed={workspaceView === view}
+                  onClick={() => setWorkspaceView(view)}
+                  key={view}
+                >
                   {label}
                 </button>
               ))}

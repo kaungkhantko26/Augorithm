@@ -2891,7 +2891,9 @@ function clearRuntime() {
 
 function makeFlowchartSVG() {
   const host = $('#flowchart');
-  const exportPadding = 110;
+  // Keep a presentation-safe margin around every exported chart so arrows,
+  // labels, and shadows never sit against the PNG/SVG edge.
+  const exportPadding = 180;
   const previousZoom = host.style.zoom;
   host.style.zoom = 1;
   const contentWidth = Math.ceil(host.scrollWidth);
