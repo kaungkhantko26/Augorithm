@@ -2,67 +2,93 @@ import Image from "next/image";
 import Link from "next/link";
 import "./landing.css";
 
-const painPoints = [
+const editorUrl = "/editor";
+const releaseUrl = "https://github.com/kaungkhantko26/Augorithm/releases/latest";
+
+const proofPoints = [
   {
-    mark: "01",
-    title: "Stop redrawing every arrow.",
-    copy: "Nested loops and decisions should connect cleanly the first time—not become a maze you repair before submission.",
+    label: "01 · KEEP THE IDEA",
+    title: "Meet your algorithm’s new memory.",
+    copy: "Write once, then keep pseudocode, flowchart, execution, and source code in sync.",
   },
   {
-    mark: "02",
-    title: "Use the device you already have.",
-    copy: "Open Augorithm on Mac, Windows, iPad, or the web. Your classroom tool should not decide which laptop you need.",
+    label: "02 · CATCH THE GAP",
+    title: "It finds problems before submission.",
+    copy: "Disconnected arrows and invalid paths are flagged while you think—not after you export.",
   },
   {
-    mark: "03",
-    title: "Learn logic before syntax.",
-    copy: "Write natural pseudocode, see errors beside the line, and watch the matching flowchart update as you think.",
+    label: "03 · LEARN THE LOGIC",
+    title: "Understand the idea before the syntax.",
+    copy: "Natural classroom pseudocode keeps the lesson focused on reasoning before language rules.",
   },
 ];
 
-const workflow = [
-  ["Write", "Use classroom-friendly pseudocode with formatting and useful errors."],
-  ["See", "Build a standards-based flowchart with clear branches and loop paths."],
-  ["Run", "Enter values, step through symbols, and inspect variables in real time."],
-  ["Submit", "Export a spacious PNG or SVG that is ready for reports and slides."],
+const features = [
+  {
+    symbol: "{ }",
+    title: "Pseudocode that draws itself",
+    copy: "Write familiar classroom steps and watch a standards-based flowchart update beside them in real time.",
+    accent: "blue",
+  },
+  {
+    symbol: "▶",
+    title: "Run and inspect",
+    copy: "Enter values, step through symbols, and see variables change as your algorithm executes.",
+    accent: "yellow",
+  },
+  {
+    symbol: "∞",
+    title: "Every device",
+    copy: "Continue on web, Mac, Windows, or iPad without changing the way you think.",
+    accent: "green",
+  },
+  {
+    symbol: "↗",
+    title: "Submit something clear",
+    copy: "Export spacious PNG or SVG diagrams that are ready for reports, slides, and classroom review.",
+    accent: "coral",
+  },
 ];
 
-function ProductPreview() {
+const steps = [
+  ["Write your logic", "Start with classroom-friendly pseudocode and useful inline feedback."],
+  ["See the flow", "Watch the matching diagram form with clean branches and loop paths."],
+  ["Run and inspect", "Enter values, step through symbols, and understand every result."],
+  ["Export and submit", "Share a spacious diagram that reads clearly in reports and slides."],
+];
+
+function Brand() {
   return (
-    <div className="product-window" aria-label="Preview of the Augorithm editor">
-      <div className="product-titlebar">
-        <div className="window-dots" aria-hidden="true"><i /><i /><i /></div>
-        <div className="preview-brand">
-          <Image src="/augorithm-icon.png" alt="" width={30} height={30} unoptimized />
-          <strong>AUGORITHM</strong>
-        </div>
-        <div className="preview-title"><strong>Student Average</strong><span>Saved locally</span></div>
-        <div className="preview-actions"><span>Build</span><b>▶ Run</b></div>
+    <Link className="landing-brand" href="/" aria-label="Augorithm home">
+      <span className="brand-mark">
+        <Image src="/augorithm-icon.png" alt="" width={34} height={34} priority unoptimized />
+      </span>
+      <strong>AUGORITHM</strong>
+    </Link>
+  );
+}
+
+function LogicRibbon() {
+  return (
+    <div className="logic-ribbon" aria-label="An algorithm moving through connected flowchart symbols">
+      <div className="logic-token token-start">
+        <small>START</small>
+        <strong>Begin</strong>
       </div>
-      <div className="product-body">
-        <aside className="preview-library">
-          <strong>SYMBOLS</strong>
-          <span><i className="input-symbol">⌨</i> Input</span>
-          <span><i className="process-symbol">=</i> Assign</span>
-          <span><i className="loop-symbol">↻</i> While</span>
-          <span><i className="output-symbol">▰</i> Output</span>
-        </aside>
-        <section className="preview-workspace">
-          <div className="preview-tabs"><b>⌘ Flowchart</b><span>≡ Pseudocode</span><span>&lt;/&gt; Source</span></div>
-          <div className="preview-canvas">
-            <div className="flow-node terminal">START</div>
-            <div className="flow-arrow" />
-            <div className="flow-node process">total = 0</div>
-            <div className="flow-arrow" />
-            <div className="flow-node loop">count = 1 to 5</div>
-            <div className="branch-path" aria-hidden="true"><span>Next</span><i /></div>
-            <div className="flow-node input">INPUT score</div>
-            <div className="flow-arrow short" />
-            <div className="flow-node output">OUTPUT total / 5</div>
-          </div>
-          <div className="preview-console"><strong>⌁ CONSOLE</strong><span>Ready to run · 7 symbols · 0 problems</span></div>
-        </section>
-        <aside className="preview-inspector"><strong>INSPECTOR</strong><div><b>Ready to run</b><span>All connections are valid.</span></div></aside>
+      <span className="logic-connector" aria-hidden="true"><i /></span>
+      <div className="logic-token token-process">
+        <small>ASSIGN</small>
+        <strong>total = score ÷ count</strong>
+      </div>
+      <span className="logic-connector" aria-hidden="true"><i /></span>
+      <div className="logic-token token-decision">
+        <small>IF?</small>
+        <strong>passed</strong>
+      </div>
+      <span className="logic-connector" aria-hidden="true"><i /></span>
+      <div className="logic-token token-output">
+        <small>OUTPUT</small>
+        <strong>Result ✓</strong>
       </div>
     </div>
   );
@@ -72,116 +98,111 @@ export default function Home() {
   return (
     <main className="landing-shell">
       <header className="landing-nav">
-        <Link className="landing-brand" href="/" aria-label="Augorithm home">
-          <Image src="/augorithm-icon.png" alt="" width={44} height={44} priority unoptimized />
-          <span><strong>AUGORITHM</strong><small>Think it. Chart it. Run it.</small></span>
-        </Link>
+        <Brand />
         <nav aria-label="Main navigation">
-          <a href="#problem">Why Augorithm</a>
+          <a href="#features">Features</a>
           <a href="#how">How it works</a>
-          <Link href="/docs">Docs</Link>
-          <a href="https://github.com/kaungkhantko26/Augorithm/releases/latest" target="_blank" rel="noreferrer">Download</a>
         </nav>
-        <Link className="nav-launch" href="/editor">Launch Web Editor <span>→</span></Link>
+        <Link className="nav-launch" href={editorUrl}>
+          Open the editor <span aria-hidden="true">↗</span>
+        </Link>
       </header>
 
       <section className="landing-hero">
-        <div className="hero-copy">
-          <div className="student-label"><span>●</span> Made for programming students</div>
-          <h1>Your algorithm makes sense.<br /><em>Your flowchart should too.</em></h1>
-          <p>
-            Stop losing study time to disconnected arrows, strict syntax, and
-            Windows-only tools. From idea to pseudocode, flowchart, execution,
-            and real code—Augorithm keeps everything in sync.
-          </p>
-          <div className="hero-actions">
-            <Link className="primary-action" href="/editor">Start in the browser <span>→</span></Link>
-            <a className="secondary-action" href="#how">See how it works <span>↓</span></a>
-          </div>
-          <div className="hero-trust">
-            <span>✓ No account</span><span>✓ Local autosave</span><span>✓ English + မြန်မာဘာသာ</span>
-          </div>
+        <div className="hero-orbit orbit-one" aria-hidden="true" />
+        <div className="hero-orbit orbit-two" aria-hidden="true" />
+        <p className="hero-kicker">Visual algorithm learning for students</p>
+        <h1>Your algorithm makes sense.<br /><em>Your flowchart should too.</em></h1>
+        <p className="hero-summary">
+          From idea to pseudocode, flowchart, execution, and real code—Augorithm
+          keeps everything connected and in sync.
+        </p>
+        <div className="hero-actions">
+          <Link className="primary-action" href={editorUrl}>
+            Try Augorithm <span aria-hidden="true">→</span>
+          </Link>
+          <a className="secondary-action" href="#how">See how it works</a>
         </div>
 
-        <div className="hero-proof" aria-label="Before and after using Augorithm">
-          <div className="pain-card">
-            <span>Before</span>
-            <strong>Why is this arrow<br />not connected again?</strong>
-            <div className="broken-flow" aria-hidden="true"><i /><i /><i /></div>
-            <small>Deadline in 18 minutes</small>
-          </div>
-          <div className="solution-card">
-            <span>With Augorithm</span>
-            <strong>Write once.<br />See it clearly.</strong>
-            <div className="clean-flow" aria-hidden="true"><i /><i /><i /><i /></div>
-            <small>Ready to export · 0 problems</small>
-          </div>
+        <LogicRibbon />
+
+        <div className="hero-scroll-hint" aria-hidden="true">
+          <span className="hint-track"><span className="hint-dot" /></span>
+          <span className="hint-label">Scroll</span>
         </div>
       </section>
 
-      <section className="pain-section" id="problem">
+      <section className="proof-grid" aria-label="Why students use Augorithm">
+        {proofPoints.map((point) => (
+          <article key={point.label}>
+            <small>{point.label}</small>
+            <h2>{point.title}</h2>
+            <p>{point.copy}</p>
+          </article>
+        ))}
+      </section>
+
+      <section className="feature-section" id="features">
         <div className="section-heading">
-          <span>THE STUDENT PROBLEM</span>
-          <h2>Flowcharts should explain your logic,<br />not become another assignment.</h2>
+          <p>One workspace. The whole idea.</p>
+          <h2>Everything a flowchart tool<br />wishes it could do.</h2>
         </div>
-        <div className="pain-grid">
-          {painPoints.map((item) => (
-            <article key={item.mark}>
-              <small>{item.mark}</small>
-              <h3>{item.title}</h3>
-              <p>{item.copy}</p>
+        <div className="feature-grid">
+          {features.map((feature, index) => (
+            <article className={`feature-card accent-${feature.accent}`} key={feature.title}>
+              <span className="feature-symbol" aria-hidden="true">{feature.symbol}</span>
+              <div>
+                <h3>{feature.title}</h3>
+                <p>{feature.copy}</p>
+              </div>
+              <span className="feature-index" aria-hidden="true">0{index + 1}</span>
             </article>
           ))}
         </div>
+        <p className="feature-note">
+          Most flowchart tools make you manage the diagram. Augorithm keeps your
+          logic, arrows, execution, and code together. That’s the whole point.
+        </p>
       </section>
 
-      <section className="editor-showcase" id="how">
-        <div className="section-heading centered">
-          <span>THE SAME WORKSPACE, EVERYWHERE</span>
-          <h2>The web editor feels like the Mac app.</h2>
-          <p>Learn one interface, then continue on the browser, desktop, or iPad without starting over.</p>
-        </div>
-        <ProductPreview />
-      </section>
-
-      <section className="workflow-section">
+      <section className="workflow-section" id="how">
         <div className="section-heading">
-          <span>FROM IDEA TO SUBMISSION</span>
-          <h2>Four steps. No tool switching.</h2>
+          <p>From thought to submission</p>
+          <h2>Four steps.<br />That’s the workflow.</h2>
         </div>
-        <div className="workflow-grid">
-          {workflow.map(([title, copy], index) => (
-            <article key={title}>
-              <small>{String(index + 1).padStart(2, "0")}</small>
-              <h3>{title}</h3>
-              <p>{copy}</p>
-            </article>
+        <ol className="workflow-grid">
+          {steps.map(([title, copy], index) => (
+            <li key={title}>
+              <span>{index + 1}</span>
+              <div><h3>{title}</h3><p>{copy}</p></div>
+            </li>
           ))}
-        </div>
+        </ol>
       </section>
 
-      <section className="workspace-section">
+      <div className="platform-marquee" aria-label="Augorithm platform and product highlights">
         <div>
-          <span>WEB · MAC · WINDOWS · IPAD</span>
-          <h2>Choose your workspace.</h2>
-          <p>Your `.augo` project stays local and portable. Start instantly online or install the desktop app for native file dialogs and updates.</p>
+          <span>No account</span><i>•</i><span>Local autosave</span><i>•</i>
+          <span>Web</span><i>•</i><span>Mac</span><i>•</i><span>Windows</span><i>•</i>
+          <span>iPad</span><i>•</i><span>English + မြန်မာ</span><i>•</i>
+          <span>PNG + SVG</span>
         </div>
-        <div className="workspace-actions">
-          <Link href="/editor"><b>Web Editor</b><span>Open instantly →</span></Link>
-          <a href="https://github.com/kaungkhantko26/Augorithm/releases/latest" target="_blank" rel="noreferrer"><b>Desktop App</b><span>macOS and Windows ↓</span></a>
-          <Link href="/docs#ipad"><b>iPad</b><span>Add to Home Screen →</span></Link>
-        </div>
-      </section>
+      </div>
 
       <section className="final-cta">
-        <Image src="/augorithm-icon.png" alt="" width={64} height={64} unoptimized />
-        <div><span>YOUR NEXT ALGORITHM</span><h2>Spend your time learning the logic.</h2></div>
-        <Link href="/editor">Launch Web Editor <span>→</span></Link>
+        <div className="final-mark" aria-hidden="true">AU</div>
+        <p>Your next algorithm already<br />knows where to go.</p>
+        <span>Start instantly in the browser. No account, no setup, no tool switching.</span>
+        <div className="final-actions">
+          <Link href={editorUrl}>Launch Web Editor <b aria-hidden="true">→</b></Link>
+          <a href={releaseUrl} target="_blank" rel="noreferrer">Download desktop app</a>
+        </div>
       </section>
 
       <footer className="landing-footer">
+        <Brand />
+        <p>Think it. Chart it. Run it.</p>
         <span>© 2026 Augorithm · Built by Kaung Khant Ko</span>
-        <div><Link href="/docs">Documentation</Link><a href="https://github.com/kaungkhantko26/Augorithm" target="_blank" rel="noreferrer">GitHub</a></div>
       </footer>
     </main>
   );
