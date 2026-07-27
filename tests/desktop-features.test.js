@@ -16,6 +16,8 @@ assert.deepEqual(
   ['nsis', 'zip']
 );
 assert.match(packageJSON.build.artifactName, /\$\{os\}/);
+assert.match(packageJSON.scripts.windows, /--publish never/);
+assert.match(packageJSON.scripts.dmg, /--publish never/);
 assert.match(html, /data-tab="split"/);
 assert.match(html, /id="connectShapes"/);
 assert.match(html, /<textarea id="sourceCode"/);

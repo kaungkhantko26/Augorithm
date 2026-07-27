@@ -14,12 +14,12 @@
     "start": "electron .",
     "test": "node tests/source-generators.test.js && node tests/desktop-features.test.js",
     "pack": "electron-builder --dir --mac",
-    "dmg": "electron-builder --mac dmg zip --arm64",
-    "windows": "electron-builder --win nsis zip --x64",
+    "dmg": "electron-builder --mac dmg zip --arm64 --publish never",
+    "windows": "electron-builder --win nsis zip --x64 --publish never",
     "verify:release": "node scripts/verify-release-artifacts.js"
   },
   "devDependencies": {
-    "electron": "^38.0.0",
+    "electron": "^39.8.5",
     "electron-builder": "^26.0.12"
   },
   "build": {
