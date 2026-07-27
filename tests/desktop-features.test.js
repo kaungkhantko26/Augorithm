@@ -8,7 +8,14 @@ const html = fs.readFileSync(path.join(root, 'app', 'index.html'), 'utf8');
 const renderer = fs.readFileSync(path.join(root, 'app', 'renderer.js'), 'utf8');
 const styles = fs.readFileSync(path.join(root, 'app', 'styles.css'), 'utf8');
 
-assert.equal(packageJSON.version, '1.4.7');
+assert.equal(packageJSON.version, '1.4.8');
+assert.equal(packageJSON.build.nsis.perMachine, false);
+assert.equal(packageJSON.build.win.requestedExecutionLevel, 'asInvoker');
+assert.deepEqual(
+  packageJSON.build.win.target.map(target => target.target),
+  ['nsis', 'zip']
+);
+assert.match(packageJSON.build.artifactName, /\$\{os\}/);
 assert.match(html, /data-tab="split"/);
 assert.match(html, /id="connectShapes"/);
 assert.match(html, /<textarea id="sourceCode"/);

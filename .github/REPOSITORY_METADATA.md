@@ -8,7 +8,7 @@ Visual pseudocode editor, flowchart generator, and algorithm runner for macOS, W
 
 ## Website
 
-https://kaungkhantko26.github.io/Augorithm/
+https://augorithm-for-students.vercel.app/
 
 ## Topics
 

@@ -8,11 +8,11 @@
   A visual pseudocode editor, standards-based flowchart generator, and algorithm runner for macOS, Windows, and iPad.
 
   [![Latest release](https://img.shields.io/github/v/release/kaungkhantko26/Augorithm?display_name=tag&sort=semver)](https://github.com/kaungkhantko26/Augorithm/releases/latest)
-  [![GitHub Pages](https://github.com/kaungkhantko26/Augorithm/actions/workflows/pages.yml/badge.svg)](https://kaungkhantko26.github.io/Augorithm/)
+  [![Desktop release](https://github.com/kaungkhantko26/Augorithm/actions/workflows/release.yml/badge.svg)](https://github.com/kaungkhantko26/Augorithm/actions/workflows/release.yml)
   [![Platforms](https://img.shields.io/badge/platforms-macOS%20%7C%20Windows%20%7C%20iPad-0A376D)](#install-augorithm)
   [![License: MIT](https://img.shields.io/badge/license-MIT-F5A800)](LICENSE)
 
-  [Web app](https://kaungkhantko26.github.io/Augorithm/) ·
+  [Web app](https://augorithm-for-students.vercel.app/) ·
   [Download](https://github.com/kaungkhantko26/Augorithm/releases/latest) ·
   [Report a problem](https://github.com/kaungkhantko26/Augorithm/issues)
 </div>
@@ -38,12 +38,12 @@ Augorithm is built by **Kaung Khant Ko** as an independent computer-science lear
 
 ## Install Augorithm
 
-The current source and package version is **1.4.7**.
+The current source and package version is **1.4.8**.
 
 ### macOS
 
 1. Open [the latest release](https://github.com/kaungkhantko26/Augorithm/releases/latest).
-2. Download `Augorithm-1.4.7-arm64.zip`.
+2. Download `Augorithm-1.4.8-mac-arm64.dmg` or `Augorithm-1.4.8-mac-arm64.zip`.
 3. Open the ZIP and drag **Augorithm.app** into **Applications**.
 4. On first launch, Control-click the app, choose **Open**, then confirm.
 
@@ -52,15 +52,19 @@ The current macOS build supports Apple silicon. It is not Apple-notarized, so ma
 ### Windows
 
 1. Open [the latest release](https://github.com/kaungkhantko26/Augorithm/releases/latest).
-2. Download `Augorithm-1.4.7-x64.exe`.
-3. Run the installer and choose an installation folder.
+2. Download `Augorithm-1.4.8-win-x64.exe`.
+3. Run the per-user installer and choose an installation folder. Administrator access is not required.
 4. Open Augorithm from the Start menu or desktop shortcut.
 
-The current Windows build is not Authenticode-signed, so Microsoft Defender SmartScreen may show an unknown-publisher warning.
+If the installer is blocked, choose **More info → Run anyway**, or download
+`Augorithm-1.4.8-win-x64.zip`, extract it, and open `Augorithm.exe`. The current
+Windows build is not Authenticode-signed, so Microsoft Defender SmartScreen may
+show an unknown-publisher warning even though every release artifact is built
+and verified by GitHub Actions.
 
 ### iPad
 
-1. Open the [Augorithm web app](https://kaungkhantko26.github.io/Augorithm/) in Safari.
+1. Open the [Augorithm web app](https://augorithm-for-students.vercel.app/) in Safari.
 2. Tap **Share** → **Add to Home Screen**.
 3. Launch Augorithm from the Home Screen.
 4. Use **Note Mode** for a focused, touch-friendly pseudocode workspace.
@@ -155,6 +159,11 @@ npm run dmg
 ```
 
 Build output is written to `dist/`.
+
+Desktop releases are built only by `.github/workflows/release.yml`: Windows
+artifacts run on a native Windows runner, macOS artifacts run on macOS, update
+manifests are checked against their packages, and SHA-256 checksums are attached
+to every GitHub Release.
 
 Test the iPad/web app locally:
 

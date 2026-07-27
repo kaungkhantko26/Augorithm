@@ -1,0 +1,121 @@
+name: Build and Publish Desktop Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: desktop-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  test:
+    name: Test source
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm test
+
+  windows:
+    name: Build Windows on Windows
+    needs: test
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run windows
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+      - run: npm run verify:release -- windows
+      - name: Test installer and portable archive
+        shell: pwsh
+        run: |
+          $version = (Get-Content package.json | ConvertFrom-Json).version
+          7z t "dist/Augorithm-$version-win-x64.exe"
+          if ($LASTEXITCODE -ne 0) { throw "Windows installer integrity check failed." }
+          7z t "dist/Augorithm-$version-win-x64.zip"
+          if ($LASTEXITCODE -ne 0) { throw "Windows portable archive integrity check failed." }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-release
+          if-no-files-found: error
+          path: |
+            dist/Augorithm-*-win-x64.exe
+            dist/Augorithm-*-win-x64.exe.blockmap
+            dist/Augorithm-*-win-x64.zip
+            dist/latest.yml
+
+  macos:
+    name: Build macOS on macOS
+    needs: test
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run dmg
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+      - run: npm run verify:release -- macos
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos-release
+          if-no-files-found: error
+          path: |
+            dist/Augorithm-*-mac-arm64.dmg
+            dist/Augorithm-*-mac-arm64.dmg.blockmap
+            dist/Augorithm-*-mac-arm64.zip
+            dist/Augorithm-*-mac-arm64.zip.blockmap
+            dist/latest-mac.yml
+
+  publish:
+    name: Publish verified packages
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [windows, macos]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: "*-release"
+          path: release
+          merge-multiple: true
+      - name: Generate SHA-256 checksums
+        shell: bash
+        run: |
+          cd release
+          find . -maxdepth 1 -type f \
+            ! -name "*.blockmap" \
+            ! -name "latest*.yml" \
+            -print0 | sort -z | xargs -0 sha256sum > "SHA256SUMS-${GITHUB_REF_NAME#v}.txt"
+      - uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+          files: |
+            release/Augorithm-*-win-x64.exe
+            release/Augorithm-*-win-x64.exe.blockmap
+            release/Augorithm-*-win-x64.zip
+            release/Augorithm-*-mac-arm64.dmg
+            release/Augorithm-*-mac-arm64.dmg.blockmap
+            release/Augorithm-*-mac-arm64.zip
+            release/Augorithm-*-mac-arm64.zip.blockmap
+            release/latest.yml
+            release/latest-mac.yml
+            release/SHA256SUMS-*.txt

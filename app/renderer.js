@@ -1,6 +1,6 @@
 const $ = selector => document.querySelector(selector);
 const $$ = selector => [...document.querySelectorAll(selector)];
-const APP_VERSION = '1.4.7';
+const APP_VERSION = '1.4.8';
 
 // Browser/iPad fallback; Electron replaces this with the secure preload bridge.
 if (!window.augorithm) {
