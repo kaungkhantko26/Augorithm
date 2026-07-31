@@ -105,6 +105,18 @@ export interface ExecutionResult {
   variables: Record<string, unknown>;
   trace: number[];
   diagnostics: Diagnostic[];
+  session?: ExecutionSession; // defined when paused waiting for INPUT
+}
+
+/** Serialisable snapshot of a paused execution. */
+export interface ExecutionSession {
+  pointer: number;
+  variables: Record<string, unknown>;
+  forStack: Array<{ line: number; name: string; end: number; step: number }>;
+  whileStack: Array<{ line: number; condition: string }>;
+  output: string[];
+  trace: number[];
+  waitingFor: string; // e.g. "mark" or "mark[0]"
 }
 
 export const DEFAULT_PSEUDOCODE = `START
@@ -231,8 +243,8 @@ export function parsePseudocode(code: string, previousNodes: DiagramNode[] = [])
     }
     const horizontalOffset = layoutStack.reduce((total, entry) => total + entry.side, 0);
     const generatedPosition = {
-      x: 700 + horizontalOffset * 320,
-      y: 90 + nodes.length * 128,
+      x: 480 + horizontalOffset * 300,
+      y: 60 + nodes.length * 110,
     };
 
     const node: DiagramNode = {
@@ -467,16 +479,42 @@ function matchingCloser(lines: string[], start: number, open: RegExp, close: Reg
   return lines.length;
 }
 
-export function executePseudocode(code: string, rawInput = ""): ExecutionResult {
+/**
+ * Resume a paused execution by supplying one input value.
+ * Returns the same ExecutionResult type; may pause again for the next INPUT.
+ */
+export function resumeExecution(
+  code: string,
+  session: ExecutionSession,
+  inputValue: string,
+): ExecutionResult {
+  return executePseudocode(code, inputValue, session);
+}
+
+export function executePseudocode(
+  code: string,
+  rawInput = "",
+  resumeFrom?: ExecutionSession,
+): ExecutionResult {
   const lines = code.split(/\r?\n/);
-  const input = rawInput.split(/[,\n]/).map((value) => value.trim()).filter(Boolean);
-  const variables: Record<string, unknown> = {};
-  const output: string[] = [];
-  const trace: number[] = [];
+
+  // When resuming, the single rawInput value is the answer to the pending INPUT.
+  // When starting fresh, rawInput may be a comma-separated pre-supply (legacy path).
+  const inputQueue: string[] = resumeFrom
+    ? [rawInput.trim()].filter(Boolean)
+    : rawInput.split(/[,\n]/).map((value) => value.trim()).filter(Boolean);
+
+  const variables: Record<string, unknown> = resumeFrom ? { ...resumeFrom.variables } : {};
+  const output: string[] = resumeFrom ? [...resumeFrom.output] : [];
+  const trace: number[] = resumeFrom ? [...resumeFrom.trace] : [];
   const diagnostics: Diagnostic[] = [];
-  const forStack: Array<{ line: number; name: string; end: number; step: number }> = [];
-  const whileStack: Array<{ line: number; condition: string }> = [];
-  let pointer = 0;
+  const forStack: Array<{ line: number; name: string; end: number; step: number }> = resumeFrom
+    ? resumeFrom.forStack.map((f) => ({ ...f }))
+    : [];
+  const whileStack: Array<{ line: number; condition: string }> = resumeFrom
+    ? resumeFrom.whileStack.map((w) => ({ ...w }))
+    : [];
+  let pointer = resumeFrom ? resumeFrom.pointer : 0;
   let inputIndex = 0;
   let guard = 0;
 
@@ -506,7 +544,24 @@ export function executePseudocode(code: string, rawInput = ""): ExecutionResult 
 
     const inputMatch = statement.match(/^(?:input|read)\s+([A-Za-z_]\w*)(?:\s*\[\s*(.+?)\s*\])?/i);
     if (inputMatch) {
-      const value = coerceValue(input[inputIndex] ?? "");
+      // Pause and surface a session when no input value is queued.
+      if (inputIndex >= inputQueue.length) {
+        const indexExpr = inputMatch[2] ? Number(evaluate(inputMatch[2], variables)) : undefined;
+        const waitingFor = indexExpr !== undefined
+          ? `${inputMatch[1]}[${indexExpr}]`
+          : inputMatch[1];
+        const session: ExecutionSession = {
+          pointer,
+          variables: { ...variables },
+          forStack: forStack.map((f) => ({ ...f })),
+          whileStack: whileStack.map((w) => ({ ...w })),
+          output: [...output],
+          trace: [...trace],
+          waitingFor,
+        };
+        return { output: [...output], variables: { ...variables }, trace: [...trace], diagnostics, session };
+      }
+      const value = coerceValue(inputQueue[inputIndex]);
       if (inputMatch[2]) {
         const array = Array.isArray(variables[inputMatch[1]]) ? variables[inputMatch[1]] as unknown[] : [];
         array[Number(evaluate(inputMatch[2], variables))] = value;

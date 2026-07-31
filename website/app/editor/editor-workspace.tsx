@@ -5,6 +5,7 @@ import {
   createDiagramNode,
   createProject,
   executePseudocode,
+  resumeExecution,
   formatPseudocode,
   generateSource,
   migrateProject,
@@ -13,6 +14,7 @@ import {
   type DiagramNode,
   type DiagramPage,
   type EditorMode,
+  type ExecutionSession,
   type NodeKind,
   type Point,
   type ProjectV2,
@@ -149,6 +151,7 @@ export function EditorWorkspace() {
   const [zoom, setZoom] = useState(0.78);
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const [input, setInput] = useState("");
+  const [pendingSession, setPendingSession] = useState<ExecutionSession | null>(null);
   const [output, setOutput] = useState<string[]>([]);
   const [variables, setVariables] = useState<Record<string, unknown>>({});
   const [runtimeNodeId, setRuntimeNodeId] = useState<string | null>(null);
@@ -277,9 +280,8 @@ export function EditorWorkspace() {
     setSelectedEdgeId(null);
   }, [commit, project]);
 
-  const run = useCallback(() => {
-    setRunning(true);
-    const result = executePseudocode(project.code, input);
+  /** Shared helper that applies any ExecutionResult to state */
+  const applyResult = useCallback((result: ReturnType<typeof executePseudocode>) => {
     setOutput(result.output);
     setVariables(result.variables);
     setRuntimeTrace(result.trace);
@@ -287,15 +289,49 @@ export function EditorWorkspace() {
     const finalLine = result.trace.at(-1);
     setRuntimeNodeId(activePage.nodes.find((node) => node.sourceLine === finalLine)?.id ?? null);
     setStepIndex(result.trace.length - 1);
-    setBottomTab(result.diagnostics.some((item) => item.severity === "error") ? "problems" : "console");
+    if (result.session) {
+      // Execution paused — waiting for the user to supply one INPUT value.
+      setPendingSession(result.session);
+      setBottomTab("console");
+      setBottomCollapsed(false);
+      // Keep running=true so Run button shows "■ Stop"
+    } else {
+      setPendingSession(null);
+      setRunning(false);
+      setBottomTab(result.diagnostics.some((item) => item.severity === "error") ? "problems" : "console");
+      setBottomCollapsed(false);
+    }
+  }, [activePage.nodes, project.code]);
+
+  const run = useCallback(() => {
+    setRunning(true);
+    setPendingSession(null);
+    setInput("");
+    setOutput([]);
+    setVariables({});
+    setBottomTab("console");
     setBottomCollapsed(false);
+    applyResult(executePseudocode(project.code, ""));
+  }, [applyResult, project.code]);
+
+  const stop = useCallback(() => {
+    setPendingSession(null);
     setRunning(false);
-  }, [activePage.nodes, input, project.code]);
+  }, []);
+
+  /** Called when the user submits a value for the current INPUT statement. */
+  const submitInput = useCallback(() => {
+    if (!pendingSession) return;
+    const value = input.trim();
+    if (!value) return;
+    setInput("");
+    applyResult(resumeExecution(project.code, pendingSession, value));
+  }, [applyResult, input, pendingSession, project.code]);
 
   const step = useCallback(() => {
     let trace = runtimeTrace;
     if (!trace.length) {
-      const result = executePseudocode(project.code, input);
+      const result = executePseudocode(project.code, "");
       trace = result.trace;
       setRuntimeTrace(trace);
       setOutput(result.output);
@@ -307,7 +343,7 @@ export function EditorWorkspace() {
     const node = activePage.nodes.find((item) => item.sourceLine === line);
     setRuntimeNodeId(node?.id ?? null);
     if (node) setSelectedIds([node.id]);
-  }, [activePage.nodes, input, project.code, runtimeTrace, stepIndex]);
+  }, [activePage.nodes, project.code, runtimeTrace, stepIndex]);
 
   useEffect(() => {
     const handleKey = (event: KeyboardEvent) => {
@@ -577,6 +613,7 @@ export function EditorWorkspace() {
         onRedo={redo}
         onBuild={() => build(false)}
         onRun={run}
+        onStop={stop}
         onStep={step}
         onExportSvg={() => downloadFile(`${project.name || "Augorithm"}.svg`, exportSvg(activePage), "image/svg+xml")}
         onExportPng={() => void exportPng()}
@@ -780,13 +817,16 @@ export function EditorWorkspace() {
             diagnostics={diagnostics}
             variables={variables}
             input={input}
+            pendingSession={pendingSession}
             onTabChange={setBottomTab}
             onToggle={() => setBottomCollapsed((value) => !value)}
             onInputChange={setInput}
+            onSubmitInput={submitInput}
             onClear={() => {
               setOutput([]);
               setVariables({});
               setRuntimeNodeId(null);
+              setPendingSession(null);
             }}
           />
         </section>

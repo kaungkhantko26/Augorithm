@@ -17,6 +17,7 @@ interface EditorToolbarProps {
   onRedo: () => void;
   onBuild: () => void;
   onRun: () => void;
+  onStop: () => void;
   onStep: () => void;
   onExportSvg: () => void;
   onExportPng: () => void;
@@ -40,6 +41,7 @@ export function EditorToolbar({
   onRedo,
   onBuild,
   onRun,
+  onStop,
   onStep,
   onExportSvg,
   onExportPng,
@@ -66,12 +68,18 @@ export function EditorToolbar({
           <button type="button" onClick={onRedo} disabled={!canRedo} title="Redo (Ctrl/⌘ Shift Z)" aria-label="Redo">↷</button>
         </div>
         <div className="toolbar-group">
-          <button type="button" onClick={onBuild} title="Build from pseudocode">Build</button>
-          <button type="button" onClick={onAutoLayout} title="Restore automatic layout">Auto layout</button>
-          <button type="button" onClick={onStep} title="Step through the current algorithm">Step</button>
-          <button className="run-command" type="button" onClick={onRun} disabled={running}>
-            {running ? "Running…" : "▶ Run"}
-          </button>
+          <button type="button" onClick={onBuild} disabled={running} title="Build from pseudocode">Build</button>
+          <button type="button" onClick={onAutoLayout} disabled={running} title="Restore automatic layout">Auto layout</button>
+          <button type="button" onClick={onStep} disabled={running} title="Step through the current algorithm">Step</button>
+          {running ? (
+            <button className="run-command stop-command" type="button" onClick={onStop} title="Stop execution">
+              ■ Stop
+            </button>
+          ) : (
+            <button className="run-command" type="button" onClick={onRun} title="Run algorithm (⌘R)">
+              ▶ Run
+            </button>
+          )}
         </div>
       </nav>
 
