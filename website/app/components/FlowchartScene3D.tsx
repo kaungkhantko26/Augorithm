@@ -1,4 +1,6 @@
-// Pure CSS 3D animated flowchart shapes — no Three.js, works with SSR/Vite/Vercel
+// Pure CSS 3D animated flowchart shapes.
+// Renders as a contained block element inside the hero visual column.
+// No absolute inset-0; width/height set by parent + aspect-ratio here.
 export default function FlowchartScene3D({ className = "" }: { className?: string }) {
   return (
     <div className={`fc3d-scene ${className}`} aria-hidden="true">
@@ -32,7 +34,7 @@ export default function FlowchartScene3D({ className = "" }: { className?: strin
         <span>OUTPUT result</span>
       </div>
 
-      {/* END oval – right lower */}
+      {/* END oval – lower-right */}
       <div className="fc3d-shape fc3d-oval fc3d-purple fc3d-pos-7">
         <span>END</span>
       </div>

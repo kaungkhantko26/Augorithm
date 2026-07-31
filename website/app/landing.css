@@ -1,5 +1,8 @@
 @import url("https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;600;700;800&display=swap");
 
+/* Prevent horizontal overflow from any section */
+html, body { max-width: 100%; overflow-x: clip; }
+
 .landing-shell {
   --paper: #f7f1e6;
   --paper-light: #fffdf8;
@@ -79,16 +82,63 @@
 }
 .nav-launch:hover { background: var(--navy-deep); transform: translateY(-2px); }
 
+/* ─── Hero two-column layout ─────────────────────────────────────── */
 .landing-hero {
-  min-height: 1020px;
-  padding: 170px 24px 160px;
   position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  overflow: hidden;
-  text-align: center;
+  min-height: clamp(700px, 100vh, 980px);
+  padding: 100px 0 80px;
+  overflow-x: clip;
+  overflow-y: visible;
   isolation: isolate;
+}
+
+/* Centered two-column inner container */
+.hero__inner {
+  width: min(100% - 40px, 1440px);
+  margin-inline: auto;
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(420px, 1.1fr);
+  align-items: center;
+  gap: clamp(32px, 6vw, 96px);
+}
+
+/* ── Left: text content ── */
+.hero__content {
+  padding-top: 60px;
+}
+
+.hero__content .hero-kicker { text-align: left; }
+.hero__content h1 { text-align: left; }
+.hero__content .hero-summary { text-align: left; }
+.hero__content .hero-actions { justify-content: flex-start; }
+.hero__content .logic-ribbon { margin-top: 48px; width: 100%; }
+
+/* ── Right: visual column ── */
+.hero__visual {
+  position: relative;
+  min-width: 0;
+  display: grid;
+  place-items: center;
+}
+
+/* Sticky container — stays in view while hero scrolls */
+.hero__visual-sticky {
+  position: sticky;
+  top: clamp(88px, 12vh, 130px);
+  width: 100%;
+}
+
+/* Layout centering — grid only, no transform centering */
+.hero__visual-center {
+  width: 100%;
+  display: grid;
+  place-items: center;
+}
+
+/* Motion wrapper — framer motion writes Y/rotate/scale only */
+.hero__visual-motion {
+  width: min(100%, 680px);
+  will-change: transform;
 }
 
 .landing-hero::before {
@@ -347,16 +397,55 @@
   50% { transform: translate(-50%, -7px); }
 }
 
+/* ── Tablet: single-column hero ── */
+@media (max-width: 1024px) {
+  .hero__inner {
+    grid-template-columns: minmax(0, 1fr);
+    padding-inline: 24px;
+  }
+
+  .hero__content { padding-top: 0; }
+  .hero__content .hero-kicker,
+  .hero__content h1,
+  .hero__content .hero-summary { text-align: center; }
+  .hero__content .hero-actions { justify-content: center; }
+  .hero__content .logic-ribbon { margin-inline: auto; }
+
+  .hero__visual { padding-top: 40px; }
+
+  .hero__visual-sticky {
+    position: relative;
+    top: auto;
+    width: min(100%, 560px);
+    margin-inline: auto;
+  }
+}
+
 @media (max-width: 860px) {
   .landing-nav { grid-template-columns: 1fr auto; }
   .landing-nav nav { display: none; }
-  .landing-hero { min-height: 1060px; }
+  .landing-hero { min-height: auto; }
   .logic-ribbon { grid-template-columns: 1fr; gap: 24px; width: min(430px, 92vw); padding: 24px; }
   .logic-connector { width: 3px; height: 30px; justify-self: center; }
   .logic-connector i { top: auto; right: -5px; bottom: -1px; border-top: 10px solid var(--navy); border-right: 6px solid transparent; border-bottom: 0; border-left: 6px solid transparent; }
   .proof-grid { grid-template-columns: 1fr; gap: 42px; }
   .proof-grid article:not(:last-child)::after { width: auto; height: 1px; top: auto; right: 0; bottom: -22px; left: 0; }
   .feature-grid { grid-template-columns: 1fr; }
+}
+
+/* ── Mobile: no scroll effect, full width ── */
+@media (max-width: 640px) {
+  .landing-hero { padding: 100px 0 60px; }
+
+  .hero__visual-motion {
+    width: 100%;
+    transform: none !important;
+  }
+
+  .fc3d-scene {
+    aspect-ratio: 4 / 3;
+    min-height: 240px;
+  }
 }
 
 @media (max-width: 560px) {
@@ -391,17 +480,26 @@
     animation-iteration-count: 1 !important;
     transition-duration: .01ms !important;
   }
+
+  /* Keep preview centered and static — framer-motion must not override */
+  .hero__visual-motion {
+    transform: none !important;
+    transition: none !important;
+    animation: none !important;
+  }
 }
 
 /* ─── CSS 3D hero flowchart shapes ──────────────────────────────────── */
 
-.landing-hero { position: relative; }
-
+/* fc3d-scene is now a CONTAINED block inside .hero__visual-motion */
 .fc3d-scene {
-  position: absolute;
-  inset: 0;
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  min-height: 380px;
+  max-height: 560px;
   pointer-events: none;
-  overflow: hidden;
+  overflow: visible;
   z-index: 1;
   perspective: 1400px;
   perspective-origin: 50% 40%;

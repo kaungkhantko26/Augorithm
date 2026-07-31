@@ -1,8 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import "./landing.css";
-import FlowchartScene3D from "./components/FlowchartScene3D";
 import FloatingShapesBackground from "./components/FloatingShapesBackground";
+import { HeroSection } from "./components/HeroSection";
 
 const editorUrl = "/editor";
 const releaseUrl = "https://github.com/kaungkhantko26/Augorithm/releases/latest";
@@ -70,38 +70,12 @@ function Brand() {
   );
 }
 
-function LogicRibbon() {
-  return (
-    <div className="logic-ribbon" aria-label="An algorithm moving through connected flowchart symbols">
-      <div className="logic-token token-start">
-        <small>START</small>
-        <strong>Begin</strong>
-      </div>
-      <span className="logic-connector" aria-hidden="true"><i /></span>
-      <div className="logic-token token-process">
-        <small>ASSIGN</small>
-        <strong>total = score ÷ count</strong>
-      </div>
-      <span className="logic-connector" aria-hidden="true"><i /></span>
-      <div className="logic-token token-decision">
-        <small>IF?</small>
-        <strong>passed</strong>
-      </div>
-      <span className="logic-connector" aria-hidden="true"><i /></span>
-      <div className="logic-token token-output">
-        <small>OUTPUT</small>
-        <strong>Result ✓</strong>
-      </div>
-    </div>
-  );
-}
-
 export default function Home() {
   return (
     <main className="landing-shell">
       {/* Ambient floating shapes throughout the page */}
       <FloatingShapesBackground density="medium" />
-      
+
       <header className="landing-nav">
         <Brand />
         <nav aria-label="Main navigation">
@@ -113,33 +87,8 @@ export default function Home() {
         </Link>
       </header>
 
-      <section className="landing-hero">
-        <div className="hero-orbit orbit-one" aria-hidden="true" />
-        <div className="hero-orbit orbit-two" aria-hidden="true" />
-        
-        {/* CSS 3D flowchart shapes — no WebGL dependency */}
-        <FlowchartScene3D />
-        
-        <p className="hero-kicker">Visual algorithm learning for students</p>
-        <h1>Your algorithm makes sense.<br /><em>Your flowchart should too.</em></h1>
-        <p className="hero-summary">
-          From idea to pseudocode, flowchart, execution, and real code—Augorithm
-          keeps everything connected and in sync.
-        </p>
-        <div className="hero-actions">
-          <Link className="primary-action" href={editorUrl}>
-            Try Augorithm <span aria-hidden="true">→</span>
-          </Link>
-          <a className="secondary-action" href="#how">See how it works</a>
-        </div>
-
-        <LogicRibbon />
-
-        <div className="hero-scroll-hint" aria-hidden="true">
-          <span className="hint-track"><span className="hint-dot" /></span>
-          <span className="hint-label">Scroll</span>
-        </div>
-      </section>
+      {/* Two-column hero with scroll-animated visual */}
+      <HeroSection editorUrl={editorUrl} />
 
       <section className="proof-grid" aria-label="Why students use Augorithm">
         {proofPoints.map((point) => (
