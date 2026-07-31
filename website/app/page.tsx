@@ -1,6 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import "./landing.css";
+import FlowchartScene3D from "./components/FlowchartScene3D";
+import FloatingShapesBackground from "./components/FloatingShapesBackground";
 
 const editorUrl = "/editor";
 const releaseUrl = "https://github.com/kaungkhantko26/Augorithm/releases/latest";
@@ -97,6 +99,9 @@ function LogicRibbon() {
 export default function Home() {
   return (
     <main className="landing-shell">
+      {/* Ambient floating shapes throughout the page */}
+      <FloatingShapesBackground density="medium" />
+      
       <header className="landing-nav">
         <Brand />
         <nav aria-label="Main navigation">
@@ -111,6 +116,10 @@ export default function Home() {
       <section className="landing-hero">
         <div className="hero-orbit orbit-one" aria-hidden="true" />
         <div className="hero-orbit orbit-two" aria-hidden="true" />
+        
+        {/* 3D flowchart shapes in hero section */}
+        <FlowchartScene3D className="opacity-60" />
+        
         <p className="hero-kicker">Visual algorithm learning for students</p>
         <h1>Your algorithm makes sense.<br /><em>Your flowchart should too.</em></h1>
         <p className="hero-summary">
