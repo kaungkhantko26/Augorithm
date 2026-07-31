@@ -2173,6 +2173,7 @@ function buildControlFlow(lines) {
 function startProgram() {
   state.guidedInputs = [];
   state.awaitingInput = null;
+  $('#consoleInput').value = ''; // Clear any pre-filled input to ensure interactive input
   runProgram(false);
 }
 
