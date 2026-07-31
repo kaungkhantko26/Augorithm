@@ -117,8 +117,8 @@ export default function Home() {
         <div className="hero-orbit orbit-one" aria-hidden="true" />
         <div className="hero-orbit orbit-two" aria-hidden="true" />
         
-        {/* 3D flowchart shapes in hero section */}
-        <FlowchartScene3D className="opacity-60" />
+        {/* CSS 3D flowchart shapes — no WebGL dependency */}
+        <FlowchartScene3D />
         
         <p className="hero-kicker">Visual algorithm learning for students</p>
         <h1>Your algorithm makes sense.<br /><em>Your flowchart should too.</em></h1>

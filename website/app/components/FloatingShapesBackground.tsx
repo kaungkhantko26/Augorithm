@@ -1,124 +1,47 @@
-"use client";
+// Pure CSS ambient background shapes — no Three.js, works with SSR/Vite/Vercel
+// Predefined positions avoid Math.random() hydration mismatches
 
-import { Canvas } from '@react-three/fiber';
-import { Float } from '@react-three/drei';
-import { Suspense } from 'react';
-import * as THREE from 'three';
+const BG_SHAPES = [
+  { top: "6%",  left: "2%",   shape: "fc-bg-oval",   delay: "0s",    dur: "14s" },
+  { top: "9%",  left: "90%",  shape: "fc-bg-rect",   delay: "3s",    dur: "11s" },
+  { top: "22%", left: "96%",  shape: "fc-bg-diamond", delay: "6s",   dur: "16s" },
+  { top: "38%", left: "1%",   shape: "fc-bg-hex",    delay: "1.5s",  dur: "10s" },
+  { top: "52%", left: "94%",  shape: "fc-bg-oval",   delay: "4s",    dur: "13s" },
+  { top: "65%", left: "3%",   shape: "fc-bg-para",   delay: "7s",    dur: "9s"  },
+  { top: "70%", left: "88%",  shape: "fc-bg-rect",   delay: "2s",    dur: "12s" },
+  { top: "80%", left: "48%",  shape: "fc-bg-diamond", delay: "5s",   dur: "15s" },
+  { top: "18%", left: "50%",  shape: "fc-bg-hex",    delay: "8s",    dur: "11s" },
+  { top: "44%", left: "50%",  shape: "fc-bg-para",   delay: "0.5s",  dur: "17s" },
+  { top: "88%", left: "18%",  shape: "fc-bg-oval",   delay: "3.5s",  dur: "10s" },
+  { top: "85%", left: "72%",  shape: "fc-bg-rect",   delay: "6.5s",  dur: "14s" },
+];
 
 interface FloatingShapesBackgroundProps {
-  density?: 'sparse' | 'medium' | 'dense';
+  density?: "sparse" | "medium" | "dense";
   className?: string;
 }
 
-/**
- * Renders ambient floating shapes in the background throughout the page
- * Uses small, semi-transparent shapes with gentle animations
- */
 export default function FloatingShapesBackground({
-  density = 'medium',
-  className = '',
+  density = "medium",
+  className = "",
 }: FloatingShapesBackgroundProps) {
-  // Generate shape configurations based on density
-  const shapeCounts = {
-    sparse: 8,
-    medium: 12,
-    dense: 18,
-  };
-
-  const shapeCount = shapeCounts[density];
-
-  // Shape types with colors matching flowchart theme
-  const shapeTypes = [
-    { geometry: 'box', color: '#3b82f6', size: 0.3 }, // Blue rectangle
-    { geometry: 'sphere', color: '#8b5cf6', size: 0.2 }, // Purple circle
-    { geometry: 'octahedron', color: '#f59e0b', size: 0.25 }, // Gold diamond
-    { geometry: 'cylinder', color: '#ef4444', size: 0.2 }, // Red hexagon
-    { geometry: 'cone', color: '#10b981', size: 0.25 }, // Green cone
-  ];
-
-  // Generate random shapes with varied positions
-  const shapes = Array.from({ length: shapeCount }, (_, i) => {
-    const shapeType = shapeTypes[i % shapeTypes.length];
-    
-    // Spread shapes across a large area
-    const x = (Math.random() - 0.5) * 20;
-    const y = (Math.random() - 0.5) * 15;
-    const z = (Math.random() - 0.5) * 10 - 5;
-
-    return {
-      id: i,
-      ...shapeType,
-      position: [x, y, z] as [number, number, number],
-      rotation: [
-        Math.random() * Math.PI,
-        Math.random() * Math.PI,
-        Math.random() * Math.PI,
-      ] as [number, number, number],
-      floatSpeed: 0.5 + Math.random() * 1.5,
-      floatIntensity: 0.5 + Math.random(),
-    };
-  });
+  const count = density === "sparse" ? 6 : density === "dense" ? 12 : 9;
+  const shapes = BG_SHAPES.slice(0, count);
 
   return (
-    <div
-      className={`fixed inset-0 pointer-events-none ${className}`}
-      style={{ zIndex: 0 }}
-    >
-      <Canvas
-        camera={{ position: [0, 0, 15], fov: 50 }}
-        gl={{ alpha: true, antialias: true }}
-      >
-        <Suspense fallback={null}>
-          {/* Subtle ambient lighting */}
-          <ambientLight intensity={0.3} />
-          <pointLight position={[10, 10, 10]} intensity={0.2} />
-
-          {/* Render all floating shapes */}
-          {shapes.map((shape) => (
-            <Float
-              key={shape.id}
-              speed={shape.floatSpeed}
-              rotationIntensity={0.3}
-              floatIntensity={shape.floatIntensity}
-            >
-              <mesh
-                position={shape.position}
-                rotation={shape.rotation}
-                scale={shape.size}
-              >
-                {renderGeometry(shape.geometry)}
-                <meshStandardMaterial
-                  color={shape.color}
-                  transparent
-                  opacity={0.15}
-                  roughness={0.7}
-                  metalness={0.3}
-                />
-              </mesh>
-            </Float>
-          ))}
-        </Suspense>
-      </Canvas>
+    <div className={`fc-bg ${className}`} aria-hidden="true">
+      {shapes.map((s, i) => (
+        <div
+          key={i}
+          className={`fc-bg-shape ${s.shape}`}
+          style={{
+            top: s.top,
+            left: s.left,
+            animationDelay: s.delay,
+            animationDuration: s.dur,
+          }}
+        />
+      ))}
     </div>
   );
-}
-
-/**
- * Helper function to render different geometries
- */
-function renderGeometry(type: string) {
-  switch (type) {
-    case 'box':
-      return <boxGeometry args={[1, 1, 1]} />;
-    case 'sphere':
-      return <sphereGeometry args={[0.5, 16, 16]} />;
-    case 'octahedron':
-      return <octahedronGeometry args={[0.5, 0]} />;
-    case 'cylinder':
-      return <cylinderGeometry args={[0.5, 0.5, 0.3, 6]} />;
-    case 'cone':
-      return <coneGeometry args={[0.5, 1, 4]} />;
-    default:
-      return <boxGeometry args={[1, 1, 1]} />;
-  }
 }

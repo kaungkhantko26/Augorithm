@@ -148,7 +148,7 @@ export function EditorWorkspace() {
   const [workspaceView, setWorkspaceView] = useState<"canvas" | "code" | "split" | "source">("canvas");
   const [zoom, setZoom] = useState(0.78);
   const [theme, setTheme] = useState<"light" | "dark">("light");
-  const [input, setInput] = useState("75");
+  const [input, setInput] = useState("");
   const [output, setOutput] = useState<string[]>([]);
   const [variables, setVariables] = useState<Record<string, unknown>>({});
   const [runtimeNodeId, setRuntimeNodeId] = useState<string | null>(null);
