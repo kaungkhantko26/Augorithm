@@ -1,7 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
 import "./landing.css";
-import FloatingShapesBackground from "./components/FloatingShapesBackground";
 import { HeroSection } from "./components/HeroSection";
 
 const editorUrl = "/editor";
@@ -73,9 +72,6 @@ function Brand() {
 export default function Home() {
   return (
     <main className="landing-shell">
-      {/* Ambient floating shapes throughout the page */}
-      <FloatingShapesBackground density="medium" />
-
       <header className="landing-nav">
         <Brand />
         <nav aria-label="Main navigation">
