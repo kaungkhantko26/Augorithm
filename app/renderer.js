@@ -153,8 +153,8 @@ const translations = {
   en: {
     build: 'Build', run: 'Run', symbols: 'SYMBOLS', inputOutput: 'INPUT / OUTPUT',
     input: 'Input', output: 'Output', variables: 'VARIABLES', declare: 'Declare',
-    assign: 'Assign', control: 'CONTROL', if: 'If', looping: 'LOOPING', while: 'While',
-    for: 'For', miscellaneous: 'MISCELLANEOUS', comment: 'Comment',
+    assign: 'Assign', control: 'CONTROL', if: 'If', call: 'Call', looping: 'LOOPING', while: 'While',
+    for: 'For', do: 'Do', miscellaneous: 'MISCELLANEOUS', comment: 'Comment', breakpoint: 'Breakpoint',
     browseExamples: 'Browse examples', flowchart: 'Flowchart', pseudocode: 'Pseudocode',
     source: 'Source', split: 'Split', connect: 'Connect', regenerate: 'Regenerate',
     database: 'Database', pythonEditor: 'Python', fit: 'Fit',
@@ -592,9 +592,12 @@ const kindInfo = {
   output: { title: 'Output', icon: '▰', color: '#5e9b69' },
   assign: { title: 'Assign', icon: '=', color: '#b08a2d' },
   if: { title: 'If', icon: '◇', color: '#e16c17' },
-  while: { title: 'While', icon: '↻', color: '#8239ac' },
-  for: { title: 'For', icon: '⟳', color: '#b17c2c' },
-  comment: { title: 'Comment', icon: '≡', color: '#667085' }
+  call: { title: 'Call', icon: '▣', color: '#8239ac' },
+  while: { title: 'While', icon: '⬡', color: '#b17c2c' },
+  for: { title: 'For', icon: '⬡', color: '#b17c2c' },
+  do: { title: 'Do', icon: '⬡', color: '#b17c2c' },
+  comment: { title: 'Comment', icon: '≡', color: '#667085' },
+  breakpoint: { title: 'Breakpoint', icon: '⬢', color: '#c00000' }
 };
 
 const snippets = {
@@ -603,9 +606,12 @@ const snippets = {
   declare: 'Declare value As Integer',
   assign: 'Set value = 0',
   if: 'If value > 0 Then\n    Output "Positive"\nElse\n    Output "Not positive"\nEnd If',
+  call: 'Call FunctionName',
   while: 'While value < 10\n    Set value = value + 1\nEnd While',
   for: 'For index = 1 To 10 Step 1\n    Output index\nNext index',
-  comment: '// Explain this step'
+  do: 'Do\n    Set value = value + 1\nWhile value < 10',
+  comment: '// Explain this step',
+  breakpoint: 'Breakpoint'
 };
 
 const state = {
@@ -1275,6 +1281,10 @@ function parse(source) {
       kind = 'start'; title = lower === 'start' ? 'Start' : (text.slice(8).trim() || 'Main'); detail = 'Program entry';
     } else if (lower === 'end program' || lower === 'end') {
       kind = 'end'; title = 'End'; detail = 'Program exit';
+    } else if (lower === 'breakpoint') {
+      kind = 'breakpoint'; title = 'Breakpoint'; detail = 'Debugging breakpoint';
+    } else if (lower.startsWith('call ')) {
+      kind = 'call'; title = 'Call'; detail = text.slice(5);
     } else if (lower.startsWith('declare ')) {
       kind = 'declare'; title = 'Declare'; detail = text.slice(8);
       if (!/\sas\s/i.test(text)) diagnostics.push({ line, type: 'warning', message: 'Add a type: Declare name As Integer.' });
@@ -1302,6 +1312,14 @@ function parse(source) {
       stack.push({ type: 'for', line, variable: header?.variable || null }); depth++;
       if (!header) diagnostics.push({ line, type: 'error', message: 'Use: For index = 1 To 10 Step 1.' });
       return;
+    } else if (lower === 'do') {
+      kind = 'do'; detail = 'Do loop start';
+      items.push({ line, logicalIndex: index, kind, title: 'Do', detail, depth, branch: null, closing: false });
+      stack.push({ type: 'do', line }); depth++; return;
+    } else if (lower.startsWith('while ') && stack.at(-1)?.type === 'do') {
+      closing = true; depth = Math.max(0, depth - 1); kind = 'do'; title = 'While';
+      detail = `Loop while ${text.slice(6)}`;
+      stack.pop();
     } else if (lower.startsWith('//') || lower.startsWith('#')) {
       kind = 'comment'; title = 'Comment'; detail = text.replace(/^(\/\/|#)\s*/, '');
     } else {
@@ -1312,7 +1330,7 @@ function parse(source) {
   stack.forEach(entry => diagnostics.push({
     line: entry.line,
     type: 'error',
-    message: `Unclosed ${entry.type === 'if' ? 'If' : entry.type === 'for' ? 'For' : 'While'} block.`
+    message: `Unclosed ${entry.type === 'if' ? 'If' : entry.type === 'for' ? 'For' : entry.type === 'do' ? 'Do' : 'While'} block.`
   }));
   if (!items.some(item => item.kind === 'start')) diagnostics.push({ line: 1, type: 'warning', message: 'Add “START” or “Program Main” at the beginning.' });
   if (items.some(item => item.kind === 'start') && !items.some(item => item.kind === 'end')) {

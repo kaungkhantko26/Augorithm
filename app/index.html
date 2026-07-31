@@ -53,13 +53,16 @@
         </section>
         <section><h3 data-i18n="control">CONTROL</h3>
           <button class="symbol" data-kind="if"><i class="orange">◇</i><span data-i18n="if">If</span><b>＋</b></button>
+          <button class="symbol" data-kind="call"><i class="purple">▣</i><span data-i18n="call">Call</span><b>＋</b></button>
         </section>
         <section><h3 data-i18n="looping">LOOPING</h3>
-          <button class="symbol" data-kind="while"><i class="purple">↻</i><span data-i18n="while">While</span><b>＋</b></button>
-          <button class="symbol" data-kind="for"><i class="purple">⟳</i><span data-i18n="for">For</span><b>＋</b></button>
+          <button class="symbol" data-kind="while"><i class="gold">⬡</i><span data-i18n="while">While</span><b>＋</b></button>
+          <button class="symbol" data-kind="for"><i class="gold">⬡</i><span data-i18n="for">For</span><b>＋</b></button>
+          <button class="symbol" data-kind="do"><i class="gold">⬡</i><span data-i18n="do">Do</span><b>＋</b></button>
         </section>
         <section><h3 data-i18n="miscellaneous">MISCELLANEOUS</h3>
           <button class="symbol" data-kind="comment"><i class="gray">≡</i><span data-i18n="comment">Comment</span><b>＋</b></button>
+          <button class="symbol" data-kind="breakpoint"><i style="color:#c00000">⬢</i><span data-i18n="breakpoint">Breakpoint</span><b>＋</b></button>
         </section>
       </div>
       <button class="examples-button" id="examplesBtn">✦ <span data-i18n="browseExamples">Browse examples</span></button>
@@ -84,9 +87,12 @@
             <option value="declare" data-i18n="declare">Declare</option>
             <option value="assign" data-i18n="assign">Assign</option>
             <option value="if" data-i18n="if">If</option>
+            <option value="call" data-i18n="call">Call</option>
             <option value="while" data-i18n="while">While</option>
             <option value="for" data-i18n="for">For</option>
+            <option value="do" data-i18n="do">Do</option>
             <option value="comment" data-i18n="comment">Comment</option>
+            <option value="breakpoint" data-i18n="breakpoint">Breakpoint</option>
           </select>
           <button id="copyFlowchart" title="Copy flowchart to clipboard">⧉ <span data-i18n="copyFlowchart">Copy</span></button>
           <button id="exportSVG" title="Export scalable flowchart">SVG</button>
