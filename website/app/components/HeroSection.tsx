@@ -1,106 +1,75 @@
 "use client";
 
-import { useRef } from "react";
-import { motion, useScroll, useTransform } from "framer-motion";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import FlowchartScene3D from "./FlowchartScene3D";
 
-interface HeroSectionProps {
-  editorUrl: string;
-}
+export default function HeroSection() {
+  const [scrollY, setScrollY] = useState(0);
 
-/** Mini flowchart ribbon shown below the CTAs */
-function LogicRibbon() {
-  return (
-    <div
-      className="logic-ribbon"
-      aria-label="An algorithm moving through connected flowchart symbols"
-    >
-      <div className="logic-token token-start">
-        <small>START</small>
-        <strong>Begin</strong>
-      </div>
-      <span className="logic-connector" aria-hidden="true"><i /></span>
-      <div className="logic-token token-process">
-        <small>ASSIGN</small>
-        <strong>total = score ÷ count</strong>
-      </div>
-      <span className="logic-connector" aria-hidden="true"><i /></span>
-      <div className="logic-token token-decision">
-        <small>IF?</small>
-        <strong>passed</strong>
-      </div>
-      <span className="logic-connector" aria-hidden="true"><i /></span>
-      <div className="logic-token token-output">
-        <small>OUTPUT</small>
-        <strong>Result ✓</strong>
-      </div>
-    </div>
-  );
-}
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrollY(window.scrollY);
+    };
+    
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
-export function HeroSection({ editorUrl }: HeroSectionProps) {
-  const heroRef = useRef<HTMLElement>(null);
-
-  // Tie animation to hero section — stops when section leaves viewport
-  const { scrollYProgress } = useScroll({
-    target: heroRef,
-    offset: ["start start", "end start"],
-  });
-
-  // Only animate Y, rotate, scale — never animate X or margin
-  const y = useTransform(scrollYProgress, [0, 0.8, 1], [0, 90, 110]);
-  const rotate = useTransform(scrollYProgress, [0, 1], [0, 1.5]);
-  const scale = useTransform(scrollYProgress, [0, 1], [1, 0.96]);
+  // Fade out hero content as user scrolls
+  const opacity = Math.max(0, 1 - scrollY / 400);
+  const translateY = scrollY * 0.3;
 
   return (
-    <section className="landing-hero" ref={heroRef}>
-      <div className="hero-orbit orbit-one" aria-hidden="true" />
-      <div className="hero-orbit orbit-two" aria-hidden="true" />
-
-      <div className="hero__inner">
-        {/* ── Left column: text + CTAs ── */}
-        <div className="hero__content">
-          <p className="hero-kicker">Visual algorithm learning for students</p>
+    <section className="landing-hero" id="top">
+      <div 
+        className="landing-hero-grid"
+        style={{ 
+          opacity,
+          transform: `translateY(${translateY}px)`
+        }}
+      >
+        <div className="hero-text">
+          <div className="launch-badge">
+            <i /> Interactive 3D workspace · Web editor live
+          </div>
           <h1>
-            Your algorithm<br />makes sense.<br />
-            <em>Your flowchart<br />should too.</em>
+            Build logic you can<br />
+            <em>see, touch, and run.</em>
           </h1>
-          <p className="hero-summary">
-            From idea to pseudocode, flowchart, execution, and real
-            code—Augorithm keeps everything connected and in sync.
+          <p>
+            Turn pseudocode into a precise, editable flowchart. Explore every
+            connection in 3D, execute it step by step, and generate real code.
           </p>
-          <div className="hero-actions">
-            <Link className="primary-action" href={editorUrl}>
-              Try Augorithm <span aria-hidden="true">→</span>
+          <div className="landing-actions">
+            <Link className="cta cta-primary" href="/editor">
+              Try Web Editor <span>→</span>
             </Link>
-            <a className="secondary-action" href="#how">See how it works</a>
+            <a className="cta cta-secondary" href="#download">
+              Download Augorithm <span>↓</span>
+            </a>
           </div>
-
-          <LogicRibbon />
+          <div className="hero-platforms" aria-label="Supported platforms">
+            <span> macOS</span>
+            <span>⊞ Windows</span>
+            <span>▣ iPad</span>
+            <span>◉ Offline</span>
+          </div>
         </div>
 
-        {/* ── Right column: visual with scroll animation ── */}
-        <div className="hero__visual">
-          {/* Sticky wrapper — stays in view while hero scrolls */}
-          <div className="hero__visual-sticky">
-            {/* Layout center wrapper — uses grid, no transform centering */}
-            <div className="hero__visual-center">
-              {/* Motion wrapper — only Y, rotate, scale; never X */}
-              <motion.div
-                className="hero__visual-motion"
-                style={{ y, rotate, scale }}
-              >
-                <FlowchartScene3D />
-              </motion.div>
-            </div>
-          </div>
+        <div className="hero-visual">
+          <FlowchartScene3D />
         </div>
       </div>
 
-      <div className="hero-scroll-hint" aria-hidden="true">
-        <span className="hint-track"><span className="hint-dot" /></span>
-        <span className="hint-label">Scroll</span>
+      <div 
+        className="scroll-cue"
+        style={{ opacity: Math.max(0, 1 - scrollY / 200) }}
+      >
+        <span>Scroll to explore</span>
+        <div className="scroll-indicator">
+          <i />
+        </div>
       </div>
     </section>
   );

@@ -1,162 +1,372 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
+import { useEffect, useRef, useState, type PointerEvent } from "react";
 import "./landing.css";
-import { HeroSection } from "./components/HeroSection";
 
-const editorUrl = "/editor";
-const releaseUrl = "https://github.com/kaungkhantko26/Augorithm/releases/latest";
-
-const proofPoints = [
-  {
-    label: "01 · KEEP THE IDEA",
-    title: "Meet your algorithm’s new memory.",
-    copy: "Write once, then keep pseudocode, flowchart, execution, and source code in sync.",
-  },
-  {
-    label: "02 · CATCH THE GAP",
-    title: "It finds problems before submission.",
-    copy: "Disconnected arrows and invalid paths are flagged while you think—not after you export.",
-  },
-  {
-    label: "03 · LEARN THE LOGIC",
-    title: "Understand the idea before the syntax.",
-    copy: "Natural classroom pseudocode keeps the lesson focused on reasoning before language rules.",
-  },
-];
+type DemoLayer = "Pseudocode" | "Flowchart" | "Runtime" | "Source";
+type SourceLanguage = "Java" | "Python" | "JavaScript" | "Swift";
 
 const features = [
   {
-    symbol: "{ }",
-    title: "Pseudocode that draws itself",
-    copy: "Write familiar classroom steps and watch a standards-based flowchart update beside them in real time.",
-    accent: "blue",
+    icon: "⌨",
+    title: "Natural pseudocode",
+    copy: "Write classroom-friendly logic with smart formatting, inline validation, and safe automatic fixes.",
   },
   {
-    symbol: "▶",
-    title: "Run and inspect",
-    copy: "Enter values, step through symbols, and see variables change as your algorithm executes.",
-    accent: "yellow",
+    icon: "◇",
+    title: "Living flowcharts",
+    copy: "Watch branches, loops, and merges assemble into standards-based diagrams with clean routing.",
   },
   {
-    symbol: "∞",
-    title: "Every device",
-    copy: "Continue on web, Mac, Windows, or iPad without changing the way you think.",
-    accent: "green",
+    icon: "▶",
+    title: "Trace every step",
+    copy: "Run, pause, inspect variables, enter input, and see the active symbol glow as your algorithm executes.",
   },
   {
-    symbol: "↗",
-    title: "Submit something clear",
-    copy: "Export spacious PNG or SVG diagrams that are ready for reports, slides, and classroom review.",
-    accent: "coral",
+    icon: "</>",
+    title: "Real source code",
+    copy: "Generate readable Java, Python, JavaScript, and Swift without losing the intent of your pseudocode.",
+  },
+  {
+    icon: "↗",
+    title: "Presentation-ready",
+    copy: "Export PNG or selectable SVG, copy directly into slides, and keep every connector crisp.",
+  },
+  {
+    icon: "က",
+    title: "English + Burmese",
+    copy: "Learn in either language with accessible type, centered labels, and layouts that never clip translations.",
   },
 ];
 
-const steps = [
-  ["Write your logic", "Start with classroom-friendly pseudocode and useful inline feedback."],
-  ["See the flow", "Watch the matching diagram form with clean branches and loop paths."],
-  ["Run and inspect", "Enter values, step through symbols, and understand every result."],
-  ["Export and submit", "Share a spacious diagram that reads clearly in reports and slides."],
-];
+const sourceExamples: Record<SourceLanguage, string> = {
+  Java: `import java.util.Scanner;
 
-function Brand() {
+class MaximumFinder {
+  public static void main(String[] args) {
+    Scanner input = new Scanner(System.in);
+    int max = input.nextInt();
+
+    for (int count = 2; count <= 5; count++) {
+      int data = input.nextInt();
+      if (data > max) max = data;
+    }
+
+    System.out.println(max);
+  }
+}`,
+  Python: `max_value = int(input())
+
+for count in range(2, 6):
+    data = int(input())
+    if data > max_value:
+        max_value = data
+
+print(max_value)`,
+  JavaScript: `let max = Number(prompt("First value"));
+
+for (let count = 2; count <= 5; count++) {
+  const data = Number(prompt("Next value"));
+  if (data > max) max = data;
+}
+
+console.log(max);`,
+  Swift: `import Foundation
+
+var maximum = Int(readLine()!)!
+
+for _ in 2...5 {
+  let data = Int(readLine()!)!
+  if data > maximum {
+    maximum = data
+  }
+}
+
+print(maximum)`,
+};
+
+const demoLayers: DemoLayer[] = ["Pseudocode", "Flowchart", "Runtime", "Source"];
+
+
+function WorkspacePreview({ layer }: { layer: DemoLayer }) {
+  if (layer === "Pseudocode") {
+    return (
+      <div className="demo-code">
+        {[
+          "START",
+          "INPUT firstData",
+          "SET max = firstData",
+          "FOR count = 2 TO 5",
+          "    INPUT data",
+          "    IF data > max THEN",
+          "        SET max = data",
+          "    END IF",
+          "NEXT count",
+          "OUTPUT max",
+          "END",
+        ].map((line, index) => (
+          <div className={index === 5 ? "active" : ""} key={`${line}-${index}`}>
+            <span>{String(index + 1).padStart(2, "0")}</span>
+            <code>{line}</code>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (layer === "Flowchart") {
+    return (
+      <div className="demo-flow" aria-label="Flowchart preview">
+        <div className="df-node df-terminal">START</div>
+        <div className="df-line" />
+        <div className="df-node df-input">INPUT firstData</div>
+        <div className="df-line" />
+        <div className="df-node df-process">max = firstData</div>
+        <div className="df-line" />
+        <div className="df-node df-loop">count = 2 to 5</div>
+        <div className="df-loop-route"><span>Next</span><i /></div>
+      </div>
+    );
+  }
+
+  if (layer === "Runtime") {
+    return (
+      <div className="runtime-view">
+        <div className="runtime-track">
+          <span>Executing</span>
+          <strong>IF data {'>'} max</strong>
+          <i />
+        </div>
+        <div className="variable-cubes">
+          <article><span>firstData</span><strong>41</strong></article>
+          <article className="updated"><span>data</span><strong>92</strong></article>
+          <article><span>max</span><strong>92</strong></article>
+          <article><span>count</span><strong>4</strong></article>
+        </div>
+        <div className="runtime-console"><span>›</span> Waiting for the next input…</div>
+      </div>
+    );
+  }
+
   return (
-    <Link className="landing-brand" href="/" aria-label="Augorithm home">
-      <span className="brand-mark">
-        <Image src="/augorithm-icon.png" alt="" width={34} height={34} priority unoptimized />
-      </span>
-      <strong>AUGORITHM</strong>
-    </Link>
+    <div className="demo-source">
+      <div className="demo-source-file">MaximumFinder.java</div>
+      <pre><code>{sourceExamples.Java}</code></pre>
+    </div>
   );
 }
 
 export default function Home() {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [demoLayer, setDemoLayer] = useState<DemoLayer>("Flowchart");
+  const [sourceLanguage, setSourceLanguage] = useState<SourceLanguage>("Java");
+  const [copied, setCopied] = useState(false);
+  const [progress, setProgress] = useState(0);
+
+  useEffect(() => {
+    const updateProgress = () => {
+      const available = document.documentElement.scrollHeight - window.innerHeight;
+      setProgress(available > 0 ? (window.scrollY / available) * 100 : 0);
+    };
+    updateProgress();
+    window.addEventListener("scroll", updateProgress, { passive: true });
+    return () => window.removeEventListener("scroll", updateProgress);
+  }, []);
+
+  const copySource = async () => {
+    await navigator.clipboard.writeText(sourceExamples[sourceLanguage]);
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1800);
+  };
+
   return (
     <main className="landing-shell">
+      <div className="scroll-progress" style={{ width: `${progress}%` }} />
+
       <header className="landing-nav">
-        <Brand />
-        <nav aria-label="Main navigation">
-          <a href="#features">Features</a>
-          <a href="#how">How it works</a>
+        <a className="landing-brand" href="#top" aria-label="Augorithm home">
+          <span className="logo-glass">
+            <Image src="/augorithm-icon.png" alt="" width={42} height={42} priority />
+          </span>
+          <span><strong>AUGORITHM</strong><small>Think it. Chart it. Run it.</small></span>
+        </a>
+        <button
+          className="landing-menu"
+          type="button"
+          aria-label="Toggle menu"
+          aria-expanded={menuOpen}
+          onClick={() => setMenuOpen((value) => !value)}
+        >
+          <i /><i /><i />
+        </button>
+        <nav className={menuOpen ? "open" : ""} aria-label="Main navigation">
+          <a href="#features" onClick={() => setMenuOpen(false)}>Features</a>
+          <a href="#demo" onClick={() => setMenuOpen(false)}>Demo</a>
+          <a href="#download" onClick={() => setMenuOpen(false)}>Download</a>
+          <Link href="/docs" onClick={() => setMenuOpen(false)}>Docs</Link>
+          <a className="nav-search" href="#faq" aria-label="Search documentation">⌕</a>
+          <Link className="nav-launch" href="/editor">Launch Web Editor <span>↗</span></Link>
         </nav>
-        <Link className="nav-launch" href={editorUrl}>
-          Open the editor <span aria-hidden="true">↗</span>
-        </Link>
       </header>
 
-      {/* Two-column hero with scroll-animated visual */}
-      <HeroSection editorUrl={editorUrl} />
-
-      <section className="proof-grid" aria-label="Why students use Augorithm">
-        {proofPoints.map((point) => (
-          <article key={point.label}>
-            <small>{point.label}</small>
-            <h2>{point.title}</h2>
-            <p>{point.copy}</p>
-          </article>
-        ))}
+      <section className="landing-hero" id="top">
+        <div className="landing-hero-copy">
+          <div className="launch-badge"><i /> Interactive 3D workspace · Web editor live</div>
+          <h1>Build logic you can<br /><em>see, touch, and run.</em></h1>
+          <p>
+            Turn pseudocode into a precise, editable flowchart. Explore every
+            connection in 3D, execute it step by step, and generate real code.
+          </p>
+          <div className="landing-actions">
+            <Link className="cta cta-primary" href="/editor">Try Web Editor <span>→</span></Link>
+            <a className="cta cta-secondary" href="#download">Download Augorithm <span>↓</span></a>
+          </div>
+          <div className="hero-platforms" aria-label="Supported platforms">
+            <span> macOS</span><span>⊞ Windows</span><span>▣ iPad</span><span>◉ Offline</span>
+          </div>
+        </div>
       </section>
 
-      <section className="feature-section" id="features">
-        <div className="section-heading">
-          <p>One workspace. The whole idea.</p>
-          <h2>Everything a flowchart tool<br />wishes it could do.</h2>
-        </div>
+      <section className="landing-features" id="features">
+        <span className="section-label">Capabilities</span>
+        <h2>Everything you need to<br />teach, learn, or design logic.</h2>
         <div className="feature-grid">
-          {features.map((feature, index) => (
-            <article className={`feature-card accent-${feature.accent}`} key={feature.title}>
-              <span className="feature-symbol" aria-hidden="true">{feature.symbol}</span>
-              <div>
-                <h3>{feature.title}</h3>
-                <p>{feature.copy}</p>
-              </div>
-              <span className="feature-index" aria-hidden="true">0{index + 1}</span>
+          {features.map(({ icon, title, copy }) => (
+            <article key={title}>
+              <div className="feature-icon">{icon}</div>
+              <h3>{title}</h3>
+              <p>{copy}</p>
             </article>
           ))}
         </div>
-        <p className="feature-note">
-          Most flowchart tools make you manage the diagram. Augorithm keeps your
-          logic, arrows, execution, and code together. That’s the whole point.
-        </p>
       </section>
 
-      <section className="workflow-section" id="how">
-        <div className="section-heading">
-          <p>From thought to submission</p>
-          <h2>Four steps.<br />That’s the workflow.</h2>
-        </div>
-        <ol className="workflow-grid">
-          {steps.map(([title, copy], index) => (
-            <li key={title}>
-              <span>{index + 1}</span>
-              <div><h3>{title}</h3><p>{copy}</p></div>
-            </li>
+      <section className="landing-demo" id="demo">
+        <span className="section-label">Interactive preview</span>
+        <h2>See how it works</h2>
+        <div className="demo-tabs">
+          {demoLayers.map((label) => (
+            <button
+              key={label}
+              type="button"
+              className={demoLayer === label ? "active" : ""}
+              onClick={() => setDemoLayer(label)}
+            >
+              {label}
+            </button>
           ))}
-        </ol>
+        </div>
+        <div className="demo-workspace">
+          <WorkspacePreview layer={demoLayer} />
+          {demoLayer === "Source" && (
+            <div className="source-controls">
+              <div className="source-tabs">
+                {(["Java", "Python", "JavaScript", "Swift"] as SourceLanguage[]).map((lang) => (
+                  <button
+                    key={lang}
+                    type="button"
+                    className={sourceLanguage === lang ? "active" : ""}
+                    onClick={() => setSourceLanguage(lang)}
+                  >
+                    {lang}
+                  </button>
+                ))}
+              </div>
+              <button
+                className="copy-button"
+                type="button"
+                onClick={copySource}
+                aria-label="Copy source code"
+              >
+                {copied ? "✓ Copied" : "⎘ Copy"}
+              </button>
+            </div>
+          )}
+        </div>
       </section>
 
-      <div className="platform-marquee" aria-label="Augorithm platform and product highlights">
-        <div>
-          <span>No account</span><i>•</i><span>Local autosave</span><i>•</i>
-          <span>Web</span><i>•</i><span>Mac</span><i>•</i><span>Windows</span><i>•</i>
-          <span>iPad</span><i>•</i><span>English + မြန်မာ</span><i>•</i>
-          <span>PNG + SVG</span>
-        </div>
-      </div>
-
-      <section className="final-cta">
-        <div className="final-mark" aria-hidden="true">AU</div>
-        <p>Your next algorithm already<br />knows where to go.</p>
-        <span>Start instantly in the browser. No account, no setup, no tool switching.</span>
-        <div className="final-actions">
-          <Link href={editorUrl}>Launch Web Editor <b aria-hidden="true">→</b></Link>
-          <a href={releaseUrl} target="_blank" rel="noreferrer">Download desktop app</a>
+      <section className="landing-download" id="download">
+        <div className="download-shell">
+          <span className="section-label">Get started</span>
+          <h2>Download Augorithm</h2>
+          <p>
+            Free, offline-capable app for macOS, Windows, and iPad.
+            No account, no tracking, no forced updates.
+          </p>
+          <div className="download-cards">
+            <article>
+              <div className="platform-icon"> </div>
+              <h3>macOS</h3>
+              <p>Universal binary (Intel + Apple Silicon)</p>
+              <a className="dl-button" href="#macos-download">
+                Download for Mac <span>↓</span>
+              </a>
+            </article>
+            <article>
+              <div className="platform-icon">⊞</div>
+              <h3>Windows</h3>
+              <p>Windows 10/11 · x64 installer</p>
+              <a className="dl-button" href="#windows-download">
+                Download for Windows <span>↓</span>
+              </a>
+            </article>
+            <article>
+              <div className="platform-icon">▣</div>
+              <h3>iPad</h3>
+              <p>Optimized for touch and Pencil input</p>
+              <a className="dl-button" href="#ipad-download">
+                Get on App Store <span>↗</span>
+              </a>
+            </article>
+          </div>
+          <div className="download-meta">
+            <span>v1.0.0</span>
+            <span>·</span>
+            <span>12 MB</span>
+            <span>·</span>
+            <a href="/changelog">Release notes</a>
+            <span>·</span>
+            <a href="/verify">Verify checksums</a>
+          </div>
         </div>
       </section>
 
       <footer className="landing-footer">
-        <Brand />
-        <p>Think it. Chart it. Run it.</p>
-        <span>© 2026 Augorithm · Built by Kaung Khant Ko</span>
+        <div className="footer-grid">
+          <div className="footer-brand">
+            <Image src="/augorithm-icon.png" alt="" width={32} height={32} />
+            <strong>AUGORITHM</strong>
+            <p>Open-source algorithm design and education tool.</p>
+          </div>
+          <div>
+            <h4>Product</h4>
+            <a href="#features">Features</a>
+            <a href="#demo">Demo</a>
+            <a href="#download">Download</a>
+            <Link href="/editor">Web Editor</Link>
+          </div>
+          <div>
+            <h4>Resources</h4>
+            <Link href="/docs">Documentation</Link>
+            <a href="/examples">Examples</a>
+            <a href="/changelog">Changelog</a>
+            <a href="/faq">FAQ</a>
+          </div>
+          <div>
+            <h4>Community</h4>
+            <a href="https://github.com/yourusername/augorithm">GitHub</a>
+            <a href="/discord">Discord</a>
+            <a href="/contribute">Contribute</a>
+            <a href="/license">MIT License</a>
+          </div>
+        </div>
+        <div className="footer-legal">
+          <span>© {new Date().getFullYear()} Augorithm Project</span>
+          <a href="/privacy">Privacy</a>
+          <a href="/terms">Terms</a>
+        </div>
       </footer>
     </main>
   );
