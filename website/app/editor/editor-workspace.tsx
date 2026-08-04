@@ -171,7 +171,6 @@ export function EditorWorkspace() {
   const [commandOpen, setCommandOpen] = useState(false);
   const [commandSearch, setCommandSearch] = useState("");
   const [presentationMode, setPresentationMode] = useState(false);
-  const [studentMode, setStudentMode] = useState(true);
   const [focusMode, setFocusMode] = useState(false);
   const [pythonImportRequest, setPythonImportRequest] = useState(0);
   const [sourceLanguage, setSourceLanguage] = useState<"python" | "javascript" | "java" | "swift">("python");
@@ -724,12 +723,11 @@ export function EditorWorkspace() {
     { label: "Generate Java", hint: "Java", action: () => { setSourceLanguage("java"); setWorkspaceView("source"); } },
     { label: "Focus Mode", hint: "F", action: () => setFocusMode((value) => !value) },
     { label: "Presentation Mode", hint: "F11", action: () => setPresentationMode(true) },
-    { label: studentMode ? "Teacher Mode" : "Student Mode", hint: "Mode", action: () => setStudentMode((value) => !value) },
     ...(["input", "output", "process", "decision", "loop", "comment"] as NodeKind[]).map((kind) => ({ label: `Insert ${kind}`, hint: "Shape", action: () => addNode(kind) })),
   ].filter((item) => item.label.toLowerCase().includes(commandSearch.toLowerCase()));
 
   return (
-    <main className={`editor-app ${presentationMode ? "presentation-mode" : ""} ${focusMode ? "focus-mode" : ""} ${studentMode ? "student-mode" : "teacher-mode"}`}>
+    <main className={`editor-app full-mode ${presentationMode ? "presentation-mode" : ""} ${focusMode ? "focus-mode" : ""}`}>
       <EditorToolbar
         projectName={project.name}
         canUndo={history.length > 0}
@@ -771,8 +769,6 @@ export function EditorWorkspace() {
         onImportPython={openPythonImporter}
         onExportJava={() => downloadFile(javaBuild.filename, javaBuild.code, "text/x-java-source;charset=utf-8")}
         onExportNotes={() => downloadFile(`${project.name || "Augorithm"}-notes.md`, generatedNotes, "text/markdown;charset=utf-8")}
-        studentMode={studentMode}
-        onToggleStudentMode={() => setStudentMode((value) => !value)}
         onPresentation={() => setPresentationMode(true)}
       />
 
@@ -816,7 +812,9 @@ export function EditorWorkspace() {
               {([
                 ["canvas", "Flowchart"],
                 ["code", "Pseudocode"],
-                ...(!studentMode ? [["python", "Python"], ["java", "Java"], ["notes", "Notes"]] : []),
+                ["python", "Python"],
+                ["java", "Java"],
+                ["notes", "Notes"],
               ] as Array<[string, string]>).map(([view, label]) => (
                 <button
                   type="button"
@@ -921,6 +919,7 @@ export function EditorWorkspace() {
                 gridSize={project.preferences.gridSize}
                 onSelect={(id, additive) => {
                   setSelectedEdgeId(null);
+                  setInspectorCollapsed(false);
                   setSelectedIds((items) => additive
                     ? items.includes(id) ? items.filter((item) => item !== id) : [...items, id]
                     : [id]);

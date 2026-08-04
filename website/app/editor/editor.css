@@ -163,6 +163,41 @@
 }
 .editor-workspace:has(.editor-bottom-panel:not(.collapsed)) .canvas-runtime-bar { top: calc(100% - 266px); }
 
+/* Unified product mode and boundary-attached inspector disclosure. */
+.full-mode .editor-shell,
+.full-mode .editor-shell.inspector-closed { grid-template-columns: 220px minmax(0, 1fr); }
+.full-mode .editor-shell.palette-closed,
+.full-mode .editor-shell.palette-closed.inspector-closed { grid-template-columns: 44px minmax(0, 1fr); }
+.full-mode .editor-shell:not(.inspector-closed):has(.editor-inspector.has-selection) { grid-template-columns: 220px minmax(0, 1fr) 280px; }
+.full-mode .editor-shell.palette-closed:not(.inspector-closed):has(.editor-inspector.has-selection) { grid-template-columns: 44px minmax(0, 1fr) 280px; }
+.full-mode .editor-shell.inspector-closed:has(.editor-inspector.has-selection) { grid-template-columns: 220px minmax(0, 1fr) 44px; }
+.full-mode .editor-shell.palette-closed.inspector-closed:has(.editor-inspector.has-selection) { grid-template-columns: 44px minmax(0, 1fr) 44px; }
+.editor-inspector { position: relative; overflow: visible; }
+.editor-inspector .panel-title {
+  position: absolute;
+  z-index: 12;
+  top: 12px;
+  left: -22px;
+  right: auto;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+.editor-inspector .panel-title button {
+  width: 44px;
+  min-width: 44px;
+  height: 44px;
+  min-height: 44px;
+  border-radius: 12px;
+  background: var(--editor-surface);
+  box-shadow: 0 6px 18px rgba(18, 34, 52, .12);
+}
+.editor-inspector.collapsed { display: block !important; width: 44px; overflow: visible; }
+.editor-inspector.collapsed .panel-title { top: 12px; left: 0; }
+.editor-inspector.collapsed .panel-title button { box-shadow: none; }
+
 /* Calm workspace architecture — keep this final so legacy responsive rules cannot reintroduce chrome. */
 .editor-topbar {
   height: 56px;

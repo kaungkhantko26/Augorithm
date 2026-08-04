@@ -34,8 +34,6 @@ interface EditorToolbarProps {
   onImportPython: () => void;
   onExportJava: () => void;
   onExportNotes: () => void;
-  studentMode: boolean;
-  onToggleStudentMode: () => void;
   onPresentation: () => void;
 }
 
@@ -64,8 +62,6 @@ export function EditorToolbar({
   onImportPython,
   onExportJava,
   onExportNotes,
-  studentMode,
-  onToggleStudentMode,
   onPresentation,
 }: EditorToolbarProps) {
   return (
@@ -98,18 +94,17 @@ export function EditorToolbar({
             <button type="button" onClick={onOpen}>Open project</button>
             <button type="button" onClick={onSave}>Save as…</button>
             <button type="button" onClick={onOpenCommands}>Command palette <kbd>⌘K</kbd></button>
-            {!studentMode && <button type="button" onClick={onBuild} disabled={running}>Build flowchart</button>}
-            {!studentMode && <button type="button" onClick={onAutoLayout} disabled={running}>Auto layout</button>}
-            {!studentMode && <button type="button" onClick={onImportPython}>Import Python</button>}
-            {!studentMode && <button type="button" onClick={onExportSvg}>Export SVG</button>}
-            {!studentMode && <button type="button" onClick={onExportPng}>Export PNG</button>}
-            {!studentMode && <button type="button" onClick={onCopyDiagram}>Copy for slides</button>}
-            {!studentMode && <button type="button" onClick={onExportJava}>Export Java</button>}
-            {!studentMode && <button type="button" onClick={onExportNotes}>Export notes</button>}
-            <button type="button" onClick={onToggleStudentMode}>{studentMode ? "Switch to Teacher Mode" : "Switch to Student Mode"}</button>
+            <button type="button" onClick={onBuild} disabled={running}>Build flowchart</button>
+            <button type="button" onClick={onAutoLayout} disabled={running}>Auto layout</button>
+            <button type="button" onClick={onImportPython}>Import Python</button>
+            <button type="button" onClick={onExportSvg}>Export SVG</button>
+            <button type="button" onClick={onExportPng}>Export PNG</button>
+            <button type="button" onClick={onCopyDiagram}>Copy for slides</button>
+            <button type="button" onClick={onExportJava}>Export Java</button>
+            <button type="button" onClick={onExportNotes}>Export notes</button>
             <button type="button" onClick={onPresentation}>Presentation Mode</button>
             <button type="button" onClick={onToggleTheme}>{theme === "light" ? "Dark appearance" : "Light appearance"}</button>
-            {!studentMode && <button type="button" onClick={() => onConvert("all")}>Rebuild all views</button>}
+            <button type="button" onClick={() => onConvert("all")}>Rebuild all views</button>
           </div>
         </details>
       </div>
