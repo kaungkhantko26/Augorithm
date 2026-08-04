@@ -50,7 +50,8 @@ test("renders the shared web editor route", async () => {
   assert.match(html, /Web Editor/);
   assert.match(html, /Project workspace/);
   assert.match(html, /Pseudocode editor/);
-  assert.match(html, /Properties inspector/);
+  assert.match(html, /Add a shape/);
+  assert.doesNotMatch(html, /Properties inspector/);
 });
 
 test("renders documentation for syntax, shortcuts, files, and iPad installation", async () => {

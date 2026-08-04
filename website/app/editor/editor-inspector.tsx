@@ -31,8 +31,8 @@ export function EditorInspector({
   return (
     <aside className={`editor-inspector ${collapsed ? "collapsed" : ""} ${node || edge ? "has-selection" : ""}`} aria-label="Properties inspector">
       <div className="panel-title">
-        <button type="button" onClick={onToggle} aria-label={collapsed ? "Expand inspector" : "Collapse inspector"} title={collapsed ? "Expand inspector" : "Collapse inspector"}>
-          {collapsed ? "‹" : "›"}
+        <button type="button" onClick={onToggle} aria-label="Close properties" title="Close properties">
+          ×
         </button>
       </div>
       {!collapsed && (

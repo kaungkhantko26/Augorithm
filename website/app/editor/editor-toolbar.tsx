@@ -42,9 +42,12 @@ export function EditorToolbar({
   canUndo,
   canRedo,
   running,
+  runtimeMessage,
   theme,
   onRun,
   onStop,
+  onReset,
+  onStep,
   onProjectNameChange,
   onNew,
   onOpen,
@@ -86,6 +89,7 @@ export function EditorToolbar({
       <div className="editor-top-actions">
         <button type="button" onClick={onUndo} disabled={!canUndo} title="Undo (Ctrl/⌘ Z)" aria-label="Undo">↶</button>
         <button type="button" onClick={onRedo} disabled={!canRedo} title="Redo (Ctrl/⌘ Shift Z)" aria-label="Redo">↷</button>
+        <span className="header-runtime-state" role="status" aria-live="polite">{runtimeMessage}</span>
         <button className={running ? "stop-command" : "run-command"} type="button" onClick={running ? onStop : onRun}>{running ? "Pause" : "Run"}</button>
         <details className="export-menu tools-menu">
           <summary aria-label="More project actions">•••</summary>
@@ -95,6 +99,8 @@ export function EditorToolbar({
             <button type="button" onClick={onSave}>Save as…</button>
             <button type="button" onClick={onOpenCommands}>Command palette <kbd>⌘K</kbd></button>
             <button type="button" onClick={onBuild} disabled={running}>Build flowchart</button>
+            <button type="button" onClick={onStep} disabled={running}>Step execution</button>
+            <button type="button" onClick={onReset}>Reset runtime</button>
             <button type="button" onClick={onAutoLayout} disabled={running}>Auto layout</button>
             <button type="button" onClick={onImportPython}>Import Python</button>
             <button type="button" onClick={onExportSvg}>Export SVG</button>

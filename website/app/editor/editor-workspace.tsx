@@ -148,8 +148,8 @@ export function EditorWorkspace() {
   const [future, setFuture] = useState<ProjectV2[]>([]);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [paletteSearch, setPaletteSearch] = useState("");
-  const [paletteCollapsed, setPaletteCollapsed] = useState(false);
-  const [inspectorCollapsed, setInspectorCollapsed] = useState(false);
+  const [paletteCollapsed, setPaletteCollapsed] = useState(true);
+  const [inspectorCollapsed, setInspectorCollapsed] = useState(true);
   const [bottomCollapsed, setBottomCollapsed] = useState(true);
   const [bottomTab, setBottomTab] = useState<BottomTab>("console");
   const [workspaceView, setWorkspaceView] = useState<"canvas" | "code" | "split" | "source" | "notes">("canvas");
@@ -723,6 +723,9 @@ export function EditorWorkspace() {
     { label: "Generate Java", hint: "Java", action: () => { setSourceLanguage("java"); setWorkspaceView("source"); } },
     { label: "Focus Mode", hint: "F", action: () => setFocusMode((value) => !value) },
     { label: "Presentation Mode", hint: "F11", action: () => setPresentationMode(true) },
+    { label: "Zoom In", hint: "+", action: () => setZoom((value) => Math.min(2, value + .1)) },
+    { label: "Zoom Out", hint: "−", action: () => setZoom((value) => Math.max(.35, value - .1)) },
+    { label: "Fit Canvas", hint: "View", action: () => setZoom(.78) },
     ...(["input", "output", "process", "decision", "loop", "comment"] as NodeKind[]).map((kind) => ({ label: `Insert ${kind}`, hint: "Shape", action: () => addNode(kind) })),
   ].filter((item) => item.label.toLowerCase().includes(commandSearch.toLowerCase()));
 
@@ -795,19 +798,21 @@ export function EditorWorkspace() {
       <input ref={pythonInputRef} type="file" accept=".py,text/x-python" hidden onChange={async (event) => { const file = event.target.files?.[0]; if (file) importPython(await file.text()); event.target.value = ""; }} />
 
       <div className={`editor-shell ${paletteCollapsed ? "palette-closed" : ""} ${inspectorCollapsed ? "inspector-closed" : ""}`}>
-        <EditorPalette
+        {!paletteCollapsed && <div className="palette-scrim" role="presentation" onMouseDown={() => setPaletteCollapsed(true)} />}
+        {!paletteCollapsed && <EditorPalette
           mode={activePage.mode}
           search={paletteSearch}
-          collapsed={paletteCollapsed}
+          collapsed={false}
           compact={activePage.nodes.length > 0}
           onModeChange={setMode}
           onSearchChange={setPaletteSearch}
-          onAddNode={(kind) => addNode(kind)}
+          onAddNode={(kind) => { addNode(kind); setPaletteCollapsed(true); }}
           onToggle={() => setPaletteCollapsed((value) => !value)}
-        />
+        />}
 
         <section className="editor-workspace" aria-label="Project workspace">
           <div className="workspace-toolbar">
+            <button className="insert-trigger" type="button" onClick={() => setPaletteCollapsed(false)} aria-label="Add a shape">＋ Add</button>
             <div className="view-switcher" role="group" aria-label="Workspace view">
               {([
                 ["canvas", "Flowchart"],
@@ -829,20 +834,6 @@ export function EditorWorkspace() {
               ))}
             </div>
           </div>
-
-          {workspaceView !== "notes" && <div className="canvas-runtime-bar" aria-label="Runtime controls">
-            {running ? <button className="stop-command" type="button" onClick={stop}>Pause</button> : <button className="run-command" type="button" onClick={run}>Run</button>}
-            <button type="button" onClick={step} disabled={running || runtimeStatus === "waiting-for-input"}>Step</button>
-            <button type="button" onClick={resetRuntime} disabled={runtimeStatus === "idle" || runtimeStatus === "ready"}>{running ? "Stop" : "Reset"}</button>
-            <span className={`runtime-status status-${runtimeStatus}`} role="status" aria-live="polite">{runtimeMessage}</span>
-          </div>}
-
-          {(workspaceView === "canvas" || workspaceView === "split") && <div className="canvas-zoom-controls" aria-label="Canvas zoom controls">
-            <button type="button" onClick={() => setZoom((value) => Math.max(.35, value - .1))} aria-label="Zoom out">−</button>
-            <output aria-live="polite">{Math.round(zoom * 100)}%</output>
-            <button type="button" onClick={() => setZoom((value) => Math.min(2, value + .1))} aria-label="Zoom in">＋</button>
-            <button type="button" onClick={() => setZoom(.78)}>Fit</button>
-          </div>}
 
           <div className={`workspace-content view-${workspaceView}`}>
             {(workspaceView === "code" || workspaceView === "split") && (
@@ -932,6 +923,7 @@ export function EditorWorkspace() {
                 onClearSelection={() => {
                   setSelectedIds([]);
                   setSelectedEdgeId(null);
+                  setInspectorCollapsed(true);
                 }}
                 onMoveNode={moveNode}
                 onMoveEdgeWaypoint={moveEdgeWaypoint}
@@ -976,18 +968,18 @@ export function EditorWorkspace() {
           />
         </section>
 
-        <EditorInspector
+        {(selectedNode || selectedEdge) && !inspectorCollapsed && <EditorInspector
           node={selectedNode}
           edge={selectedEdge}
           nodes={activePage.nodes}
           collapsed={inspectorCollapsed}
-          onToggle={() => setInspectorCollapsed((value) => !value)}
+          onToggle={() => setInspectorCollapsed(true)}
           onUpdate={updateNode}
           onUpdateEdge={updateEdge}
           onDuplicate={duplicateSelected}
           onDelete={deleteSelected}
           onDeleteEdge={deleteSelectedEdge}
-        />
+        />}
       </div>
 
       {commandOpen && (
