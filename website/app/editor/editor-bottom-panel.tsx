@@ -1,9 +1,41 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Diagnostic, ExecutionSession } from "@/lib/augorithm-core";
 
 export type BottomTab = "console" | "problems" | "variables" | "notes";
+
+function ValueExplorer({ value, depth = 0 }: { value: unknown; depth?: number }) {
+  if (value === undefined) return <span className="value-empty">undefined</span>;
+  if (value === null) return <span className="value-empty">null</span>;
+  if (typeof value === "string") return <span className="value-string">“{value}”</span>;
+  if (typeof value === "number") return <span className="value-number">{value}</span>;
+  if (typeof value === "boolean") return <span className="value-boolean">{String(value)}</span>;
+  if (depth >= 4) return <span className="value-empty">Nested value</span>;
+
+  const entries = Array.isArray(value)
+    ? value.map((item, index) => [String(index), item] as const)
+    : typeof value === "object"
+      ? Object.entries(value as Record<string, unknown>)
+      : [];
+  const label = Array.isArray(value) ? `Array(${entries.length})` : `Object(${entries.length})`;
+  const visibleEntries = entries.slice(0, 100);
+
+  return (
+    <details className="value-explorer" open={depth === 0 && entries.length <= 12}>
+      <summary>{label}</summary>
+      <div className="value-children">
+        {visibleEntries.map(([key, item]) => (
+          <div className="value-child" key={key}>
+            <code>{key}</code>
+            <ValueExplorer value={item} depth={depth + 1} />
+          </div>
+        ))}
+        {entries.length > visibleEntries.length && <p>+ {entries.length - visibleEntries.length} more items</p>}
+      </div>
+    </details>
+  );
+}
 
 interface EditorBottomPanelProps {
   activeTab: BottomTab;
@@ -41,6 +73,8 @@ export function EditorBottomPanel({
   onProblemSelect,
 }: EditorBottomPanelProps) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const dragStart = useRef<{ y: number; height: number } | null>(null);
+  const [panelHeight, setPanelHeight] = useState(192);
 
   // Auto-focus the input whenever a new pending session arrives.
   useEffect(() => {
@@ -66,7 +100,28 @@ export function EditorBottomPanel({
     <section
       className={`editor-bottom-panel ${collapsed ? "collapsed" : ""}`}
       aria-label="Runtime and diagnostics"
+      style={collapsed ? undefined : { height: panelHeight }}
     >
+      {!collapsed && <div
+        className="runtime-resize-handle"
+        role="separator"
+        aria-label="Resize runtime panel"
+        aria-orientation="horizontal"
+        tabIndex={0}
+        onPointerDown={(event) => {
+          dragStart.current = { y: event.clientY, height: panelHeight };
+          event.currentTarget.setPointerCapture(event.pointerId);
+        }}
+        onPointerMove={(event) => {
+          if (!dragStart.current) return;
+          setPanelHeight(Math.max(168, Math.min(360, dragStart.current.height + dragStart.current.y - event.clientY)));
+        }}
+        onPointerUp={() => { dragStart.current = null; }}
+        onKeyDown={(event) => {
+          if (event.key === "ArrowUp") setPanelHeight((value) => Math.min(360, value + 16));
+          if (event.key === "ArrowDown") setPanelHeight((value) => Math.max(168, value - 16));
+        }}
+      ><span /></div>}
       <div className="bottom-tabs">
         <div role="tablist" aria-label="Bottom panel">
           {tabs.map((tab) => (
@@ -103,7 +158,7 @@ export function EditorBottomPanel({
           {activeTab === "console" && (
             <div className="console-view">
               <pre className="console-output">
-                {output.length ? output.join("\n") : "Press Run to execute the algorithm."}
+                {output.length ? output.join("\n") : pendingSession ? "Execution paused. Enter a value to continue." : "Press Run to execute the algorithm."}
               </pre>
 
               {pendingSession ? (
@@ -187,18 +242,12 @@ export function EditorBottomPanel({
           {activeTab === "variables" && (
             <div className="variables-view">
               {Object.entries(variables).length ? (
-                <table><thead><tr><th>Name</th><th>Type</th><th>Value</th></tr></thead><tbody>{Object.entries(variables).map(([name, value]) => (
-                  <tr key={name}>
-                    <td><code>{name}</code></td><td>{Array.isArray(value) ? "Array" : typeof value}</td>
-                    <td><strong>
-                      {Array.isArray(value)
-                        ? `[${value.map((v) => (v === undefined ? "—" : String(v))).join(", ")}]`
-                        : value === undefined
-                          ? "—"
-                          : String(value)}
-                    </strong></td>
-                  </tr>
-                ))}</tbody></table>
+                <div className="variable-list">{Object.entries(variables).map(([name, value]) => (
+                  <article className="variable-row" key={name}>
+                    <div className="variable-identity"><code>{name}</code><span>{Array.isArray(value) ? `Array · ${value.length} items` : value === null ? "null" : typeof value}</span></div>
+                    <div className="variable-value"><ValueExplorer value={value} /></div>
+                  </article>
+                ))}</div>
               ) : (
                 <p className="panel-empty">Variables appear here while your algorithm runs.</p>
               )}
