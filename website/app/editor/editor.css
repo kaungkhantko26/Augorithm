@@ -2737,3 +2737,58 @@ body:has(.editor-app) {
 .editor-edge.selected .edge-visible,
 .editor-edge.runtime-edge-active .edge-visible { stroke-width: 1.75px !important; }
 .editor-edge-layer marker path { fill: currentColor; }
+
+/* Reference-aligned flowchart node anatomy. */
+.canvas-node {
+  grid-template-columns: 32px minmax(0, 1fr) !important;
+  grid-template-rows: minmax(0, 1fr) !important;
+  place-items: stretch !important;
+  column-gap: 11px !important;
+  padding: 12px 42px 12px 12px !important;
+  text-align: left !important;
+}
+.node-semantic-icon {
+  width: 28px;
+  height: 28px;
+  align-self: center;
+  display: grid;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--node-stroke) 24%, transparent);
+  border-radius: 7px;
+  color: var(--node-stroke);
+  background: color-mix(in srgb, var(--node-stroke) 9%, var(--node-fill));
+  font: 800 12px/1 Inter, sans-serif;
+}
+.node-card-content {
+  min-width: 0;
+  align-self: center;
+  display: grid;
+  gap: 3px;
+}
+.node-card-content .node-kind-label {
+  justify-self: start;
+  font-size: 9px;
+  letter-spacing: .14em;
+}
+.node-card-content .node-main-label {
+  align-self: auto;
+  font-size: 13px;
+  font-weight: 720;
+  line-height: 1.35;
+}
+.canvas-node small {
+  position: absolute !important;
+  top: 10px;
+  right: 11px;
+  justify-self: auto;
+  margin: 0;
+}
+.canvas-node.kind-start,
+.canvas-node.kind-end,
+.canvas-node.kind-usecase { padding-inline: 16px 38px !important; }
+.canvas-node.kind-decision { grid-template-columns: minmax(0, 1fr) !important; padding-inline: 56px !important; text-align: center !important; }
+.canvas-node.kind-decision .node-semantic-icon { position: absolute; left: 44px; width: 20px; height: 20px; border: 0; background: transparent; }
+.canvas-node.kind-decision .node-card-content { justify-items: center; }
+.canvas-node.kind-input,
+.canvas-node.kind-output { padding-inline: 34px 48px !important; }
+.canvas-node.kind-loop { padding-inline: 28px 44px !important; }

@@ -4,8 +4,23 @@ import { useId } from "react";
 import type { DiagramEdge, DiagramNode, NodeKind, Point } from "@/lib/augorithm-core";
 import { CONNECTOR_STROKE_WIDTH, edgeLabelPoint, edgePoints, pathFromPoints } from "@/lib/diagram-routing";
 
-const CANVAS_WIDTH = 1800;
-const CANVAS_HEIGHT = 1400;
+const MIN_CANVAS_WIDTH = 1800;
+const MIN_CANVAS_HEIGHT = 1400;
+
+const NODE_ICONS: Record<NodeKind, string> = {
+  start: "▶",
+  end: "■",
+  process: "=",
+  decision: "◇",
+  input: "↙",
+  output: "↗",
+  loop: "↻",
+  comment: "≡",
+  note: "≡",
+  entity: "▤",
+  class: "▦",
+  usecase: "○",
+};
 
 interface EditorCanvasProps {
   nodes: DiagramNode[];
@@ -68,6 +83,20 @@ export function EditorCanvas({
     };
   });
   const nodeMap = new Map(displayNodes.map((node) => [node.id, node]));
+  const routedEdges = edges.map((edge) => {
+    const source = nodeMap.get(edge.source);
+    const target = nodeMap.get(edge.target);
+    return { edge, source, target, points: source && target ? edgePoints(edge, source, target, displayNodes) : [] };
+  });
+  const allPoints = routedEdges.flatMap(({ points }) => points);
+  const canvasWidth = Math.max(
+    MIN_CANVAS_WIDTH,
+    Math.ceil(Math.max(0, ...displayNodes.map((node) => node.position.x + node.width), ...allPoints.map((point) => point.x)) + 320),
+  );
+  const canvasHeight = Math.max(
+    MIN_CANVAS_HEIGHT,
+    Math.ceil(Math.max(0, ...displayNodes.map((node) => node.position.y + node.height), ...allPoints.map((point) => point.y)) + 240),
+  );
 
   const beginDrag = (event: React.PointerEvent<HTMLButtonElement>, node: DiagramNode) => {
     if (connectionMode) {
@@ -174,25 +203,22 @@ export function EditorCanvas({
       <div
         className="smart-canvas"
         style={{
-          width: CANVAS_WIDTH,
-          height: CANVAS_HEIGHT,
+          width: canvasWidth,
+          height: canvasHeight,
           transform: `scale(${zoom})`,
           "--editor-grid-size": `${gridSize}px`,
         } as React.CSSProperties}
         role="application"
         aria-label="Augorithm diagram canvas"
       >
-        <svg className="editor-edge-layer" width={CANVAS_WIDTH} height={CANVAS_HEIGHT} role="group" aria-label="Diagram connections">
+        <svg className="editor-edge-layer" width={canvasWidth} height={canvasHeight} role="group" aria-label="Diagram connections">
           <defs>
             <marker id={markerId} markerWidth="7" markerHeight="7" refX="6.2" refY="3.5" orient="auto" markerUnits="userSpaceOnUse" viewBox="0 0 7 7">
               <path d="M 0 0 L 7 3.5 L 0 7 Z" />
             </marker>
           </defs>
-          {edges.map((edge) => {
-            const source = nodeMap.get(edge.source);
-            const target = nodeMap.get(edge.target);
+          {routedEdges.map(({ edge, source, target, points }) => {
             if (!source || !target) return null;
-            const points = edgePoints(edge, source, target, displayNodes);
             const path = pathFromPoints(points);
             const middlePoint = edgeLabelPoint(points);
             const selected = edge.id === selectedEdgeId;
@@ -269,8 +295,11 @@ export function EditorCanvas({
             onDoubleClick={() => onEditNode(node.id)}
           >
             {node.breakpoint && <span className="breakpoint-dot" title="Breakpoint" />}
-            <span className="node-kind-label">{node.kind}</span>
-            <span className="node-main-label">{node.label}</span>
+            <span className="node-semantic-icon" aria-hidden="true">{NODE_ICONS[node.kind]}</span>
+            <span className="node-card-content">
+              <span className="node-kind-label">{node.kind}</span>
+              <span className="node-main-label">{node.label}</span>
+            </span>
             {node.sourceLine && <small>L{node.sourceLine}</small>}
             {node.locked && <span className="node-lock" aria-hidden="true">⌑</span>}
             {connectionMode && <span className="node-port-hint" aria-hidden="true">＋</span>}
