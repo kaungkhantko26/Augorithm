@@ -35,12 +35,11 @@ export function EditorInspector({
 }: EditorInspectorProps) {
   const ports = ["top", "right", "bottom", "left"] as const;
   return (
-    <aside className={`editor-inspector ${collapsed ? "collapsed" : ""}`} aria-label="Properties inspector">
+    <aside className={`editor-inspector ${collapsed ? "collapsed" : ""} ${node || edge ? "has-selection" : ""}`} aria-label="Properties inspector">
       <div className="panel-title">
         <button type="button" onClick={onToggle} aria-label={collapsed ? "Expand inspector" : "Collapse inspector"}>
           {collapsed ? "‹" : "›"}
         </button>
-        {!collapsed && <span>PROPERTIES</span>}
       </div>
       {!collapsed && (
         edge ? (

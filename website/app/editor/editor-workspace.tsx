@@ -150,7 +150,7 @@ export function EditorWorkspace() {
   const [paletteSearch, setPaletteSearch] = useState("");
   const [paletteCollapsed, setPaletteCollapsed] = useState(false);
   const [inspectorCollapsed, setInspectorCollapsed] = useState(false);
-  const [bottomCollapsed, setBottomCollapsed] = useState(false);
+  const [bottomCollapsed, setBottomCollapsed] = useState(true);
   const [bottomTab, setBottomTab] = useState<BottomTab>("console");
   const [workspaceView, setWorkspaceView] = useState<"canvas" | "code" | "split" | "source" | "notes">("canvas");
   const [zoom, setZoom] = useState(0.78);
@@ -173,6 +173,7 @@ export function EditorWorkspace() {
   const [presentationMode, setPresentationMode] = useState(false);
   const [studentMode, setStudentMode] = useState(true);
   const [focusMode, setFocusMode] = useState(false);
+  const [pythonImportRequest, setPythonImportRequest] = useState(0);
   const [sourceLanguage, setSourceLanguage] = useState<"python" | "javascript" | "java" | "swift">("python");
   const [sourceRunning, setSourceRunning] = useState(false);
   const [sourceDrafts, setSourceDrafts] = useState<Partial<Record<"python" | "javascript" | "java" | "swift", string>>>({});
@@ -282,6 +283,11 @@ export function EditorWorkspace() {
     localStorage.setItem("augorithm:web-theme", theme);
   }, [theme]);
 
+  useEffect(() => {
+    if (!pythonImportRequest) return;
+    pythonInputRef.current?.click();
+  }, [pythonImportRequest]);
+
   const build = useCallback((resetLayout = false) => {
     const page = project.pages.find((item) => item.id === project.activePageId) ?? project.pages[0];
     const parsed = parsePseudocode(project.code, resetLayout ? [] : page.nodes);
@@ -297,6 +303,8 @@ export function EditorWorkspace() {
     setSelectedEdgeId(null);
     setRuntimeStatus(connectionDiagnostics.length || parsed.diagnostics.some((item) => item.severity === "error") ? "error" : "ready");
     setRuntimeMessage(connectionDiagnostics.length ? "Build failed" : "Ready");
+    setBottomTab(connectionDiagnostics.length || parsed.diagnostics.some((item) => item.severity === "error") ? "problems" : "console");
+    setBottomCollapsed(false);
   }, [commit, project]);
 
   /** Shared helper that applies any ExecutionResult to state */
@@ -456,6 +464,9 @@ export function EditorWorkspace() {
       } else if (event.key === "/") {
         const target = event.target as HTMLElement;
         if (!target.matches("input, textarea, select, [contenteditable=true]")) { event.preventDefault(); setCommandSearch(""); setCommandOpen(true); }
+      } else if (event.key.toLowerCase() === "c") {
+        const target = event.target as HTMLElement;
+        if (!target.matches("input, textarea, select, [contenteditable=true]")) { event.preventDefault(); setConnectionMode((value) => !value); setConnectionSourceId(null); }
       } else if (modifier && event.shiftKey && event.key.toLowerCase() === "r") {
         event.preventDefault();
         resetRuntime();
@@ -679,6 +690,7 @@ export function EditorWorkspace() {
           : "swift";
     downloadFile(sourceLanguage === "java" ? javaBuild.filename : `${project.name || "Augorithm"}.${extension}`, activeSource, "text/plain;charset=utf-8");
   };
+  const openPythonImporter = useCallback(() => pythonInputRef.current?.click(), []);
 
   const rebuildFromIR = () => {
     const next = generatePseudocode(algorithmIR);
@@ -707,6 +719,12 @@ export function EditorWorkspace() {
     { label: "Export SVG", hint: "SVG", action: () => downloadFile(`${project.name}.svg`, exportSvg(activePage), "image/svg+xml") },
     { label: "Toggle theme", hint: "Theme", action: () => setTheme((value) => value === "light" ? "dark" : "light") },
     { label: "Add page", hint: "Page", action: addPage },
+    { label: "Export PNG", hint: "Export", action: () => void exportPng() },
+    { label: "Import Python", hint: "Import", action: () => setPythonImportRequest((value) => value + 1) },
+    { label: "Generate Java", hint: "Java", action: () => { setSourceLanguage("java"); setWorkspaceView("source"); } },
+    { label: "Focus Mode", hint: "F", action: () => setFocusMode((value) => !value) },
+    { label: "Presentation Mode", hint: "F11", action: () => setPresentationMode(true) },
+    { label: studentMode ? "Teacher Mode" : "Student Mode", hint: "Mode", action: () => setStudentMode((value) => !value) },
     ...(["input", "output", "process", "decision", "loop", "comment"] as NodeKind[]).map((kind) => ({ label: `Insert ${kind}`, hint: "Shape", action: () => addNode(kind) })),
   ].filter((item) => item.label.toLowerCase().includes(commandSearch.toLowerCase()));
 
@@ -750,7 +768,7 @@ export function EditorWorkspace() {
           if (target === "flowchart" || target === "all") rebuildFromIR();
           else { setSourceLanguage(target); setWorkspaceView("source"); if (target === "python") setSourceDrafts((drafts) => ({ ...drafts, python: generatePython(algorithmIR) })); else setSourceDrafts((drafts) => ({ ...drafts, java: javaBuild.code })); }
         }}
-        onImportPython={() => pythonInputRef.current?.click()}
+        onImportPython={openPythonImporter}
         onExportJava={() => downloadFile(javaBuild.filename, javaBuild.code, "text/x-java-source;charset=utf-8")}
         onExportNotes={() => downloadFile(`${project.name || "Augorithm"}-notes.md`, generatedNotes, "text/markdown;charset=utf-8")}
         studentMode={studentMode}
@@ -785,6 +803,7 @@ export function EditorWorkspace() {
           mode={activePage.mode}
           search={paletteSearch}
           collapsed={paletteCollapsed}
+          compact={activePage.nodes.length > 0}
           onModeChange={setMode}
           onSearchChange={setPaletteSearch}
           onAddNode={(kind) => addNode(kind)}
@@ -855,6 +874,7 @@ export function EditorWorkspace() {
             <button type="button" onClick={resetRuntime} disabled={runtimeStatus === "idle" || runtimeStatus === "ready"}>Reset</button>
             {!studentMode && <select value={runtimeSpeed} onChange={(event) => setRuntimeSpeed(event.target.value as RuntimeSpeed)} aria-label="Execution speed"><option value=".5">0.5×</option><option value="1">1×</option><option value="2">2×</option><option value="instant">Instant</option></select>}
             <span className={`runtime-status status-${runtimeStatus}`} role="status" aria-live="polite">{runtimeMessage}</span>
+            {runtimeNodeId && <span className="runtime-context">Step {Math.max(1, stepIndex + 1)} · {activePage.nodes.find((node) => node.id === runtimeNodeId)?.label ?? "Current node"}</span>}
             <button className="focus-toggle" type="button" onClick={() => setFocusMode((value) => !value)}>{focusMode ? "Exit Focus" : "Focus"}</button>
           </div>
 
@@ -950,6 +970,9 @@ export function EditorWorkspace() {
                 onMoveEdgeWaypoint={moveEdgeWaypoint}
                 onAddNode={addNode}
                 onConnectNode={connectNode}
+                onNewFlowchart={() => addNode("process", { x: 770, y: 280 })}
+                onOpenExample={() => commit(() => createProject("Student Result Example"))}
+                onImportPython={openPythonImporter}
                 onEditNode={(id) => {
                   setSelectedEdgeId(null);
                   setSelectedIds([id]);

@@ -143,6 +143,41 @@
   .editor-shell { height: calc(100dvh - 72px); }
 }
 
+/* Contextual layout must remain the final cascade layer. */
+.editor-topbar { height: 56px; }
+.editor-shell { height: calc(100dvh - 56px); }
+.editor-workspace { position: relative; grid-template-rows: 45px minmax(0, 1fr); }
+.editor-workspace:has(.editor-bottom-panel.collapsed) { grid-template-rows: 45px minmax(0, 1fr); }
+.editor-workspace:has(.editor-bottom-panel:not(.collapsed)) { grid-template-rows: 45px minmax(0, 1fr) 204px; }
+.editor-bottom-panel.collapsed { display: none; }
+@media (max-width: 1400px) and (min-width: 769px) {
+  .editor-topbar { height: 56px; grid-template-rows: 56px; }
+  .editor-shell { height: calc(100dvh - 56px); }
+}
+
+/* Contextual chrome: canvas remains the dominant surface. */
+.editor-topbar { height: 56px; }
+.editor-shell { height: calc(100dvh - 56px); }
+.editor-workspace { position: relative; grid-template-rows: 45px minmax(0, 1fr); }
+.editor-workspace:has(.editor-bottom-panel:not(.collapsed)) { grid-template-rows: 45px minmax(0, 1fr) 204px; }
+.editor-bottom-panel.collapsed { display: none; }
+.canvas-runtime-bar { position: absolute; z-index: 30; top: 57px; left: 50%; width: max-content; max-width: calc(100% - 32px); transform: translateX(-50%); border: 1px solid color-mix(in srgb, var(--editor-border) 60%, transparent); border-radius: 14px; background: color-mix(in srgb, var(--editor-surface) 82%, transparent); box-shadow: 0 12px 30px rgba(18, 34, 52, .12); backdrop-filter: blur(18px); }
+.runtime-context { max-width: 240px; overflow: hidden; color: var(--editor-muted); text-overflow: ellipsis; white-space: nowrap; }
+
+.teacher-mode .editor-shell:not(:has(.editor-inspector.has-selection)) { grid-template-columns: 220px minmax(0, 1fr); }
+.teacher-mode .editor-shell:not(:has(.editor-inspector.has-selection)) .editor-inspector { display: none; }
+.teacher-mode .editor-shell:has(.editor-inspector.has-selection) { grid-template-columns: 220px minmax(0, 1fr) 280px; }
+.student-mode .editor-shell, .student-mode .editor-shell.palette-closed, .student-mode .editor-shell.inspector-closed, .student-mode .editor-shell.palette-closed.inspector-closed { grid-template-columns: 220px minmax(0, 1fr); }
+.editor-palette .panel-title { position: absolute; z-index: 5; top: 8px; right: 8px; width: 32px; height: 32px; padding: 0; border: 0; background: transparent; }
+.editor-palette .panel-title button { width: 32px; min-height: 32px; border: 0; background: var(--editor-surface-2); }
+.editor-palette:not(.collapsed) .mode-switcher { margin-top: 48px; }
+.editor-palette.compact .palette-item { min-height: 38px !important; padding-block: 5px !important; }
+
+@media (max-width: 1400px) and (min-width: 769px) {
+  .editor-topbar { height: 56px; grid-template-rows: 56px; }
+  .editor-shell { height: calc(100dvh - 56px); }
+}
+
 :root[data-editor-theme="dark"] {
   --editor-ink: #edf5ff;
   --editor-muted: #a9bad0;
@@ -1911,4 +1946,16 @@ body:has(.editor-app) {
   .editor-project-identity { grid-column: 3; grid-row: 1; }
   .editor-top-actions { grid-column: 4; grid-row: 1; }
   .editor-shell { height: calc(100dvh - 72px); }
+}
+
+/* Contextual layout: final cascade layer. */
+.editor-topbar { height: 56px; }
+.editor-shell { height: calc(100dvh - 56px); }
+.editor-workspace { position: relative; grid-template-rows: 45px minmax(0, 1fr); }
+.editor-workspace:has(.editor-bottom-panel.collapsed) { grid-template-rows: 45px minmax(0, 1fr); }
+.editor-workspace:has(.editor-bottom-panel:not(.collapsed)) { grid-template-rows: 45px minmax(0, 1fr) 204px; }
+.editor-bottom-panel.collapsed { display: none; }
+@media (max-width: 1400px) and (min-width: 769px) {
+  .editor-topbar { height: 56px; grid-template-rows: 56px; }
+  .editor-shell { height: calc(100dvh - 56px); }
 }

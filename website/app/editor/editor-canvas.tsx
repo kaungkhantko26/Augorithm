@@ -27,6 +27,9 @@ interface EditorCanvasProps {
   onAddNode: (kind: NodeKind, point: Point) => void;
   onEditNode: (id: string) => void;
   onConnectNode: (id: string) => void;
+  onNewFlowchart: () => void;
+  onOpenExample: () => void;
+  onImportPython: () => void;
 }
 
 export function EditorCanvas({
@@ -49,6 +52,9 @@ export function EditorCanvas({
   onAddNode,
   onEditNode,
   onConnectNode,
+  onNewFlowchart,
+  onOpenExample,
+  onImportPython,
 }: EditorCanvasProps) {
   const markerId = `editor-arrow-${useId().replace(/:/g, "")}`;
   const nodeMap = new Map(nodes.map((node) => [node.id, node]));
@@ -152,7 +158,7 @@ export function EditorCanvas({
         <div className="canvas-empty-state" role="region" aria-label="Empty flowchart">
           <h2>Start your algorithm</h2>
           <p>Drag a shape here<br />or press <kbd>/</kbd></p>
-          <button type="button" onClick={() => onAddNode("process", { x: 770, y: 280 })}>Create first step</button>
+          <div className="empty-actions"><button type="button" onClick={onNewFlowchart}>New Flowchart</button><button type="button" onClick={onOpenExample}>Open Example</button><button type="button" onClick={onImportPython}>Import Python</button></div>
         </div>
       )}
       <div

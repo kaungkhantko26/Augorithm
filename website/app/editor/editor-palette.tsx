@@ -33,6 +33,7 @@ interface EditorPaletteProps {
   onSearchChange: (value: string) => void;
   onAddNode: (kind: NodeKind) => void;
   onToggle: () => void;
+  compact: boolean;
 }
 
 export function EditorPalette({
@@ -43,6 +44,7 @@ export function EditorPalette({
   onSearchChange,
   onAddNode,
   onToggle,
+  compact,
 }: EditorPaletteProps) {
   const visibleItems = paletteItems.filter(
     (item) => item.modes.includes(mode) && `${item.label} ${item.description} ${item.keywords}`.toLowerCase().includes(search.toLowerCase()),
@@ -50,9 +52,8 @@ export function EditorPalette({
   const groups = [...new Set(visibleItems.map((item) => item.group))];
 
   return (
-    <aside className={`editor-palette ${collapsed ? "collapsed" : ""}`} aria-label="Shape library">
+    <aside className={`editor-palette ${collapsed ? "collapsed" : ""} ${compact ? "compact" : ""}`} aria-label="Shape library">
       <div className="panel-title">
-        {!collapsed && <span>LIBRARY</span>}
         <button type="button" onClick={onToggle} aria-label={collapsed ? "Expand library" : "Collapse library"}>
           {collapsed ? "›" : "‹"}
         </button>
@@ -95,7 +96,7 @@ export function EditorPalette({
                 onDragStart={(event) => event.dataTransfer.setData("application/x-augorithm-node", item.kind)}
                 key={item.kind}
               >
-                <span><strong>{item.label}</strong><small>{item.description}</small></span>
+                <span><strong>{item.label}</strong>{!compact && <small>{item.description}</small>}</span>
               </button>
               ))}
             </section>)}
