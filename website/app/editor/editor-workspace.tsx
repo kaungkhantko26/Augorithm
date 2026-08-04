@@ -21,6 +21,7 @@ import {
 } from "@/lib/augorithm-core";
 import { loadRecoveryProject, saveRecoveryProject } from "@/lib/project-storage";
 import { edgeLabelPoint, edgePoints, pathFromPoints } from "@/lib/diagram-routing";
+import { validateConnections } from "@/lib/connector-validation";
 import { EditorToolbar } from "./editor-toolbar";
 import { EditorPalette } from "./editor-palette";
 import { EditorCanvas } from "./editor-canvas";
@@ -29,6 +30,8 @@ import { EditorBottomPanel, type BottomTab } from "./editor-bottom-panel";
 import { CodeEditor } from "./code-editor";
 
 const STORAGE_KEY = "augorithm:web-project:v2";
+type RuntimeStatus = "idle" | "building" | "ready" | "running" | "paused" | "waiting-for-input" | "completed" | "error" | "stopped";
+type RuntimeSpeed = ".25" | ".5" | "1" | "2" | "instant";
 const cloneProject = (project: ProjectV2): ProjectV2 => structuredClone(project);
 
 function downloadFile(name: string, content: BlobPart, type: string) {
@@ -54,7 +57,7 @@ function exportSvg(page: DiagramPage): string {
   const routedPoints = page.edges.flatMap((edge) => {
     const source = nodeMap.get(edge.source);
     const target = nodeMap.get(edge.target);
-    return source && target ? edgePoints(edge, source, target) : [];
+    return source && target ? edgePoints(edge, source, target, page.nodes) : [];
   });
   const minContentX = page.nodes.length
     ? Math.min(...page.nodes.map((node) => node.position.x), ...routedPoints.map((point) => point.x))
@@ -82,7 +85,7 @@ function exportSvg(page: DiagramPage): string {
     const source = nodeMap.get(edge.source);
     const target = nodeMap.get(edge.target);
     if (!source || !target) return "";
-    const points = edgePoints(edge, source, target);
+    const points = edgePoints(edge, source, target, page.nodes);
     const path = pathFromPoints(points);
     const labelPoint = edgeLabelPoint(points);
     const label = edge.label
@@ -110,7 +113,8 @@ function exportSvg(page: DiagramPage): string {
       `<tspan x="${node.position.x + node.width / 2}" dy="${index === 0 ? 0 : 19}">${escape(line.trim())}</tspan>`).join("");
     return `<g>${shape}<text x="${node.position.x + node.width / 2}" y="${node.position.y + node.height / 2 - (lines.length - 1) * 8}" text-anchor="middle" dominant-baseline="middle" fill="${node.style.text}" font-family="Inter,Arial,sans-serif" font-size="${node.style.fontSize}" font-weight="650">${text}</text></g>`;
   }).join("");
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="8" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0 0 L8 4 L0 8Z" fill="#30455f"/></marker></defs><rect width="100%" height="100%" fill="${page.background}"/><g transform="translate(${offsetX} ${offsetY})">${edges}${nodes}</g></svg>`;
+  const markerId = `augorithm-arrow-${page.id.replace(/[^a-z0-9_-]/gi, "")}`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><defs><marker id="${markerId}" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto" markerUnits="strokeWidth" viewBox="0 0 8 8"><path d="M 0 0 L 8 4 L 0 8 Z" fill="#30455f"/></marker></defs><rect width="100%" height="100%" fill="${page.background}"/><g transform="translate(${offsetX} ${offsetY})">${edges.replaceAll('url(#arrow)', `url(#${markerId})`)}${nodes}</g></svg>`;
 }
 
 async function svgToPng(svg: string): Promise<Blob> {
@@ -151,13 +155,18 @@ export function EditorWorkspace() {
   const [zoom, setZoom] = useState(0.78);
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const [input, setInput] = useState("");
+  const [inputError, setInputError] = useState("");
   const [pendingSession, setPendingSession] = useState<ExecutionSession | null>(null);
   const [output, setOutput] = useState<string[]>([]);
   const [variables, setVariables] = useState<Record<string, unknown>>({});
   const [runtimeNodeId, setRuntimeNodeId] = useState<string | null>(null);
-  const [runtimeTrace, setRuntimeTrace] = useState<number[]>([]);
   const [stepIndex, setStepIndex] = useState(-1);
   const [running, setRunning] = useState(false);
+  const [runtimeStatus, setRuntimeStatus] = useState<RuntimeStatus>("idle");
+  const [runtimeSpeed, setRuntimeSpeed] = useState<RuntimeSpeed>("1");
+  const [activeEdgeId, setActiveEdgeId] = useState<string | null>(null);
+  const [runtimeMessage, setRuntimeMessage] = useState("Ready");
+  const [stepResult, setStepResult] = useState<ReturnType<typeof executePseudocode> | null>(null);
   const [commandOpen, setCommandOpen] = useState(false);
   const [commandSearch, setCommandSearch] = useState("");
   const [sourceLanguage, setSourceLanguage] = useState<"python" | "javascript" | "java" | "swift">("python");
@@ -270,7 +279,8 @@ export function EditorWorkspace() {
     const page = project.pages.find((item) => item.id === project.activePageId) ?? project.pages[0];
     const parsed = parsePseudocode(project.code, resetLayout ? [] : page.nodes);
     setLastParsedCode(project.code);
-    setDiagnostics(parsed.diagnostics);
+    const connectionDiagnostics = validateConnections(parsed.nodes, parsed.edges);
+    setDiagnostics([...parsed.diagnostics, ...connectionDiagnostics]);
     commit((current) => pageWithUpdates(current, page.id, {
       mode: "algorithm",
       nodes: parsed.nodes,
@@ -278,13 +288,14 @@ export function EditorWorkspace() {
     }));
     setSelectedIds([]);
     setSelectedEdgeId(null);
+    setRuntimeStatus(connectionDiagnostics.length || parsed.diagnostics.some((item) => item.severity === "error") ? "error" : "ready");
+    setRuntimeMessage(connectionDiagnostics.length ? "Build failed" : "Ready");
   }, [commit, project]);
 
   /** Shared helper that applies any ExecutionResult to state */
   const applyResult = useCallback((result: ReturnType<typeof executePseudocode>) => {
     setOutput(result.output);
     setVariables(result.variables);
-    setRuntimeTrace(result.trace);
     setDiagnostics([...parsePseudocode(project.code, activePage.nodes).diagnostics, ...result.diagnostics]);
     const finalLine = result.trace.at(-1);
     setRuntimeNodeId(activePage.nodes.find((node) => node.sourceLine === finalLine)?.id ?? null);
@@ -292,31 +303,66 @@ export function EditorWorkspace() {
     if (result.session) {
       // Execution paused — waiting for the user to supply one INPUT value.
       setPendingSession(result.session);
+      setRuntimeStatus("waiting-for-input");
+      setRuntimeMessage(`Waiting for input: ${result.session.waitingFor}`);
       setBottomTab("console");
       setBottomCollapsed(false);
       // Keep running=true so Run button shows "■ Stop"
     } else {
       setPendingSession(null);
       setRunning(false);
+      setRuntimeStatus(result.diagnostics.some((item) => item.severity === "error") ? "error" : "completed");
+      setRuntimeMessage(result.diagnostics.some((item) => item.severity === "error") ? "Execution error" : "Completed");
       setBottomTab(result.diagnostics.some((item) => item.severity === "error") ? "problems" : "console");
       setBottomCollapsed(false);
     }
   }, [activePage.nodes, project.code]);
 
   const run = useCallback(() => {
+    const parsed = parsePseudocode(project.code, activePage.nodes);
+    const connectionDiagnostics = validateConnections(parsed.nodes, parsed.edges);
+    const buildDiagnostics = [...parsed.diagnostics, ...connectionDiagnostics];
+    if (buildDiagnostics.some((item) => item.severity === "error")) {
+      setDiagnostics(buildDiagnostics);
+      setRuntimeStatus("error");
+      setRuntimeMessage("Build failed");
+      setBottomTab("problems");
+      setBottomCollapsed(false);
+      return;
+    }
     setRunning(true);
+    setRuntimeStatus("running");
+    setRuntimeMessage("Running");
     setPendingSession(null);
     setInput("");
+    setInputError("");
     setOutput([]);
     setVariables({});
     setBottomTab("console");
     setBottomCollapsed(false);
     applyResult(executePseudocode(project.code, ""));
-  }, [applyResult, project.code]);
+    setStepResult(null);
+  }, [activePage.nodes, applyResult, project.code]);
 
   const stop = useCallback(() => {
     setPendingSession(null);
     setRunning(false);
+    setRuntimeStatus("stopped");
+    setRuntimeMessage("Stopped");
+    setActiveEdgeId(null);
+  }, []);
+
+  const resetRuntime = useCallback(() => {
+    setStepResult(null);
+    setPendingSession(null);
+    setRunning(false);
+    setOutput([]);
+    setVariables({});
+    setStepIndex(-1);
+    setRuntimeNodeId(null);
+    setActiveEdgeId(null);
+    setRuntimeStatus("idle");
+    setRuntimeMessage("Ready");
   }, []);
 
   /** Called when the user submits a value for the current INPUT statement. */
@@ -324,26 +370,51 @@ export function EditorWorkspace() {
     if (!pendingSession) return;
     const value = input.trim();
     if (!value) return;
+    const variableName = pendingSession.waitingFor.replace(/\[.*$/, "");
+    const currentValue = pendingSession.variables[variableName];
+    const expectsNumber = typeof currentValue === "number" || (Array.isArray(currentValue) && currentValue.every((item) => typeof item === "number"));
+    if (expectsNumber && !Number.isFinite(Number(value))) {
+      setInputError("Enter a valid number before continuing.");
+      return;
+    }
     setInput("");
+    setInputError("");
     applyResult(resumeExecution(project.code, pendingSession, value));
   }, [applyResult, input, pendingSession, project.code]);
 
   const step = useCallback(() => {
-    let trace = runtimeTrace;
-    if (!trace.length) {
-      const result = executePseudocode(project.code, "");
-      trace = result.trace;
-      setRuntimeTrace(trace);
-      setOutput(result.output);
-      setVariables(result.variables);
+    if (pendingSession) return;
+    let result = stepResult;
+    if (!result || stepIndex >= result.trace.length - 1) {
+      const parsed = parsePseudocode(project.code, activePage.nodes);
+      const issues = [...parsed.diagnostics, ...validateConnections(parsed.nodes, parsed.edges)];
+      if (issues.some((item) => item.severity === "error")) {
+        setDiagnostics(issues); setRuntimeStatus("error"); setRuntimeMessage("Build failed"); setBottomTab("problems"); return;
+      }
+      result = executePseudocode(project.code, "");
+      setStepResult(result);
+      setStepIndex(-1);
+      setOutput([]);
+      setVariables({});
     }
-    const nextIndex = trace.length ? (stepIndex + 1) % trace.length : -1;
+    const trace = result.trace;
+    const nextIndex = Math.min(stepIndex + 1, trace.length - 1);
     setStepIndex(nextIndex);
     const line = trace[nextIndex];
     const node = activePage.nodes.find((item) => item.sourceLine === line);
+    const previousNode = activePage.nodes.find((item) => item.id === runtimeNodeId);
     setRuntimeNodeId(node?.id ?? null);
+    setActiveEdgeId(previousNode && node ? activePage.edges.find((edge) => edge.source === previousNode.id && edge.target === node.id)?.id ?? null : null);
+    setRuntimeStatus("paused");
+    setRuntimeMessage(node ? `Paused at line ${line}` : "Paused");
     if (node) setSelectedIds([node.id]);
-  }, [activePage.nodes, project.code, runtimeTrace, stepIndex]);
+    if (nextIndex === trace.length - 1) {
+      setOutput(result.output);
+      setVariables(result.variables);
+      if (result.session) { setPendingSession(result.session); setRuntimeStatus("waiting-for-input"); setRuntimeMessage(`Waiting for input: ${result.session.waitingFor}`); }
+      else { setRuntimeStatus(result.diagnostics.some((item) => item.severity === "error") ? "error" : "completed"); setRuntimeMessage(result.diagnostics.some((item) => item.severity === "error") ? "Execution error" : "Completed"); }
+    }
+  }, [activePage.edges, activePage.nodes, pendingSession, project.code, runtimeNodeId, stepIndex, stepResult]);
 
   useEffect(() => {
     const handleKey = (event: KeyboardEvent) => {
@@ -363,6 +434,18 @@ export function EditorWorkspace() {
       } else if (modifier && event.key.toLowerCase() === "z") {
         event.preventDefault();
         undo();
+      } else if (modifier && event.key === "Enter") {
+        event.preventDefault();
+        run();
+      } else if (event.key === "F10" && !event.shiftKey) {
+        event.preventDefault();
+        step();
+      } else if (modifier && event.shiftKey && event.key.toLowerCase() === "r") {
+        event.preventDefault();
+        resetRuntime();
+      } else if (event.key === "Escape" && (running || runtimeStatus === "paused" || runtimeStatus === "waiting-for-input")) {
+        event.preventDefault();
+        stop();
       } else if (event.key === "Delete" || event.key === "Backspace") {
         const target = event.target as HTMLElement;
         if (!target.matches("input, textarea, select, [contenteditable=true]") && selectedEdgeId) {
@@ -383,7 +466,7 @@ export function EditorWorkspace() {
     };
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, [activePage, commit, project, redo, selectedEdgeId, selectedIds, undo]);
+  }, [activePage, commit, project, redo, resetRuntime, run, running, runtimeStatus, selectedEdgeId, selectedIds, step, stop, undo]);
 
   const updateNode = (updates: Partial<DiagramNode>) => {
     if (!selectedNode) return;
@@ -597,6 +680,9 @@ export function EditorWorkspace() {
         canUndo={history.length > 0}
         canRedo={future.length > 0}
         running={running}
+        runtimeStatus={runtimeStatus}
+        runtimeMessage={runtimeMessage}
+        runtimeSpeed={runtimeSpeed}
         theme={theme}
         onProjectNameChange={(name) => setProject((current) => ({ ...current, name, updatedAt: new Date().toISOString() }))}
         onNew={() => {
@@ -614,6 +700,8 @@ export function EditorWorkspace() {
         onBuild={() => build(false)}
         onRun={run}
         onStop={stop}
+        onReset={resetRuntime}
+        onSpeedChange={setRuntimeSpeed}
         onStep={step}
         onExportSvg={() => downloadFile(`${project.name || "Augorithm"}.svg`, exportSvg(activePage), "image/svg+xml")}
         onExportPng={() => void exportPng()}
@@ -777,6 +865,7 @@ export function EditorWorkspace() {
                 selectedIds={selectedIds}
                 selectedEdgeId={selectedEdgeId}
                 runtimeNodeId={runtimeNodeId}
+                activeEdgeId={activeEdgeId}
                 connectionMode={connectionMode}
                 connectionSourceId={connectionSourceId}
                 zoom={zoom}
@@ -818,15 +907,20 @@ export function EditorWorkspace() {
             variables={variables}
             input={input}
             pendingSession={pendingSession}
+            inputError={inputError}
             onTabChange={setBottomTab}
             onToggle={() => setBottomCollapsed((value) => !value)}
-            onInputChange={setInput}
+            onInputChange={(value) => { setInput(value); setInputError(""); }}
             onSubmitInput={submitInput}
             onClear={() => {
               setOutput([]);
               setVariables({});
               setRuntimeNodeId(null);
               setPendingSession(null);
+            }}
+            onProblemSelect={(diagnostic) => {
+              const node = activePage.nodes.find((item) => item.sourceLine === diagnostic.line);
+              if (node) { setSelectedEdgeId(null); setSelectedIds([node.id]); setRuntimeNodeId(node.id); setWorkspaceView("canvas"); }
             }}
           />
         </section>

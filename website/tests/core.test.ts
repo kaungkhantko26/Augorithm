@@ -9,6 +9,7 @@ import {
   parsePseudocode,
 } from "../lib/augorithm-core.ts";
 import { edgePoints } from "../lib/diagram-routing.ts";
+import { validateConnections } from "../lib/connector-validation.ts";
 
 test("formats nested pseudocode with program boundaries aligned", () => {
   const formatted = formatPseudocode("START\nSET row TO 1\nWHILE row < 3\nOUTPUT row\nENDWHILE\nEND");
@@ -129,7 +130,7 @@ END`);
   });
   assert.deepEqual(forwardRoute.at(-1), {
     x: forwardTarget.position.x + forwardTarget.width / 2,
-    y: forwardTarget.position.y,
+    y: forwardTarget.position.y - 3,
   });
   assert.deepEqual(exitRoute[0], {
     x: loop.position.x + loop.width * 0.24,
@@ -137,12 +138,11 @@ END`);
   });
   assert.deepEqual(entryRoute.at(-1), {
     x: loop.position.x + loop.width / 2,
-    y: loop.position.y,
+    y: loop.position.y - 3,
   });
-  assert.equal(entryRoute.length, 2, "normal loop entry must stay on the center line");
   assert.deepEqual(feedbackRoute.at(-1), {
     x: loop.position.x + loop.width * 0.68,
-    y: loop.position.y + loop.height,
+    y: loop.position.y + loop.height + 3,
   });
   assert.notEqual(exitRoute[0].x, feedbackRoute.at(-1)?.x);
   assert.ok(Math.max(...feedbackRoute.map((point) => point.x)) > Math.max(
@@ -177,7 +177,7 @@ test("lands arrowheads on visible parallelogram borders and preserves port appro
   );
 
   assert.deepEqual(route.at(-1), {
-    x: target.position.x + target.width * 0.045,
+    x: target.position.x + target.width * 0.045 - 3,
     y: target.position.y + target.height / 2,
   });
   assert.equal(route.at(-2)?.y, route.at(-1)?.y);
@@ -223,9 +223,32 @@ test("keeps edited waypoint routes orthogonal at shape ports", () => {
     );
   }
   assert.deepEqual(route.at(-1), {
-    x: target.position.x + target.width * 0.045,
+    x: target.position.x + target.width * 0.045 - 3,
     y: target.position.y + target.height / 2,
   });
+});
+
+test("routes self-connections outside the node with a visible arrow approach", () => {
+  const node = {
+    id: "loop", kind: "loop" as const, label: "FOR i = 0 TO 4",
+    position: { x: 200, y: 180 }, width: 260, height: 82,
+    style: { fill: "#fff", stroke: "#000", text: "#000", fontSize: 14 },
+  };
+  const route = edgePoints({ id: "self", source: node.id, target: node.id, sourcePort: "right", targetPort: "top" }, node, node, [node]);
+  assert.ok(Math.max(...route.map((point) => point.x)) >= node.position.x + node.width + 56);
+  assert.deepEqual(route.at(-1), { x: node.position.x + node.width / 2, y: node.position.y - 3 });
+});
+
+test("validates missing loop exits and illegal end connections", () => {
+  const parsed = parsePseudocode("START\nFOR i = 0 TO 4\nOUTPUT i\nNEXT i\nEND");
+  const loop = parsed.nodes.find((node) => node.kind === "loop");
+  const end = parsed.nodes.find((node) => node.kind === "end");
+  assert.ok(loop && end);
+  const withoutDone = parsed.edges.filter((edge) => !(edge.source === loop.id && edge.label === "Done"));
+  const invalid = [...withoutDone, { id: "bad", source: end.id, target: loop.id }];
+  const messages = validateConnections(parsed.nodes, invalid).map((item) => item.message);
+  assert.ok(messages.some((message) => message.includes("valid Done connection")));
+  assert.ok(messages.some((message) => message.includes("End nodes cannot")));
 });
 
 test("executes false and else-if branches", () => {

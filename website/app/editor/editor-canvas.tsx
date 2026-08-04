@@ -1,5 +1,6 @@
 "use client";
 
+import { useId } from "react";
 import type { DiagramEdge, DiagramNode, NodeKind, Point } from "@/lib/augorithm-core";
 import { edgeLabelPoint, edgePoints, pathFromPoints } from "@/lib/diagram-routing";
 
@@ -12,6 +13,7 @@ interface EditorCanvasProps {
   selectedIds: string[];
   selectedEdgeId: string | null;
   runtimeNodeId: string | null;
+  activeEdgeId: string | null;
   connectionMode: boolean;
   connectionSourceId: string | null;
   zoom: number;
@@ -33,6 +35,7 @@ export function EditorCanvas({
   selectedIds,
   selectedEdgeId,
   runtimeNodeId,
+  activeEdgeId,
   connectionMode,
   connectionSourceId,
   zoom,
@@ -47,6 +50,7 @@ export function EditorCanvas({
   onEditNode,
   onConnectNode,
 }: EditorCanvasProps) {
+  const markerId = `editor-arrow-${useId().replace(/:/g, "")}`;
   const nodeMap = new Map(nodes.map((node) => [node.id, node]));
 
   const beginDrag = (event: React.PointerEvent<HTMLButtonElement>, node: DiagramNode) => {
@@ -157,15 +161,15 @@ export function EditorCanvas({
       >
         <svg className="editor-edge-layer" width={CANVAS_WIDTH} height={CANVAS_HEIGHT} role="group" aria-label="Diagram connections">
           <defs>
-            <marker id="editor-arrow" markerWidth="8" markerHeight="8" refX="8" refY="4" orient="auto" markerUnits="userSpaceOnUse">
-              <path d="M0,0 L8,4 L0,8 Z" />
+            <marker id={markerId} markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto" markerUnits="strokeWidth" viewBox="0 0 8 8">
+              <path d="M 0 0 L 8 4 L 0 8 Z" />
             </marker>
           </defs>
           {edges.map((edge) => {
             const source = nodeMap.get(edge.source);
             const target = nodeMap.get(edge.target);
             if (!source || !target) return null;
-            const points = edgePoints(edge, source, target);
+            const points = edgePoints(edge, source, target, nodes);
             const path = pathFromPoints(points);
             const middlePoint = edgeLabelPoint(points);
             const selected = edge.id === selectedEdgeId;
@@ -177,6 +181,7 @@ export function EditorCanvas({
                   "editor-edge",
                   edge.annotationOnly ? "annotation-edge" : "",
                   selected ? "selected" : "",
+                  edge.id === activeEdgeId ? "runtime-edge-active" : "",
                 ].filter(Boolean).join(" ")}
               >
                 <title>{edge.label ? `${edge.label} connection` : "Connection"}</title>
@@ -188,7 +193,7 @@ export function EditorCanvas({
                   className="edge-visible"
                   d={path}
                   style={{ strokeWidth: edge.strokeWidth ?? 2.25 }}
-                  markerEnd={edge.arrow === "none" ? undefined : "url(#editor-arrow)"}
+                  markerEnd={edge.arrow === "none" ? undefined : `url(#${markerId})`}
                 />
                 {edge.label && (
                   <g className="edge-label" transform={`translate(${middlePoint.x} ${middlePoint.y})`}>

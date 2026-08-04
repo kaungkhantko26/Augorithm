@@ -13,11 +13,13 @@ interface EditorBottomPanelProps {
   variables: Record<string, unknown>;
   input: string;
   pendingSession: ExecutionSession | null;
+  inputError: string;
   onTabChange: (tab: BottomTab) => void;
   onToggle: () => void;
   onInputChange: (value: string) => void;
   onSubmitInput: () => void;
   onClear: () => void;
+  onProblemSelect: (diagnostic: Diagnostic) => void;
 }
 
 export function EditorBottomPanel({
@@ -28,11 +30,13 @@ export function EditorBottomPanel({
   variables,
   input,
   pendingSession,
+  inputError,
   onTabChange,
   onToggle,
   onInputChange,
   onSubmitInput,
   onClear,
+  onProblemSelect,
 }: EditorBottomPanelProps) {
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -105,7 +109,12 @@ export function EditorBottomPanel({
                   <label className="input-waiting-label">
                     <span className="input-waiting-badge">INPUT</span>
                     <span>
-                      Enter value for <strong>{pendingSession.waitingFor}</strong>
+                      Waiting for input · Variable: <strong>{pendingSession.waitingFor}</strong>
+                      <small>Expected type: {(() => {
+                        const root = pendingSession.waitingFor.replace(/\[.*$/, "");
+                        const value = pendingSession.variables[root];
+                        return typeof value === "number" || Array.isArray(value) ? "Number" : "Text or number";
+                      })()}</small>
                     </span>
                   </label>
                   <div className="input-waiting-row">
@@ -128,6 +137,7 @@ export function EditorBottomPanel({
                       Submit ↵
                     </button>
                   </div>
+                  {inputError && <p className="input-validation-error" role="alert">{inputError}</p>}
                 </div>
               ) : (
                 /* ── Normal input row ── */
@@ -149,9 +159,12 @@ export function EditorBottomPanel({
             <div className="problems-view">
               {diagnostics.length ? (
                 diagnostics.map((diagnostic, index) => (
-                  <article
+                  <button
+                    type="button"
                     className={diagnostic.severity}
                     key={`${diagnostic.line}-${diagnostic.message}-${index}`}
+                    onClick={() => onProblemSelect(diagnostic)}
+                    title="Focus the related flowchart node"
                   >
                     <span aria-hidden="true">
                       {diagnostic.severity === "error" ? "●" : "▲"}
@@ -160,7 +173,7 @@ export function EditorBottomPanel({
                       <strong>{diagnostic.message}</strong>
                       <small>Line {diagnostic.line}</small>
                     </div>
-                  </article>
+                  </button>
                 ))
               ) : (
                 <p className="panel-empty">✓ No problems found. Ready to run.</p>

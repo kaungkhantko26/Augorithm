@@ -8,6 +8,9 @@ interface EditorToolbarProps {
   canUndo: boolean;
   canRedo: boolean;
   running: boolean;
+  runtimeStatus: "idle" | "building" | "ready" | "running" | "paused" | "waiting-for-input" | "completed" | "error" | "stopped";
+  runtimeMessage: string;
+  runtimeSpeed: string;
   theme: "light" | "dark";
   onProjectNameChange: (name: string) => void;
   onNew: () => void;
@@ -18,6 +21,8 @@ interface EditorToolbarProps {
   onBuild: () => void;
   onRun: () => void;
   onStop: () => void;
+  onReset: () => void;
+  onSpeedChange: (speed: ".25" | ".5" | "1" | "2" | "instant") => void;
   onStep: () => void;
   onExportSvg: () => void;
   onExportPng: () => void;
@@ -32,6 +37,9 @@ export function EditorToolbar({
   canUndo,
   canRedo,
   running,
+  runtimeStatus,
+  runtimeMessage,
+  runtimeSpeed,
   theme,
   onProjectNameChange,
   onNew,
@@ -42,6 +50,8 @@ export function EditorToolbar({
   onBuild,
   onRun,
   onStop,
+  onReset,
+  onSpeedChange,
   onStep,
   onExportSvg,
   onExportPng,
@@ -68,18 +78,26 @@ export function EditorToolbar({
           <button type="button" onClick={onRedo} disabled={!canRedo} title="Redo (Ctrl/⌘ Shift Z)" aria-label="Redo">↷</button>
         </div>
         <div className="toolbar-group">
-          <button type="button" onClick={onBuild} disabled={running} title="Build from pseudocode">Build</button>
+          <button type="button" onClick={onBuild} disabled={running} title="Build latest pseudocode and validate connections">Build</button>
           <button type="button" onClick={onAutoLayout} disabled={running} title="Restore automatic layout">Auto layout</button>
-          <button type="button" onClick={onStep} disabled={running} title="Step through the current algorithm">Step</button>
+          <button type="button" onClick={onStep} disabled={running || runtimeStatus === "waiting-for-input"} title="Execute one logical operation (F10)">Step</button>
           {running ? (
             <button className="run-command stop-command" type="button" onClick={onStop} title="Stop execution">
               ■ Stop
             </button>
           ) : (
-            <button className="run-command" type="button" onClick={onRun} title="Run algorithm (⌘R)">
-              ▶ Run
+            <button className="run-command" type="button" onClick={onRun} title="Run or resume algorithm (Ctrl/⌘ Enter)">
+              {runtimeStatus === "completed" ? "↻ Run Again" : runtimeStatus === "error" ? "↻ Restart" : runtimeStatus === "paused" ? "▶ Resume" : "▶ Run"}
             </button>
           )}
+          <button type="button" onClick={onReset} disabled={runtimeStatus === "idle" || runtimeStatus === "ready"} title="Reset runtime (Ctrl/⌘ Shift R)">↻ Reset</button>
+          <label className="runtime-speed" title="Execution speed">
+            <span className="sr-only">Execution speed</span>
+            <select value={runtimeSpeed} onChange={(event) => onSpeedChange(event.target.value as ".25" | ".5" | "1" | "2" | "instant")} aria-label="Execution speed">
+              <option value=".25">0.25×</option><option value=".5">0.5×</option><option value="1">1×</option><option value="2">2×</option><option value="instant">Instant</option>
+            </select>
+          </label>
+          <span className={`runtime-status status-${runtimeStatus}`} role="status" aria-live="polite">● {runtimeMessage}</span>
         </div>
       </nav>
 

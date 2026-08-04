@@ -217,6 +217,29 @@ body:has(.editor-app) {
   background: #e01a00;
 }
 
+.runtime-speed select {
+  height: 38px;
+  padding: 0 8px;
+  border: 1px solid #ffffff30;
+  border-radius: 7px;
+  color: #eef6ff;
+  background: #183b61;
+  font: 700 11px Inter, sans-serif;
+}
+
+.runtime-status {
+  min-width: 82px;
+  color: #d6e4f2;
+  font-size: 10px;
+  font-weight: 750;
+  white-space: nowrap;
+}
+
+.runtime-status.status-running,
+.runtime-status.status-ready { color: #88e6ca; }
+.runtime-status.status-waiting-for-input { color: #ffd36f; }
+.runtime-status.status-error { color: #ff9a8c; }
+
 .editor-project-identity {
   min-width: 0;
   text-align: center;
@@ -808,6 +831,21 @@ body:has(.editor-app) {
   fill: var(--editor-primary);
 }
 
+.editor-edge.runtime-edge-active .edge-visible {
+  stroke: #ef8b17;
+  stroke-dasharray: 8 10;
+  stroke-dashoffset: 18;
+  filter: drop-shadow(0 0 3px color-mix(in srgb, #ef8b17 55%, transparent));
+  animation: execution-flow .42s linear forwards;
+}
+
+.editor-edge.runtime-edge-active marker path { fill: #ef8b17; }
+
+@keyframes execution-flow {
+  from { stroke-dashoffset: 18; }
+  to { stroke-dashoffset: 0; }
+}
+
 .editor-edge-layer .edge-label rect {
   fill: var(--editor-canvas);
   stroke: color-mix(in srgb, var(--editor-muted) 48%, transparent);
@@ -947,7 +985,10 @@ body:has(.editor-app) {
 }
 
 .canvas-node.runtime-active {
-  animation: runtime-pulse 1s ease-in-out infinite alternate;
+  z-index: 5;
+  outline: 4px solid color-mix(in srgb, #ef8b17 55%, transparent);
+  outline-offset: 5px;
+  box-shadow: 0 0 0 8px color-mix(in srgb, #ef8b17 12%, transparent), 0 13px 28px #112d4c32;
 }
 
 .canvas-node.kind-start,
@@ -1013,9 +1054,8 @@ body:has(.editor-app) {
   box-shadow: 0 0 0 1px var(--editor-danger);
 }
 
-@keyframes runtime-pulse {
-  from { box-shadow: 0 0 0 4px color-mix(in srgb, var(--editor-warning) 30%, transparent), 0 8px 20px #0002; }
-  to { box-shadow: 0 0 0 9px color-mix(in srgb, var(--editor-warning) 4%, transparent), 0 8px 20px #0002; }
+@media (prefers-reduced-motion: reduce) {
+  .editor-edge.runtime-edge-active .edge-visible { animation: none; stroke-dasharray: none; }
 }
 
 .inspector-content {
@@ -1295,6 +1335,10 @@ body:has(.editor-app) {
   color: var(--editor-ink);
 }
 
+.input-waiting-label > span:last-child { display: grid; gap: 2px; }
+.input-waiting-label small { color: var(--editor-muted); font-size: 9px; font-weight: 650; }
+.input-validation-error { margin: 0; color: var(--editor-danger); font-size: 10px; font-weight: 750; }
+
 .input-waiting-badge {
   min-width: 52px;
   padding: 2px 6px;
@@ -1351,20 +1395,28 @@ body:has(.editor-app) {
   padding: 8px 12px;
 }
 
-.problems-view article {
+.problems-view button {
+  width: 100%;
   min-height: 38px;
+  padding: 0;
   display: flex;
   align-items: center;
   gap: 9px;
+  border: 0;
   border-bottom: 1px solid var(--editor-border);
+  color: var(--editor-ink);
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
 }
 
-.problems-view article > span { color: var(--editor-warning); }
-.problems-view article.error > span { color: var(--editor-danger); }
-.problems-view article strong,
-.problems-view article small { display: block; }
-.problems-view article strong { font-size: 11px; }
-.problems-view article small { color: var(--editor-muted); font-size: 9px; }
+.problems-view button:hover { background: color-mix(in srgb, var(--editor-primary) 7%, transparent); }
+.problems-view button > span { color: var(--editor-warning); }
+.problems-view button.error > span { color: var(--editor-danger); }
+.problems-view button strong,
+.problems-view button small { display: block; }
+.problems-view button strong { font-size: 11px; }
+.problems-view button small { color: var(--editor-muted); font-size: 9px; }
 
 .variables-view {
   padding: 10px;

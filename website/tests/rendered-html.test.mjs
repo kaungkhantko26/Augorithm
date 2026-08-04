@@ -35,10 +35,10 @@ test("renders the Augorithm product site and metadata", async () => {
 
   const html = await response.text();
   assert.match(html, /Augorithm — Think it\. Chart it\. Run it\./i);
-  assert.match(html, /Your algorithm makes sense/);
-  assert.match(html, /Your flowchart should too/);
-  assert.match(html, /hero-scroll-hint/);
-  assert.match(html, /Four steps/);
+  assert.match(html, /Don&#x27;t just write/);
+  assert.match(html, /See it think/);
+  assert.match(html, /Four ways to understand it/);
+  assert.match(html, /Built for students who think visually/i);
   assert.match(html, /https:\/\/augorithm\.example\/og\.png/);
   assert.doesNotMatch(html, /codex-preview|Your site is taking shape/i);
 });
@@ -72,8 +72,8 @@ test("ships project-specific brand assets and removes starter preview", async ()
   assert.match(packageJson, /"name": "augorithm-product-website"/);
   assert.doesNotMatch(packageJson, /react-loading-skeleton/);
   assert.match(page, /AUGORITHM/);
-  assert.match(page, /မြန်မာ/);
-  assert.match(page, /hero-scroll-hint/);
+  assert.match(page, /English \+ Burmese/);
+  assert.match(page, /hero-product/);
   await access(new URL("../public/augorithm-icon.png", import.meta.url));
   await access(new URL("../public/og.png", import.meta.url));
   await access(new URL("../public/sw.js", import.meta.url));
