@@ -135,10 +135,9 @@ export function EditorInspector({
           </div>
         ) : (
           <div className="inspector-content project-overview">
-            <div className="selected-node-summary"><span className="project-icon">A</span><div><strong>{projectName}</strong><small>Flowchart project</small></div></div>
-            <div className="project-stats"><div><strong>{nodes.length}</strong><span>Shapes</span></div><div><strong>{Math.max(0, nodes.length - 2)}</strong><span>Steps</span></div></div>
-            <div className="inspector-section"><strong>Canvas</strong><div className="toggle-list"><label><input type="checkbox" checked={snapToGrid} onChange={(event) => onToggleGrid(event.target.checked)} /><span>Snap shapes to grid</span></label></div></div>
-            <div className="context-help"><strong>Need help?</strong><p>Select a shape to edit its text, appearance, connections, and runtime settings.</p><kbd>/</kbd><span>Quick Insert</span></div>
+            <div className="inspector-heading"><strong>Project</strong><button type="button" title="Select a shape to edit it. Press / for Quick Insert." aria-label="Inspector help">?</button></div>
+            <p className="project-name-summary">{projectName}</p>
+            <div className="inspector-section"><strong>Canvas</strong><div className="toggle-list"><label><input type="checkbox" checked={snapToGrid} onChange={(event) => onToggleGrid(event.target.checked)} /><span>Grid</span></label></div></div>
           </div>
         )
       )}

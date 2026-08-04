@@ -50,10 +50,10 @@ export function EditorBottomPanel({
   }, [pendingSession?.waitingFor]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const tabs: Array<{ id: BottomTab; label: string; count?: number }> = [
-    { id: "console", label: "▸ Console" },
-    { id: "variables", label: "▦ Variables", count: Object.keys(variables).length },
-    { id: "problems", label: "△ Problems", count: diagnostics.length },
-    { id: "notes", label: "✦ Notes" },
+    { id: "console", label: "Console" },
+    { id: "variables", label: "Variables", count: Object.keys(variables).length || undefined },
+    { id: "problems", label: "Problems", count: diagnostics.length || undefined },
+    { id: "notes", label: "Notes" },
   ];
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {

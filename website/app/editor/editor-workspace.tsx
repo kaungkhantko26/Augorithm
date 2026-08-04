@@ -172,6 +172,7 @@ export function EditorWorkspace() {
   const [commandSearch, setCommandSearch] = useState("");
   const [presentationMode, setPresentationMode] = useState(false);
   const [studentMode, setStudentMode] = useState(true);
+  const [focusMode, setFocusMode] = useState(false);
   const [sourceLanguage, setSourceLanguage] = useState<"python" | "javascript" | "java" | "swift">("python");
   const [sourceRunning, setSourceRunning] = useState(false);
   const [sourceDrafts, setSourceDrafts] = useState<Partial<Record<"python" | "javascript" | "java" | "swift", string>>>({});
@@ -449,6 +450,9 @@ export function EditorWorkspace() {
       } else if (event.key === "F11") {
         event.preventDefault();
         setPresentationMode((value) => !value);
+      } else if (event.key.toLowerCase() === "f") {
+        const target = event.target as HTMLElement;
+        if (!target.matches("input, textarea, select, [contenteditable=true]")) { event.preventDefault(); setFocusMode((value) => !value); }
       } else if (event.key === "/") {
         const target = event.target as HTMLElement;
         if (!target.matches("input, textarea, select, [contenteditable=true]")) { event.preventDefault(); setCommandSearch(""); setCommandOpen(true); }
@@ -707,7 +711,7 @@ export function EditorWorkspace() {
   ].filter((item) => item.label.toLowerCase().includes(commandSearch.toLowerCase()));
 
   return (
-    <main className={`editor-app ${presentationMode ? "presentation-mode" : ""} ${studentMode ? "student-mode" : "teacher-mode"}`}>
+    <main className={`editor-app ${presentationMode ? "presentation-mode" : ""} ${focusMode ? "focus-mode" : ""} ${studentMode ? "student-mode" : "teacher-mode"}`}>
       <EditorToolbar
         projectName={project.name}
         canUndo={history.length > 0}
@@ -811,18 +815,16 @@ export function EditorWorkspace() {
             </div>
             <div className="view-switcher" role="group" aria-label="Workspace view">
               {([
-                ["canvas", "⌘ Flowchart"],
-                ["code", "≡ Pseudocode"],
-                ["source", "</> Source"],
-                ["notes", "✦ Notes"],
-                ["split", "◫ Split"],
-              ] as const).map(([view, label]) => (
+                ["canvas", "Flowchart"],
+                ["code", "Pseudocode"],
+                ...(!studentMode ? [["python", "Python"], ["java", "Java"], ["notes", "Notes"]] : []),
+              ] as Array<[string, string]>).map(([view, label]) => (
                 <button
                   type="button"
-                  className={workspaceView === view ? "active" : ""}
+                  className={(view === "python" || view === "java" ? workspaceView === "source" && sourceLanguage === view : workspaceView === view) ? "active" : ""}
                   aria-label={view === "code" ? "Pseudocode editor" : undefined}
                   aria-pressed={workspaceView === view}
-                  onClick={() => setWorkspaceView(view)}
+                  onClick={() => { if (view === "python" || view === "java") { setSourceLanguage(view); setWorkspaceView("source"); } else setWorkspaceView(view as "canvas" | "code" | "notes"); }}
                   key={view}
                 >
                   {label}
@@ -842,12 +844,18 @@ export function EditorWorkspace() {
               >
                 ↗ Connect
               </button>
-              <button type="button" onClick={() => setZoom((value) => Math.max(.25, value - .1))} aria-label="Zoom out">−</button>
-              <span>{Math.round(zoom * 100)}%</span>
-              <button type="button" onClick={() => setZoom((value) => Math.min(2.5, value + .1))} aria-label="Zoom in">＋</button>
+              <label className="zoom-select"><span className="sr-only">Canvas zoom</span><select value={zoom.toFixed(2)} onChange={(event) => setZoom(Number(event.target.value))} aria-label="Canvas zoom"><option value="0.50">50%</option><option value="0.78">78%</option><option value="1.00">100%</option><option value="1.50">150%</option></select></label>
               <button type="button" onClick={() => setZoom(.78)}>Fit</button>
-              <button type="button" onClick={() => setPresentationMode((value) => !value)} title="Presentation mode (F11)">{presentationMode ? "Exit presentation" : "Present"}</button>
             </div>
+          </div>
+
+          <div className="canvas-runtime-bar" aria-label="Runtime controls">
+            {running ? <button className="stop-command" type="button" onClick={stop}>Pause</button> : <button className="run-command" type="button" onClick={run}>Run</button>}
+            <button type="button" onClick={step} disabled={running || runtimeStatus === "waiting-for-input"}>Step</button>
+            <button type="button" onClick={resetRuntime} disabled={runtimeStatus === "idle" || runtimeStatus === "ready"}>Reset</button>
+            {!studentMode && <select value={runtimeSpeed} onChange={(event) => setRuntimeSpeed(event.target.value as RuntimeSpeed)} aria-label="Execution speed"><option value=".5">0.5×</option><option value="1">1×</option><option value="2">2×</option><option value="instant">Instant</option></select>}
+            <span className={`runtime-status status-${runtimeStatus}`} role="status" aria-live="polite">{runtimeMessage}</span>
+            <button className="focus-toggle" type="button" onClick={() => setFocusMode((value) => !value)}>{focusMode ? "Exit Focus" : "Focus"}</button>
           </div>
 
           <div className={`workspace-content view-${workspaceView}`}>

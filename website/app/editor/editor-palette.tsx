@@ -79,7 +79,7 @@ export function EditorPalette({
               type="search"
               value={search}
               onChange={(event) => onSearchChange(event.target.value)}
-              placeholder="Search shapes or commands..."
+              placeholder="Search shapes..."
               aria-label="Search shapes or commands"
             />
           </label>
@@ -95,9 +95,7 @@ export function EditorPalette({
                 onDragStart={(event) => event.dataTransfer.setData("application/x-augorithm-node", item.kind)}
                 key={item.kind}
               >
-                <span className={`palette-icon ${item.kind}`}>{item.icon}</span>
                 <span><strong>{item.label}</strong><small>{item.description}</small></span>
-                <kbd aria-hidden="true">⋮⋮</kbd>
               </button>
               ))}
             </section>)}

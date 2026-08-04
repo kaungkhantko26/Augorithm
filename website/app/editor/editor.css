@@ -83,6 +83,66 @@
   .editor-app *, .editor-app *::before, .editor-app *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; }
 }
 
+/* Calm workspace refinement */
+.editor-shell { grid-template-columns: 240px minmax(0, 1fr) 280px; }
+.editor-workspace { grid-template-rows: 45px 44px minmax(0, 1fr) 204px; }
+.editor-workspace:has(.editor-bottom-panel.collapsed) { grid-template-rows: 45px 44px minmax(0, 1fr) 42px; }
+
+.canvas-runtime-bar { padding: 5px 14px; display: flex; align-items: center; gap: 8px; background: var(--editor-surface); border-bottom: 1px solid color-mix(in srgb, var(--editor-border) 55%, transparent); }
+.canvas-runtime-bar button { min-height: 32px; padding: 0 13px; border-color: transparent; background: transparent; }
+.canvas-runtime-bar .run-command { color: white; background: var(--editor-primary); }
+.canvas-runtime-bar .stop-command { color: var(--editor-warning); background: color-mix(in srgb, var(--editor-warning) 9%, transparent); }
+.canvas-runtime-bar select, .zoom-select select { min-height: 32px; color: var(--editor-ink); border: 0; border-radius: 7px; background: var(--editor-surface-2); }
+.canvas-runtime-bar .runtime-status { margin-left: auto; padding: 0; border: 0; background: transparent; }
+.focus-toggle { color: var(--editor-muted) !important; }
+
+.view-switcher { padding: 0; gap: 20px; border-radius: 0; background: transparent; box-shadow: none; }
+.view-switcher button { min-width: auto; padding-inline: 2px; border: 0; border-bottom: 2px solid transparent; border-radius: 0; background: transparent; }
+.view-switcher button.active { color: var(--editor-primary); border-color: var(--editor-primary); background: transparent; box-shadow: none; }
+
+.palette-search { border: 0; background: var(--editor-surface-2); }
+.palette-item { min-height: 50px !important; padding: 7px 9px !important; display: block !important; border: 0 !important; border-radius: 7px !important; background: transparent !important; box-shadow: none !important; }
+.palette-item:hover { background: var(--editor-surface-2) !important; }
+.palette-item small { display: block; margin-top: 1px; }
+.palette-group { gap: 2px; margin-top: 12px; padding-bottom: 10px; border-bottom: 1px solid color-mix(in srgb, var(--editor-border) 55%, transparent); }
+.palette-group:last-child { border-bottom: 0; }
+.palette-help { display: none; }
+
+.project-stats, .context-help, .project-icon { display: none; }
+.inspector-heading { display: flex; align-items: center; justify-content: space-between; }
+.inspector-heading button { width: 30px; min-height: 30px; border: 0; border-radius: 50%; background: var(--editor-surface-2); }
+.project-name-summary { margin: 4px 0 20px; color: var(--editor-muted); }
+
+.canvas-empty-state { width: 360px; padding: 24px; border: 0; background: transparent; box-shadow: none; }
+.empty-illustration { display: none; }
+.smart-canvas { background-image: radial-gradient(circle, color-mix(in srgb, var(--editor-border) 17%, transparent) 1px, transparent 1px) !important; }
+
+.bottom-tabs { border-bottom-color: color-mix(in srgb, var(--editor-border) 55%, transparent); }
+.bottom-tabs [role="tablist"] { gap: 18px; }
+.bottom-tabs [role="tab"] { padding-inline: 1px; border: 0; border-bottom: 2px solid transparent; border-radius: 0; background: transparent; }
+.bottom-tabs [role="tab"].active { color: var(--editor-primary); border-bottom-color: var(--editor-primary); background: transparent; }
+.console-output { font-size: 14px; }
+.variables-view tbody tr:nth-child(even) { background: color-mix(in srgb, var(--editor-surface-2) 55%, transparent); }
+.variables-view th, .variables-view td { padding-block: 8px; border-bottom-color: color-mix(in srgb, var(--editor-border) 40%, transparent); }
+
+.student-mode .editor-inspector { display: none; }
+.student-mode .editor-shell, .student-mode .editor-shell.palette-closed, .student-mode .editor-shell.inspector-closed, .student-mode .editor-shell.palette-closed.inspector-closed { grid-template-columns: 240px minmax(0, 1fr); }
+.student-mode .connect-tool { display: none; }
+.focus-mode .editor-palette, .focus-mode .editor-inspector, .focus-mode .editor-bottom-panel, .focus-mode .page-tabs, .focus-mode .canvas-controls { display: none !important; }
+.focus-mode .editor-shell, .focus-mode .editor-shell.palette-closed, .focus-mode .editor-shell.inspector-closed { grid-template-columns: minmax(0, 1fr) !important; }
+.focus-mode .editor-workspace { grid-column: 1 !important; grid-template-rows: 45px minmax(0, 1fr) !important; }
+.focus-mode .workspace-toolbar { grid-template-columns: 1fr; }
+.focus-mode .canvas-runtime-bar { position: absolute; z-index: 20; top: 80px; left: 50%; transform: translateX(-50%); border: 1px solid var(--editor-border); border-radius: 10px; box-shadow: var(--editor-shadow); }
+
+@media (max-width: 1400px) and (min-width: 769px) {
+  .editor-topbar { height: 72px; padding: 0 16px; grid-template-columns: 180px minmax(290px, 1fr) 200px auto; grid-template-rows: 72px; gap: 12px; }
+  .editor-brand { grid-column: 1; grid-row: 1; }
+  .editor-commandbar { grid-column: 2; grid-row: 1; justify-content: flex-start; }
+  .editor-project-identity { grid-column: 3; grid-row: 1; }
+  .editor-top-actions { grid-column: 4; grid-row: 1; }
+  .editor-shell { height: calc(100dvh - 72px); }
+}
+
 :root[data-editor-theme="dark"] {
   --editor-ink: #edf5ff;
   --editor-muted: #a9bad0;
@@ -1834,4 +1894,21 @@ body:has(.editor-app) {
     animation-iteration-count: 1 !important;
     transition-duration: .01ms !important;
   }
+}
+
+/* Deliberately last: override the original dense editor layout. */
+.editor-workspace { grid-template-rows: 45px 44px minmax(0, 1fr) 204px; }
+.editor-workspace:has(.editor-bottom-panel.collapsed) { grid-template-rows: 45px 44px minmax(0, 1fr) 42px; }
+.palette-help { display: none; }
+.view-switcher { padding: 0; gap: 20px; border-radius: 0; background: transparent; box-shadow: none; }
+.view-switcher button { min-width: auto; padding-inline: 2px; border: 0; border-bottom: 2px solid transparent; border-radius: 0; background: transparent; }
+.view-switcher button.active { color: var(--editor-primary); border-color: var(--editor-primary); background: transparent; box-shadow: none; }
+
+@media (max-width: 1400px) and (min-width: 769px) {
+  .editor-topbar { height: 72px; padding: 0 16px; grid-template-columns: 180px minmax(290px, 1fr) 200px auto; grid-template-rows: 72px; gap: 12px; }
+  .editor-brand { grid-column: 1; grid-row: 1; }
+  .editor-commandbar { grid-column: 2; grid-row: 1; justify-content: flex-start; }
+  .editor-project-identity { grid-column: 3; grid-row: 1; }
+  .editor-top-actions { grid-column: 4; grid-row: 1; }
+  .editor-shell { height: calc(100dvh - 72px); }
 }

@@ -150,9 +150,8 @@ export function EditorCanvas({
     >
       {nodes.length === 0 && (
         <div className="canvas-empty-state" role="region" aria-label="Empty flowchart">
-          <span className="empty-illustration" aria-hidden="true">◇</span>
-          <h2>Start building</h2>
-          <p>Drag a shape here, or press <kbd>/</kbd> to open Quick Insert.</p>
+          <h2>Start your algorithm</h2>
+          <p>Drag a shape here<br />or press <kbd>/</kbd></p>
           <button type="button" onClick={() => onAddNode("process", { x: 770, y: 280 })}>Create first step</button>
         </div>
       )}
