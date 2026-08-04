@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import type { Diagnostic, ExecutionSession } from "@/lib/augorithm-core";
 
-export type BottomTab = "console" | "problems" | "variables";
+export type BottomTab = "console" | "problems" | "variables" | "notes";
 
 interface EditorBottomPanelProps {
   activeTab: BottomTab;
@@ -14,6 +14,7 @@ interface EditorBottomPanelProps {
   input: string;
   pendingSession: ExecutionSession | null;
   inputError: string;
+  notes: string;
   onTabChange: (tab: BottomTab) => void;
   onToggle: () => void;
   onInputChange: (value: string) => void;
@@ -31,6 +32,7 @@ export function EditorBottomPanel({
   input,
   pendingSession,
   inputError,
+  notes,
   onTabChange,
   onToggle,
   onInputChange,
@@ -48,9 +50,10 @@ export function EditorBottomPanel({
   }, [pendingSession?.waitingFor]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const tabs: Array<{ id: BottomTab; label: string; count?: number }> = [
-    { id: "console", label: "Console" },
-    { id: "problems", label: "Problems", count: diagnostics.length },
-    { id: "variables", label: "Variables", count: Object.keys(variables).length },
+    { id: "console", label: "▸ Console" },
+    { id: "variables", label: "▦ Variables", count: Object.keys(variables).length },
+    { id: "problems", label: "△ Problems", count: diagnostics.length },
+    { id: "notes", label: "✦ Notes" },
   ];
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
@@ -184,23 +187,24 @@ export function EditorBottomPanel({
           {activeTab === "variables" && (
             <div className="variables-view">
               {Object.entries(variables).length ? (
-                Object.entries(variables).map(([name, value]) => (
-                  <div key={name}>
-                    <code>{name}</code>
-                    <strong>
+                <table><thead><tr><th>Name</th><th>Type</th><th>Value</th></tr></thead><tbody>{Object.entries(variables).map(([name, value]) => (
+                  <tr key={name}>
+                    <td><code>{name}</code></td><td>{Array.isArray(value) ? "Array" : typeof value}</td>
+                    <td><strong>
                       {Array.isArray(value)
                         ? `[${value.map((v) => (v === undefined ? "—" : String(v))).join(", ")}]`
                         : value === undefined
                           ? "—"
                           : String(value)}
-                    </strong>
-                  </div>
-                ))
+                    </strong></td>
+                  </tr>
+                ))}</tbody></table>
               ) : (
                 <p className="panel-empty">Variables appear here while your algorithm runs.</p>
               )}
             </div>
           )}
+          {activeTab === "notes" && <pre className="bottom-notes">{notes}</pre>}
         </div>
       )}
     </section>

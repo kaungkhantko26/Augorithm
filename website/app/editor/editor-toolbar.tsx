@@ -34,6 +34,9 @@ interface EditorToolbarProps {
   onImportPython: () => void;
   onExportJava: () => void;
   onExportNotes: () => void;
+  studentMode: boolean;
+  onToggleStudentMode: () => void;
+  onPresentation: () => void;
 }
 
 export function EditorToolbar({
@@ -67,6 +70,9 @@ export function EditorToolbar({
   onImportPython,
   onExportJava,
   onExportNotes,
+  studentMode,
+  onToggleStudentMode,
+  onPresentation,
 }: EditorToolbarProps) {
   return (
     <header className="editor-topbar">
@@ -135,6 +141,8 @@ export function EditorToolbar({
       </div>
 
       <div className="editor-top-actions">
+        <button type="button" className="mode-pill" onClick={onToggleStudentMode} title="Switch between simplified Student Mode and advanced Teacher Mode">{studentMode ? "Student" : "Teacher"}</button>
+        <button type="button" onClick={onPresentation} title="Hide panels for classroom presentation (F11)">Present</button>
         <button type="button" onClick={onOpenCommands} title="Command palette (Ctrl/⌘ K)" aria-label="Open command palette">⌘K</button>
         <details className="export-menu">
           <summary>Export</summary>

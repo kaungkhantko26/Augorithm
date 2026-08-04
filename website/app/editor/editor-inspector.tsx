@@ -13,6 +13,9 @@ interface EditorInspectorProps {
   onDuplicate: () => void;
   onDelete: () => void;
   onDeleteEdge: () => void;
+  projectName: string;
+  snapToGrid: boolean;
+  onToggleGrid: (enabled: boolean) => void;
 }
 
 export function EditorInspector({
@@ -26,6 +29,9 @@ export function EditorInspector({
   onDuplicate,
   onDelete,
   onDeleteEdge,
+  projectName,
+  snapToGrid,
+  onToggleGrid,
 }: EditorInspectorProps) {
   const ports = ["top", "right", "bottom", "left"] as const;
   return (
@@ -128,10 +134,11 @@ export function EditorInspector({
             </div>
           </div>
         ) : (
-          <div className="inspector-empty">
-            <span>⌖</span>
-            <strong>Select a shape</strong>
-            <p>Choose a symbol or connection to edit its text, endpoints, route, size, and appearance.</p>
+          <div className="inspector-content project-overview">
+            <div className="selected-node-summary"><span className="project-icon">A</span><div><strong>{projectName}</strong><small>Flowchart project</small></div></div>
+            <div className="project-stats"><div><strong>{nodes.length}</strong><span>Shapes</span></div><div><strong>{Math.max(0, nodes.length - 2)}</strong><span>Steps</span></div></div>
+            <div className="inspector-section"><strong>Canvas</strong><div className="toggle-list"><label><input type="checkbox" checked={snapToGrid} onChange={(event) => onToggleGrid(event.target.checked)} /><span>Snap shapes to grid</span></label></div></div>
+            <div className="context-help"><strong>Need help?</strong><p>Select a shape to edit its text, appearance, connections, and runtime settings.</p><kbd>/</kbd><span>Quick Insert</span></div>
           </div>
         )
       )}

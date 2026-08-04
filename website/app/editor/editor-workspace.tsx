@@ -170,6 +170,8 @@ export function EditorWorkspace() {
   const [stepResult, setStepResult] = useState<ReturnType<typeof executePseudocode> | null>(null);
   const [commandOpen, setCommandOpen] = useState(false);
   const [commandSearch, setCommandSearch] = useState("");
+  const [presentationMode, setPresentationMode] = useState(false);
+  const [studentMode, setStudentMode] = useState(true);
   const [sourceLanguage, setSourceLanguage] = useState<"python" | "javascript" | "java" | "swift">("python");
   const [sourceRunning, setSourceRunning] = useState(false);
   const [sourceDrafts, setSourceDrafts] = useState<Partial<Record<"python" | "javascript" | "java" | "swift", string>>>({});
@@ -444,6 +446,12 @@ export function EditorWorkspace() {
       } else if (event.key === "F10" && !event.shiftKey) {
         event.preventDefault();
         step();
+      } else if (event.key === "F11") {
+        event.preventDefault();
+        setPresentationMode((value) => !value);
+      } else if (event.key === "/") {
+        const target = event.target as HTMLElement;
+        if (!target.matches("input, textarea, select, [contenteditable=true]")) { event.preventDefault(); setCommandSearch(""); setCommandOpen(true); }
       } else if (modifier && event.shiftKey && event.key.toLowerCase() === "r") {
         event.preventDefault();
         resetRuntime();
@@ -695,10 +703,11 @@ export function EditorWorkspace() {
     { label: "Export SVG", hint: "SVG", action: () => downloadFile(`${project.name}.svg`, exportSvg(activePage), "image/svg+xml") },
     { label: "Toggle theme", hint: "Theme", action: () => setTheme((value) => value === "light" ? "dark" : "light") },
     { label: "Add page", hint: "Page", action: addPage },
+    ...(["input", "output", "process", "decision", "loop", "comment"] as NodeKind[]).map((kind) => ({ label: `Insert ${kind}`, hint: "Shape", action: () => addNode(kind) })),
   ].filter((item) => item.label.toLowerCase().includes(commandSearch.toLowerCase()));
 
   return (
-    <main className="editor-app">
+    <main className={`editor-app ${presentationMode ? "presentation-mode" : ""} ${studentMode ? "student-mode" : "teacher-mode"}`}>
       <EditorToolbar
         projectName={project.name}
         canUndo={history.length > 0}
@@ -740,6 +749,9 @@ export function EditorWorkspace() {
         onImportPython={() => pythonInputRef.current?.click()}
         onExportJava={() => downloadFile(javaBuild.filename, javaBuild.code, "text/x-java-source;charset=utf-8")}
         onExportNotes={() => downloadFile(`${project.name || "Augorithm"}-notes.md`, generatedNotes, "text/markdown;charset=utf-8")}
+        studentMode={studentMode}
+        onToggleStudentMode={() => setStudentMode((value) => !value)}
+        onPresentation={() => setPresentationMode(true)}
       />
 
       <input
@@ -834,6 +846,7 @@ export function EditorWorkspace() {
               <span>{Math.round(zoom * 100)}%</span>
               <button type="button" onClick={() => setZoom((value) => Math.min(2.5, value + .1))} aria-label="Zoom in">＋</button>
               <button type="button" onClick={() => setZoom(.78)}>Fit</button>
+              <button type="button" onClick={() => setPresentationMode((value) => !value)} title="Presentation mode (F11)">{presentationMode ? "Exit presentation" : "Present"}</button>
             </div>
           </div>
 
@@ -947,6 +960,7 @@ export function EditorWorkspace() {
             input={input}
             pendingSession={pendingSession}
             inputError={inputError}
+            notes={generatedNotes}
             onTabChange={setBottomTab}
             onToggle={() => setBottomCollapsed((value) => !value)}
             onInputChange={(value) => { setInput(value); setInputError(""); }}
@@ -975,6 +989,9 @@ export function EditorWorkspace() {
           onDuplicate={duplicateSelected}
           onDelete={deleteSelected}
           onDeleteEdge={deleteSelectedEdge}
+          projectName={project.name}
+          snapToGrid={project.preferences.snapToGrid}
+          onToggleGrid={(snapToGrid) => commit((current) => ({ ...current, preferences: { ...current.preferences, snapToGrid } }))}
         />
       </div>
 
@@ -996,6 +1013,7 @@ export function EditorWorkspace() {
           </section>
         </div>
       )}
+      {presentationMode && <div className="presentation-runtime"><button type="button" onClick={step}>Step</button><button className="run-command" type="button" onClick={running ? stop : run}>{running ? "Stop" : "Run"}</button><button type="button" onClick={() => setPresentationMode(false)}>Exit</button></div>}
     </main>
   );
 }
