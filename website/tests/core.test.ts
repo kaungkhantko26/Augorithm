@@ -10,6 +10,7 @@ import {
 } from "../lib/augorithm-core.ts";
 import { edgePoints } from "../lib/diagram-routing.ts";
 import { validateConnections } from "../lib/connector-validation.ts";
+import { generateJava, generatePseudocode, generatePython, javaClassName, parsePseudocodeToIR, parsePythonToIR } from "../lib/algorithm-ir.ts";
 
 test("formats nested pseudocode with program boundaries aligned", () => {
   const formatted = formatPseudocode("START\nSET row TO 1\nWHILE row < 3\nOUTPUT row\nENDWHILE\nEND");
@@ -249,6 +250,41 @@ test("validates missing loop exits and illegal end connections", () => {
   const messages = validateConnections(parsed.nodes, invalid).map((item) => item.message);
   assert.ok(messages.some((message) => message.includes("valid Done connection")));
   assert.ok(messages.some((message) => message.includes("End nodes cannot")));
+});
+
+test("uses a shared IR to generate typed Python and a complete Java file", () => {
+  const ir = parsePseudocodeToIR(`START
+DECLARE marks[5] AS INTEGER
+DECLARE i AS INTEGER
+FOR i = 0 TO 4
+INPUT marks[i]
+END FOR
+FOR i = 0 TO 4
+DISPLAY marks[i]
+END FOR
+END`, "student marks 2026");
+  const java = generateJava(ir);
+  assert.equal(java.filename, "StudentMarks2026.java");
+  assert.match(java.code, /public class StudentMarks2026/);
+  assert.match(java.code, /int\[\] marks = new int\[5\]/);
+  assert.match(java.code, /Scanner scanner = new Scanner/);
+  assert.equal((java.code.match(/for \(/g) ?? []).length, 2);
+  assert.match(generatePython(ir), /range\(0, \(4\) \+ 1, 1\)/);
+});
+
+test("converts Python range semantics through IR without an off-by-one error", () => {
+  const ir = parsePythonToIR(`for i in range(0, 5):\n    print(i)`, "Range Demo");
+  const pseudo = generatePseudocode(ir);
+  assert.match(pseudo, /FOR i = 0 TO 4/);
+  assert.match(pseudo, /DISPLAY i/);
+  assert.equal(ir.diagnostics.filter((item) => item.severity === "error").length, 0);
+});
+
+test("rejects unsupported asynchronous Python without changing semantics", () => {
+  const ir = parsePythonToIR("async def main():\n    await work()", "Async Demo");
+  assert.equal(ir.statements.length, 0);
+  assert.match(ir.diagnostics[0].message, /cannot be converted/);
+  assert.equal(javaClassName("2026 class"), "Program2026Class");
 });
 
 test("executes false and else-if branches", () => {

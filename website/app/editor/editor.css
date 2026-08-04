@@ -617,6 +617,19 @@ body:has(.editor-app) {
   min-height: 0;
 }
 
+.notes-view pre {
+  margin: 0;
+  padding: 28px 34px;
+  overflow: auto;
+  white-space: pre-wrap;
+  line-height: 1.65;
+  font: 14px/1.65 ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.convert-menu {
+  position: relative;
+}
+
 .ide-editor {
   display: grid;
   grid-template-rows: 42px minmax(0, 1fr) 28px;

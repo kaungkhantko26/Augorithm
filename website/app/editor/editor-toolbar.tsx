@@ -30,6 +30,10 @@ interface EditorToolbarProps {
   onAutoLayout: () => void;
   onToggleTheme: () => void;
   onOpenCommands: () => void;
+  onConvert: (target: "flowchart" | "python" | "java" | "all") => void;
+  onImportPython: () => void;
+  onExportJava: () => void;
+  onExportNotes: () => void;
 }
 
 export function EditorToolbar({
@@ -59,6 +63,10 @@ export function EditorToolbar({
   onAutoLayout,
   onToggleTheme,
   onOpenCommands,
+  onConvert,
+  onImportPython,
+  onExportJava,
+  onExportNotes,
 }: EditorToolbarProps) {
   return (
     <header className="editor-topbar">
@@ -73,6 +81,19 @@ export function EditorToolbar({
           <button type="button" onClick={onOpen} title="Open .augo project (Ctrl/⌘ O)">Open</button>
           <button type="button" onClick={onSave} title="Save .augo project (Ctrl/⌘ S)">Save</button>
         </div>
+        <details className="export-menu convert-menu">
+          <summary>Convert</summary>
+          <div>
+            <button type="button" onClick={() => onConvert("flowchart")}>Pseudocode → Flowchart</button>
+            <button type="button" onClick={() => onConvert("python")}>Pseudocode → Python</button>
+            <button type="button" onClick={() => onConvert("java")}>Pseudocode → Java</button>
+            <button type="button" onClick={() => onConvert("all")}>Rebuild all views</button>
+          </div>
+        </details>
+        <details className="export-menu convert-menu">
+          <summary>Import</summary>
+          <div><button type="button" onClick={onOpen}>Augorithm project</button><button type="button" onClick={onImportPython}>Python file</button></div>
+        </details>
         <div className="toolbar-group compact">
           <button type="button" onClick={onUndo} disabled={!canUndo} title="Undo (Ctrl/⌘ Z)" aria-label="Undo">↶</button>
           <button type="button" onClick={onRedo} disabled={!canRedo} title="Redo (Ctrl/⌘ Shift Z)" aria-label="Redo">↷</button>
@@ -121,6 +142,8 @@ export function EditorToolbar({
             <button type="button" onClick={onExportSvg}>SVG diagram</button>
             <button type="button" onClick={onExportPng}>PNG image</button>
             <button type="button" onClick={onCopyDiagram}>Copy for slides</button>
+            <button type="button" onClick={onExportJava}>Java file</button>
+            <button type="button" onClick={onExportNotes}>Notes Markdown</button>
           </div>
         </details>
         <button type="button" onClick={onToggleTheme} aria-label={`Switch to ${theme === "light" ? "dark" : "light"} theme`}>

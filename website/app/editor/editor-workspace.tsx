@@ -22,6 +22,7 @@ import {
 import { loadRecoveryProject, saveRecoveryProject } from "@/lib/project-storage";
 import { edgeLabelPoint, edgePoints, pathFromPoints } from "@/lib/diagram-routing";
 import { validateConnections } from "@/lib/connector-validation";
+import { generateJava, generateNotes, generatePseudocode, generatePython, parsePseudocodeToIR, parsePythonToIR } from "@/lib/algorithm-ir";
 import { EditorToolbar } from "./editor-toolbar";
 import { EditorPalette } from "./editor-palette";
 import { EditorCanvas } from "./editor-canvas";
@@ -151,7 +152,7 @@ export function EditorWorkspace() {
   const [inspectorCollapsed, setInspectorCollapsed] = useState(false);
   const [bottomCollapsed, setBottomCollapsed] = useState(false);
   const [bottomTab, setBottomTab] = useState<BottomTab>("console");
-  const [workspaceView, setWorkspaceView] = useState<"canvas" | "code" | "split" | "source">("canvas");
+  const [workspaceView, setWorkspaceView] = useState<"canvas" | "code" | "split" | "source" | "notes">("canvas");
   const [zoom, setZoom] = useState(0.78);
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const [input, setInput] = useState("");
@@ -178,16 +179,19 @@ export function EditorWorkspace() {
   const [diagnostics, setDiagnostics] = useState(() => parsePseudocode(project.code).diagnostics);
   const [lastParsedCode, setLastParsedCode] = useState(project.code);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const pythonInputRef = useRef<HTMLInputElement>(null);
   const dragOriginRef = useRef<ProjectV2 | null>(null);
   const edgeDragOriginRef = useRef<ProjectV2 | null>(null);
 
   const activePage = project.pages.find((page) => page.id === project.activePageId) ?? project.pages[0];
   const selectedNode = activePage.nodes.find((node) => node.id === selectedIds[0]) ?? null;
   const selectedEdge = activePage.edges.find((edge) => edge.id === selectedEdgeId) ?? null;
-  const generatedSource = useMemo(
-    () => generateSource(project.code, sourceLanguage),
-    [project.code, sourceLanguage],
-  );
+  const algorithmIR = useMemo(() => parsePseudocodeToIR(project.code, project.name), [project.code, project.name]);
+  const javaBuild = useMemo(() => generateJava(algorithmIR), [algorithmIR]);
+  const generatedSource = useMemo(() => sourceLanguage === "python" ? generatePython(algorithmIR)
+    : sourceLanguage === "java" ? javaBuild.code
+      : generateSource(project.code, sourceLanguage), [algorithmIR, javaBuild.code, project.code, sourceLanguage]);
+  const generatedNotes = useMemo(() => generateNotes(algorithmIR), [algorithmIR]);
   const activeSource = sourceDrafts[sourceLanguage] ?? generatedSource;
 
   const commit = useCallback((updater: (current: ProjectV2) => ProjectV2) => {
@@ -661,7 +665,27 @@ export function EditorWorkspace() {
       : sourceLanguage === "javascript" ? "js"
         : sourceLanguage === "java" ? "java"
           : "swift";
-    downloadFile(`${project.name || "Augorithm"}.${extension}`, activeSource, "text/plain;charset=utf-8");
+    downloadFile(sourceLanguage === "java" ? javaBuild.filename : `${project.name || "Augorithm"}.${extension}`, activeSource, "text/plain;charset=utf-8");
+  };
+
+  const rebuildFromIR = () => {
+    const next = generatePseudocode(algorithmIR);
+    setProject((current) => ({ ...current, code: next, updatedAt: new Date().toISOString() }));
+    setSourceDrafts({ python: generatePython(algorithmIR), java: javaBuild.code });
+    setDiagnostics([...algorithmIR.diagnostics, ...javaBuild.diagnostics]);
+    setRuntimeMessage("All views rebuilt from the shared algorithm model");
+  };
+
+  const importPython = (code: string) => {
+    const imported = parsePythonToIR(code, project.name);
+    if (imported.diagnostics.some((item) => item.severity === "error")) {
+      setDiagnostics(imported.diagnostics); setBottomTab("problems"); setBottomCollapsed(false); return;
+    }
+    const pseudocode = generatePseudocode(imported);
+    commit((current) => ({ ...current, code: pseudocode, python: { ...current.python, code }, updatedAt: new Date().toISOString() }));
+    setSourceDrafts({ python: code, java: generateJava(imported).code });
+    setDiagnostics(imported.diagnostics);
+    setWorkspaceView("split");
   };
 
   const commandActions = [
@@ -709,6 +733,13 @@ export function EditorWorkspace() {
         onAutoLayout={() => build(true)}
         onToggleTheme={() => setTheme((value) => value === "light" ? "dark" : "light")}
         onOpenCommands={() => setCommandOpen(true)}
+        onConvert={(target) => {
+          if (target === "flowchart" || target === "all") rebuildFromIR();
+          else { setSourceLanguage(target); setWorkspaceView("source"); if (target === "python") setSourceDrafts((drafts) => ({ ...drafts, python: generatePython(algorithmIR) })); else setSourceDrafts((drafts) => ({ ...drafts, java: javaBuild.code })); }
+        }}
+        onImportPython={() => pythonInputRef.current?.click()}
+        onExportJava={() => downloadFile(javaBuild.filename, javaBuild.code, "text/x-java-source;charset=utf-8")}
+        onExportNotes={() => downloadFile(`${project.name || "Augorithm"}-notes.md`, generatedNotes, "text/markdown;charset=utf-8")}
       />
 
       <input
@@ -731,6 +762,7 @@ export function EditorWorkspace() {
           }
         }}
       />
+      <input ref={pythonInputRef} type="file" accept=".py,text/x-python" hidden onChange={async (event) => { const file = event.target.files?.[0]; if (file) importPython(await file.text()); event.target.value = ""; }} />
 
       <div className={`editor-shell ${paletteCollapsed ? "palette-closed" : ""} ${inspectorCollapsed ? "inspector-closed" : ""}`}>
         <EditorPalette
@@ -770,6 +802,7 @@ export function EditorWorkspace() {
                 ["canvas", "⌘ Flowchart"],
                 ["code", "≡ Pseudocode"],
                 ["source", "</> Source"],
+                ["notes", "✦ Notes"],
                 ["split", "◫ Split"],
               ] as const).map(([view, label]) => (
                 <button
@@ -838,7 +871,7 @@ export function EditorWorkspace() {
                 <CodeEditor
                   value={activeSource}
                   title="GENERATED SOURCE"
-                  fileName={`Main.${sourceLanguage === "python" ? "py" : sourceLanguage === "javascript" ? "js" : sourceLanguage === "java" ? "java" : "swift"}`}
+                  fileName={sourceLanguage === "java" ? javaBuild.filename : `Main.${sourceLanguage === "python" ? "py" : sourceLanguage === "javascript" ? "js" : "swift"}`}
                   language={sourceLanguage === "javascript" ? "JavaScript" : sourceLanguage[0].toUpperCase() + sourceLanguage.slice(1)}
                   onChange={(value) => setSourceDrafts((drafts) => ({ ...drafts, [sourceLanguage]: value }))}
                   actions={(
@@ -856,6 +889,12 @@ export function EditorWorkspace() {
                     </>
                   )}
                 />
+              </section>
+            )}
+            {workspaceView === "notes" && (
+              <section className="generated-source-pane notes-view" aria-label="Educational notes">
+                <div className="source-editor-toolbar"><strong>Algorithm notes</strong><button type="button" onClick={() => downloadFile(`${project.name}-notes.md`, generatedNotes, "text/markdown;charset=utf-8")}>Download notes</button></div>
+                <pre>{generatedNotes}</pre>
               </section>
             )}
             {(workspaceView === "canvas" || workspaceView === "split") && (
