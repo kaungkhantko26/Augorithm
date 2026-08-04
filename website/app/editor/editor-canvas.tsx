@@ -2,7 +2,7 @@
 
 import { useId } from "react";
 import type { DiagramEdge, DiagramNode, NodeKind, Point } from "@/lib/augorithm-core";
-import { edgeLabelPoint, edgePoints, pathFromPoints } from "@/lib/diagram-routing";
+import { CONNECTOR_STROKE_WIDTH, edgeLabelPoint, edgePoints, pathFromPoints } from "@/lib/diagram-routing";
 
 const CANVAS_WIDTH = 1800;
 const CANVAS_HEIGHT = 1400;
@@ -184,8 +184,8 @@ export function EditorCanvas({
       >
         <svg className="editor-edge-layer" width={CANVAS_WIDTH} height={CANVAS_HEIGHT} role="group" aria-label="Diagram connections">
           <defs>
-            <marker id={markerId} markerWidth="11" markerHeight="11" refX="9" refY="5.5" orient="auto" markerUnits="strokeWidth" viewBox="0 0 11 11">
-              <path d="M 0 0 L 11 5.5 L 0 11 Z" />
+            <marker id={markerId} markerWidth="7" markerHeight="7" refX="6.2" refY="3.5" orient="auto" markerUnits="userSpaceOnUse" viewBox="0 0 7 7">
+              <path d="M 0 0 L 7 3.5 L 0 7 Z" />
             </marker>
           </defs>
           {edges.map((edge) => {
@@ -215,7 +215,7 @@ export function EditorCanvas({
                 <path
                   className="edge-visible"
                   d={path}
-                  style={{ strokeWidth: edge.strokeWidth ?? 2.25 }}
+                  style={{ strokeWidth: CONNECTOR_STROKE_WIDTH }}
                   markerEnd={edge.arrow === "none" ? undefined : `url(#${markerId})`}
                 />
                 {edge.label && (

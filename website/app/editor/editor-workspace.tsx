@@ -20,7 +20,7 @@ import {
   type ProjectV2,
 } from "@/lib/augorithm-core";
 import { loadRecoveryProject, saveRecoveryProject } from "@/lib/project-storage";
-import { edgeLabelPoint, edgePoints, pathFromPoints } from "@/lib/diagram-routing";
+import { CONNECTOR_STROKE_WIDTH, edgeLabelPoint, edgePoints, pathFromPoints } from "@/lib/diagram-routing";
 import { validateConnections } from "@/lib/connector-validation";
 import { generateJava, generateNotes, generatePseudocode, generatePython, parsePseudocodeToIR, parsePythonToIR } from "@/lib/algorithm-ir";
 import { EditorToolbar } from "./editor-toolbar";
@@ -92,7 +92,7 @@ function exportSvg(page: DiagramPage): string {
     const label = edge.label
       ? `<g><rect x="${labelPoint.x - edge.label.length * 4.2 - 8}" y="${labelPoint.y - 12}" width="${edge.label.length * 8.4 + 16}" height="22" rx="11" fill="${page.background}" stroke="#aebed0"/><text x="${labelPoint.x}" y="${labelPoint.y + 3}" text-anchor="middle" fill="#30455f" font-family="Inter,Arial,sans-serif" font-size="12" font-weight="700">${escape(edge.label)}</text></g>`
       : "";
-    return `<g><path d="${path}" fill="none" stroke="#30455f" stroke-width="${edge.strokeWidth ?? 2.25}" stroke-linecap="round" stroke-linejoin="round"${edge.annotationOnly ? ' stroke-dasharray="8 8"' : ""}${edge.arrow === "none" ? "" : ' marker-end="url(#arrow)"'}/>${label}</g>`;
+    return `<g><path d="${path}" fill="none" stroke="#30455f" stroke-width="${CONNECTOR_STROKE_WIDTH}" stroke-linecap="round" stroke-linejoin="round"${edge.annotationOnly ? ' stroke-dasharray="8 8"' : ""}${edge.arrow === "none" ? "" : ' marker-end="url(#arrow)"'}/>${label}</g>`;
   }).join("");
   const nodes = page.nodes.map((node) => {
     const radius = node.kind === "start" || node.kind === "end" || node.kind === "usecase" ? node.height / 2 : 12;
@@ -115,7 +115,7 @@ function exportSvg(page: DiagramPage): string {
     return `<g>${shape}<text x="${node.position.x + node.width / 2}" y="${node.position.y + node.height / 2 - (lines.length - 1) * 8}" text-anchor="middle" dominant-baseline="middle" fill="${node.style.text}" font-family="Inter,Arial,sans-serif" font-size="${node.style.fontSize}" font-weight="650">${text}</text></g>`;
   }).join("");
   const markerId = `augorithm-arrow-${page.id.replace(/[^a-z0-9_-]/gi, "")}`;
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><defs><marker id="${markerId}" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto" markerUnits="strokeWidth" viewBox="0 0 8 8"><path d="M 0 0 L 8 4 L 0 8 Z" fill="#30455f"/></marker></defs><rect width="100%" height="100%" fill="${page.background}"/><g transform="translate(${offsetX} ${offsetY})">${edges.replaceAll('url(#arrow)', `url(#${markerId})`)}${nodes}</g></svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><defs><marker id="${markerId}" markerWidth="7" markerHeight="7" refX="6.2" refY="3.5" orient="auto" markerUnits="userSpaceOnUse" viewBox="0 0 7 7"><path d="M 0 0 L 7 3.5 L 0 7 Z" fill="#30455f"/></marker></defs><rect width="100%" height="100%" fill="${page.background}"/><g transform="translate(${offsetX} ${offsetY})">${edges.replaceAll('url(#arrow)', `url(#${markerId})`)}${nodes}</g></svg>`;
 }
 
 async function svgToPng(svg: string): Promise<Blob> {
@@ -582,7 +582,7 @@ export function EditorWorkspace() {
       source: connectionSourceId,
       target: nodeId,
       annotationOnly: activePage.mode === "algorithm",
-      strokeWidth: 2.25,
+      strokeWidth: CONNECTOR_STROKE_WIDTH,
       arrow: "end",
     };
     commit((current) => pageWithUpdates(current, activePage.id, {

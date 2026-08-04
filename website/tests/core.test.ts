@@ -8,7 +8,7 @@ import {
   migrateProject,
   parsePseudocode,
 } from "../lib/augorithm-core.ts";
-import { edgePoints } from "../lib/diagram-routing.ts";
+import { ARROW_TARGET_GAP, edgePoints } from "../lib/diagram-routing.ts";
 import { validateConnections } from "../lib/connector-validation.ts";
 import { generateJava, generatePseudocode, generatePython, javaClassName, parsePseudocodeToIR, parsePythonToIR } from "../lib/algorithm-ir.ts";
 
@@ -131,7 +131,7 @@ END`);
   });
   assert.deepEqual(forwardRoute.at(-1), {
     x: forwardTarget.position.x + forwardTarget.width / 2,
-    y: forwardTarget.position.y - 3,
+    y: forwardTarget.position.y - ARROW_TARGET_GAP,
   });
   assert.deepEqual(exitRoute[0], {
     x: loop.position.x + loop.width * 0.24,
@@ -139,11 +139,11 @@ END`);
   });
   assert.deepEqual(entryRoute.at(-1), {
     x: loop.position.x + loop.width / 2,
-    y: loop.position.y - 3,
+    y: loop.position.y - ARROW_TARGET_GAP,
   });
   assert.deepEqual(feedbackRoute.at(-1), {
     x: loop.position.x + loop.width * 0.68,
-    y: loop.position.y + loop.height + 3,
+    y: loop.position.y + loop.height + ARROW_TARGET_GAP,
   });
   assert.notEqual(exitRoute[0].x, feedbackRoute.at(-1)?.x);
   assert.ok(Math.max(...feedbackRoute.map((point) => point.x)) > Math.max(
@@ -178,7 +178,7 @@ test("lands arrowheads on visible parallelogram borders and preserves port appro
   );
 
   assert.deepEqual(route.at(-1), {
-    x: target.position.x + target.width * 0.045 - 3,
+    x: target.position.x + target.width * 0.045 - ARROW_TARGET_GAP,
     y: target.position.y + target.height / 2,
   });
   assert.equal(route.at(-2)?.y, route.at(-1)?.y);
@@ -224,7 +224,7 @@ test("keeps edited waypoint routes orthogonal at shape ports", () => {
     );
   }
   assert.deepEqual(route.at(-1), {
-    x: target.position.x + target.width * 0.045 - 3,
+    x: target.position.x + target.width * 0.045 - ARROW_TARGET_GAP,
     y: target.position.y + target.height / 2,
   });
 });
@@ -237,7 +237,7 @@ test("routes self-connections outside the node with a visible arrow approach", (
   };
   const route = edgePoints({ id: "self", source: node.id, target: node.id, sourcePort: "right", targetPort: "top" }, node, node, [node]);
   assert.ok(Math.max(...route.map((point) => point.x)) >= node.position.x + node.width + 56);
-  assert.deepEqual(route.at(-1), { x: node.position.x + node.width / 2, y: node.position.y - 3 });
+  assert.deepEqual(route.at(-1), { x: node.position.x + node.width / 2, y: node.position.y - ARROW_TARGET_GAP });
 });
 
 test("validates missing loop exits and illegal end connections", () => {

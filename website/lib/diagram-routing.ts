@@ -5,8 +5,9 @@ export type DiagramPort = NonNullable<DiagramEdge["sourcePort"]>;
 export const CONNECTOR_STUB = 24;
 export const CONNECTOR_CLEARANCE = 18;
 export const SELF_LOOP_OFFSET = 56;
-export const ARROW_GAP = 3;
-export const ARROW_LENGTH = 8;
+export const CONNECTOR_STROKE_WIDTH = 1.25;
+export const ARROW_TARGET_GAP = 2;
+export const ARROWHEAD_LENGTH = 7;
 
 const PORTS: DiagramPort[] = ["top", "right", "bottom", "left"];
 
@@ -74,7 +75,7 @@ function routeHitsNodes(points: Point[], obstacles: DiagramNode[], sourceId: str
 
 function selfLoop(node: DiagramNode, sourcePort: DiagramPort, targetPort: DiagramPort): Point[] {
   const start = portPoint(node, sourcePort);
-  const target = offsetFromPort(portPoint(node, targetPort), targetPort, ARROW_GAP);
+  const target = offsetFromPort(portPoint(node, targetPort), targetPort, ARROW_TARGET_GAP);
   const right = node.position.x + node.width + SELF_LOOP_OFFSET;
   const top = node.position.y - SELF_LOOP_OFFSET;
   return compact([start, offsetFromPort(start, sourcePort, CONNECTOR_STUB), { x: right, y: start.y }, { x: right, y: top }, { x: target.x, y: top }, target]);
@@ -111,9 +112,9 @@ export function edgePoints(edge: DiagramEdge, source: DiagramNode, target: Diagr
   const targetAnchor = isLoopFeedback(source, target)
     ? { x: target.position.x + target.width * .68, y: target.position.y + target.height }
     : portPoint(target, targetPort);
-  const end = offsetFromPort(targetAnchor, targetPort, ARROW_GAP);
+  const end = offsetFromPort(targetAnchor, targetPort, ARROW_TARGET_GAP);
   const startStub = offsetFromPort(start, sourcePort, CONNECTOR_STUB);
-  const endStub = offsetFromPort(end, targetPort, CONNECTOR_STUB + ARROW_LENGTH);
+  const endStub = offsetFromPort(end, targetPort, CONNECTOR_STUB + ARROWHEAD_LENGTH);
 
   if (edge.waypoints?.length) return orthogonalize([start, startStub, ...edge.waypoints, endStub, end]);
 

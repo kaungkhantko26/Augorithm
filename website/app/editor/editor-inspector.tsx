@@ -73,7 +73,7 @@ export function EditorInspector({
               </label>
               <label className="field-label">
                 <span>Line weight</span>
-                <input type="number" min="1" max="6" step=".25" value={edge.strokeWidth ?? 2.25} onChange={(event) => onUpdateEdge({ strokeWidth: Number(event.target.value) })} />
+                <input type="number" min="1.1" max="1.5" step=".05" value={edge.strokeWidth ?? 1.25} onChange={(event) => onUpdateEdge({ strokeWidth: Number(event.target.value) })} />
               </label>
               <label className="field-label">
                 <span>Arrow</span>

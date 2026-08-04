@@ -357,6 +357,7 @@
   .variable-row { grid-template-columns: 1fr; }
   .variable-identity { border-right: 0; border-bottom: 1px solid var(--editor-border); }
 }
+
 .editor-inspector .inspector-content { padding-top: 12px; }
 .editor-bottom-panel:not(.collapsed) { position: absolute; z-index: 36; right: 12px; bottom: 12px; left: 12px; height: 204px; border: 1px solid var(--editor-border); border-radius: 16px; box-shadow: 0 18px 44px rgba(18, 34, 52, .18); }
 
@@ -2718,3 +2719,21 @@ body:has(.editor-app) {
   .editor-topbar .export-menu > .overflow-sections { grid-template-columns: 1fr; }
   .variable-columns { display: none; }
 }
+
+/* Connector rendering fix — intentionally last so legacy stroke rules cannot win. */
+.editor-edge-layer .edge-hit-area {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 12px;
+  pointer-events: stroke;
+}
+.editor-edge-layer .edge-visible {
+  fill: none;
+  stroke-width: 1.25px !important;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.editor-edge:hover .edge-visible { stroke-width: 1.5px !important; }
+.editor-edge.selected .edge-visible,
+.editor-edge.runtime-edge-active .edge-visible { stroke-width: 1.75px !important; }
+.editor-edge-layer marker path { fill: currentColor; }
