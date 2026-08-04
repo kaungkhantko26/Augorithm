@@ -92,6 +92,15 @@ export function EditorToolbar({
         <button type="button" onClick={onRedo} disabled={!canRedo} title="Redo (Ctrl/⌘ Shift Z)" aria-label="Redo">↷</button>
         <span className={`header-runtime-state status-${runtimeStatus}`} role="status" aria-live="polite"><i aria-hidden="true" />{runtimeMessage}</span>
         <button className={running ? "stop-command" : "run-command"} type="button" onClick={running ? onStop : onRun}>{running ? "Pause" : "Run"}</button>
+        <details className="export-menu quick-export">
+          <summary>Export</summary>
+          <div>
+            <button type="button" onClick={onExportPng}>PNG image</button>
+            <button type="button" onClick={onExportSvg}>SVG vector</button>
+            <button type="button" onClick={onExportJava}>Java source</button>
+            <button type="button" onClick={onExportNotes}>Learning notes</button>
+          </div>
+        </details>
         <details className="export-menu tools-menu">
           <summary aria-label="More project actions">•••</summary>
           <div className="overflow-sections">
@@ -100,26 +109,28 @@ export function EditorToolbar({
             <button type="button" onClick={onOpen}>Open project</button>
             <button type="button" onClick={onSave}>Save as…</button>
             </section>
-            <section><h3>Build & run</h3>
+            <section><h3>Build</h3>
             <button type="button" onClick={onBuild} disabled={running}>Build flowchart</button>
+            <button type="button" onClick={onAutoLayout} disabled={running}>Auto layout</button>
+            <button type="button" onClick={() => onConvert("all")}>Rebuild all views</button>
+            </section>
+            <section><h3>Runtime</h3>
             <button type="button" onClick={onStep} disabled={running}>Step execution</button>
             <button type="button" onClick={onReset}>Reset runtime</button>
-            <button type="button" onClick={onAutoLayout} disabled={running}>Auto layout</button>
-            <button type="button" onClick={onImportPython}>Import Python</button>
             </section>
-            <section><h3>Share</h3>
+            <section><h3>Import</h3><button type="button" onClick={onImportPython}>Python file</button></section>
+            <section><h3>Export</h3>
             <button type="button" onClick={onExportSvg}>Export SVG</button>
             <button type="button" onClick={onExportPng}>Export PNG</button>
-            <button type="button" onClick={onCopyDiagram}>Copy for slides</button>
             <button type="button" onClick={onExportJava}>Export Java</button>
             <button type="button" onClick={onExportNotes}>Export notes</button>
             </section>
-            <section><h3>Workspace</h3>
-            <button type="button" onClick={onOpenCommands}>Command palette <kbd>⌘K</kbd></button>
+            <section><h3>View</h3>
             <button type="button" onClick={onPresentation}>Presentation Mode</button>
             <button type="button" onClick={onToggleTheme}>{theme === "light" ? "Dark appearance" : "Light appearance"}</button>
-            <button type="button" onClick={() => onConvert("all")}>Rebuild all views</button>
+            <button type="button" onClick={onCopyDiagram}>Copy for slides</button>
             </section>
+            <section><h3>Settings</h3><button type="button" onClick={onOpenCommands}>Keyboard shortcuts <kbd>⌘K</kbd></button></section>
           </div>
         </details>
       </div>

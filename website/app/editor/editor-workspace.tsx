@@ -153,7 +153,7 @@ export function EditorWorkspace() {
   const [bottomCollapsed, setBottomCollapsed] = useState(true);
   const [bottomTab, setBottomTab] = useState<BottomTab>("console");
   const [workspaceView, setWorkspaceView] = useState<"canvas" | "code" | "split" | "source" | "notes">("canvas");
-  const [zoom, setZoom] = useState(0.78);
+  const [zoom, setZoom] = useState(0.9);
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const [input, setInput] = useState("");
   const [inputError, setInputError] = useState("");
@@ -896,7 +896,7 @@ export function EditorWorkspace() {
               </section>
             )}
             {(workspaceView === "canvas" || workspaceView === "split") && (
-              <EditorCanvas
+              <div className="canvas-workspace-frame"><EditorCanvas
                 nodes={activePage.nodes}
                 edges={activePage.edges}
                 selectedIds={selectedIds}
@@ -938,6 +938,12 @@ export function EditorWorkspace() {
                   setInspectorCollapsed(false);
                 }}
               />
+              <div className="canvas-zoom-controls" role="group" aria-label="Canvas zoom">
+                <button type="button" onClick={() => setZoom((value) => Math.max(.35, value - .1))} aria-label="Zoom out">−</button>
+                <button type="button" onClick={() => setZoom(1)} aria-label="Reset zoom">{Math.round(zoom * 100)}%</button>
+                <button type="button" onClick={() => setZoom((value) => Math.min(2, value + .1))} aria-label="Zoom in">＋</button>
+                <button type="button" onClick={() => setZoom(.78)} aria-label="Fit flowchart to canvas">Fit</button>
+              </div></div>
             )}
           </div>
 

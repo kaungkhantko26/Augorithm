@@ -57,7 +57,17 @@ export function EditorCanvas({
   onImportPython,
 }: EditorCanvasProps) {
   const markerId = `editor-arrow-${useId().replace(/:/g, "")}`;
-  const nodeMap = new Map(nodes.map((node) => [node.id, node]));
+  const displayNodes = nodes.map((node) => {
+    const longestLine = node.label.split("\n").reduce((longest, line) => Math.max(longest, line.length), 0);
+    const contentWidth = Math.min(420, Math.max(184, longestLine * 8.1 + 64));
+    const lineCount = node.label.split("\n").reduce((count, line) => count + Math.max(1, Math.ceil(line.length / 38)), 0);
+    return {
+      ...node,
+      width: Math.max(node.width, node.kind === "start" || node.kind === "end" ? 184 : contentWidth),
+      height: Math.max(node.height, 72 + Math.max(0, lineCount - 1) * 20),
+    };
+  });
+  const nodeMap = new Map(displayNodes.map((node) => [node.id, node]));
 
   const beginDrag = (event: React.PointerEvent<HTMLButtonElement>, node: DiagramNode) => {
     if (connectionMode) {
@@ -174,15 +184,15 @@ export function EditorCanvas({
       >
         <svg className="editor-edge-layer" width={CANVAS_WIDTH} height={CANVAS_HEIGHT} role="group" aria-label="Diagram connections">
           <defs>
-            <marker id={markerId} markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto" markerUnits="strokeWidth" viewBox="0 0 8 8">
-              <path d="M 0 0 L 8 4 L 0 8 Z" />
+            <marker id={markerId} markerWidth="11" markerHeight="11" refX="9" refY="5.5" orient="auto" markerUnits="strokeWidth" viewBox="0 0 11 11">
+              <path d="M 0 0 L 11 5.5 L 0 11 Z" />
             </marker>
           </defs>
           {edges.map((edge) => {
             const source = nodeMap.get(edge.source);
             const target = nodeMap.get(edge.target);
             if (!source || !target) return null;
-            const points = edgePoints(edge, source, target, nodes);
+            const points = edgePoints(edge, source, target, displayNodes);
             const path = pathFromPoints(points);
             const middlePoint = edgeLabelPoint(points);
             const selected = edge.id === selectedEdgeId;
@@ -210,8 +220,8 @@ export function EditorCanvas({
                 />
                 {edge.label && (
                   <g className="edge-label" transform={`translate(${middlePoint.x} ${middlePoint.y})`}>
-                    <rect x="-5" y="-13" width={Math.max(38, edge.label.length * 7 + 10)} height="21" rx="10" />
-                    <text x="2" y="2">{edge.label}</text>
+                    <rect x={-(Math.max(48, edge.label.length * 7.5 + 22) / 2)} y="-15" width={Math.max(48, edge.label.length * 7.5 + 22)} height="28" rx="14" />
+                    <text x="0" y="4" textAnchor="middle">{edge.label}</text>
                   </g>
                 )}
                 {selected && editableWaypoints.map((point, index) => (
@@ -229,7 +239,7 @@ export function EditorCanvas({
           })}
         </svg>
 
-        {nodes.map((node) => (
+        {displayNodes.map((node) => (
           <button
             type="button"
             key={node.id}

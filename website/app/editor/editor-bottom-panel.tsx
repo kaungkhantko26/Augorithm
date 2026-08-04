@@ -74,7 +74,17 @@ export function EditorBottomPanel({
 }: EditorBottomPanelProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const dragStart = useRef<{ y: number; height: number } | null>(null);
-  const [panelHeight, setPanelHeight] = useState(192);
+  const [panelHeight, setPanelHeight] = useState(() => {
+    if (typeof window === "undefined") return 220;
+    const savedHeight = Number(window.localStorage.getItem("augorithm-runtime-height"));
+    return savedHeight >= 168 && savedHeight <= 420 ? savedHeight : 220;
+  });
+  const [variableQuery, setVariableQuery] = useState("");
+  const [jumpIndex, setJumpIndex] = useState("");
+
+  useEffect(() => {
+    window.localStorage.setItem("augorithm-runtime-height", String(panelHeight));
+  }, [panelHeight]);
 
   // Auto-focus the input whenever a new pending session arrives.
   useEffect(() => {
@@ -114,11 +124,11 @@ export function EditorBottomPanel({
         }}
         onPointerMove={(event) => {
           if (!dragStart.current) return;
-          setPanelHeight(Math.max(168, Math.min(360, dragStart.current.height + dragStart.current.y - event.clientY)));
+          setPanelHeight(Math.max(168, Math.min(420, dragStart.current.height + dragStart.current.y - event.clientY)));
         }}
         onPointerUp={() => { dragStart.current = null; }}
         onKeyDown={(event) => {
-          if (event.key === "ArrowUp") setPanelHeight((value) => Math.min(360, value + 16));
+          if (event.key === "ArrowUp") setPanelHeight((value) => Math.min(420, value + 16));
           if (event.key === "ArrowDown") setPanelHeight((value) => Math.max(168, value - 16));
         }}
       ><span /></div>}
@@ -157,9 +167,13 @@ export function EditorBottomPanel({
         <div className="bottom-panel-content">
           {activeTab === "console" && (
             <div className="console-view">
-              <pre className="console-output">
-                {output.length ? output.join("\n") : pendingSession ? "Execution paused. Enter a value to continue." : "Press Run to execute the algorithm."}
-              </pre>
+              <div className="execution-log" role="table" aria-label="Execution log">
+                <div className="execution-log-head" role="row"><span>Step</span><span>Type</span><span>Message</span></div>
+                {(output.length ? output : [pendingSession ? "Execution paused. Enter a value to continue." : "Press Run to execute the algorithm."]).map((message, index) => {
+                  const type = pendingSession && index === output.length ? "Input" : /error|failed/i.test(message) ? "Error" : index === 0 && output.length ? "Info" : "Output";
+                  return <div className={`execution-log-row type-${type.toLowerCase()}`} role="row" key={`${index}-${message}`}><span>{index + 1}</span><strong>{type}</strong><code>{message}</code></div>;
+                })}
+              </div>
 
               {pendingSession ? (
                 /* ── Waiting for INPUT ── */
@@ -241,11 +255,16 @@ export function EditorBottomPanel({
 
           {activeTab === "variables" && (
             <div className="variables-view">
-              {Object.entries(variables).length ? (
-                <div className="variable-list">{Object.entries(variables).map(([name, value]) => (
+              <div className="variables-tools">
+                <label><span className="sr-only">Search variables</span><input value={variableQuery} onChange={(event) => setVariableQuery(event.target.value)} placeholder="Search variables…" /></label>
+                <label><span>Jump to index</span><input inputMode="numeric" value={jumpIndex} onChange={(event) => setJumpIndex(event.target.value.replace(/\D/g, ""))} placeholder="0" /></label>
+              </div>
+              <div className="variable-columns" aria-hidden="true"><span>Name / type</span><span>Value</span></div>
+              {Object.entries(variables).filter(([name]) => name.toLowerCase().includes(variableQuery.toLowerCase())).length ? (
+                <div className="variable-list">{Object.entries(variables).filter(([name]) => name.toLowerCase().includes(variableQuery.toLowerCase())).map(([name, value]) => (
                   <article className="variable-row" key={name}>
                     <div className="variable-identity"><code>{name}</code><span>{Array.isArray(value) ? `Array · ${value.length} items` : value === null ? "null" : typeof value}</span></div>
-                    <div className="variable-value"><ValueExplorer value={value} /></div>
+                    <div className="variable-value">{Array.isArray(value) && jumpIndex !== "" && Number(jumpIndex) < value.length ? <div className="jump-result"><span>Index {jumpIndex}</span><ValueExplorer value={value[Number(jumpIndex)]} depth={1} /></div> : <ValueExplorer value={value} />}</div>
                   </article>
                 ))}</div>
               ) : (
