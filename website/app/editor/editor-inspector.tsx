@@ -13,9 +13,6 @@ interface EditorInspectorProps {
   onDuplicate: () => void;
   onDelete: () => void;
   onDeleteEdge: () => void;
-  projectName: string;
-  snapToGrid: boolean;
-  onToggleGrid: (enabled: boolean) => void;
 }
 
 export function EditorInspector({
@@ -29,9 +26,6 @@ export function EditorInspector({
   onDuplicate,
   onDelete,
   onDeleteEdge,
-  projectName,
-  snapToGrid,
-  onToggleGrid,
 }: EditorInspectorProps) {
   const ports = ["top", "right", "bottom", "left"] as const;
   return (
@@ -132,13 +126,7 @@ export function EditorInspector({
               <button className="danger" type="button" onClick={onDelete}>Delete</button>
             </div>
           </div>
-        ) : (
-          <div className="inspector-content project-overview">
-            <div className="inspector-heading"><strong>Project</strong><button type="button" title="Select a shape to edit it. Press / for Quick Insert." aria-label="Inspector help">?</button></div>
-            <p className="project-name-summary">{projectName}</p>
-            <div className="inspector-section"><strong>Canvas</strong><div className="toggle-list"><label><input type="checkbox" checked={snapToGrid} onChange={(event) => onToggleGrid(event.target.checked)} /><span>Grid</span></label></div></div>
-          </div>
-        )
+        ) : null
       )}
     </aside>
   );

@@ -45,6 +45,8 @@ export function EditorToolbar({
   canRedo,
   running,
   theme,
+  onRun,
+  onStop,
   onProjectNameChange,
   onNew,
   onOpen,
@@ -69,22 +71,9 @@ export function EditorToolbar({
   return (
     <header className="editor-topbar">
       <Link className="editor-brand" href="/" aria-label="Back to Augorithm home">
-        <Image src="/augorithm-icon.png" alt="" width={42} height={42} priority unoptimized />
-        <span><strong>AUGORITHM</strong><small>Think it. Chart it. Run it.</small></span>
+        <Image src="/augorithm-icon.png" alt="" width={34} height={34} priority unoptimized />
+        <span><strong>AUGORITHM</strong></span>
       </Link>
-
-      <nav className="editor-commandbar" aria-label="Editor commands">
-        <div className="toolbar-group">
-          <button type="button" onClick={onNew} title="New project (Ctrl/⌘ N)">New</button>
-          <button type="button" onClick={onOpen} title="Open .augo project (Ctrl/⌘ O)">Open</button>
-          <button type="button" onClick={onSave} title="Save .augo project (Ctrl/⌘ S)">Save</button>
-        </div>
-        <div className="toolbar-group compact">
-          <button type="button" onClick={onUndo} disabled={!canUndo} title="Undo (Ctrl/⌘ Z)" aria-label="Undo">↶</button>
-          <button type="button" onClick={onRedo} disabled={!canRedo} title="Redo (Ctrl/⌘ Shift Z)" aria-label="Redo">↷</button>
-        </div>
-        {!studentMode && <div className="toolbar-group build-group"><button type="button" onClick={onBuild} disabled={running}>Build</button><button type="button" onClick={onAutoLayout} disabled={running}>Auto Layout</button></div>}
-      </nav>
 
       <div className="editor-project-identity">
         <label>
@@ -99,24 +88,28 @@ export function EditorToolbar({
       </div>
 
       <div className="editor-top-actions">
-        <button type="button" onClick={onOpenCommands} title="Command palette (Ctrl/⌘ K)" aria-label="Open command palette">⌘K</button>
-        {!studentMode && <details className="export-menu">
-          <summary>Export</summary>
-          <div>
-            <button type="button" onClick={onExportSvg}>SVG diagram</button>
-            <button type="button" onClick={onExportPng}>PNG image</button>
-            <button type="button" onClick={onCopyDiagram}>Copy for slides</button>
-            <button type="button" onClick={onExportJava}>Java file</button>
-            <button type="button" onClick={onExportNotes}>Notes Markdown</button>
-          </div>
-        </details>}
+        <button type="button" onClick={onUndo} disabled={!canUndo} title="Undo (Ctrl/⌘ Z)" aria-label="Undo">↶</button>
+        <button type="button" onClick={onRedo} disabled={!canRedo} title="Redo (Ctrl/⌘ Shift Z)" aria-label="Redo">↷</button>
+        <button className={running ? "stop-command" : "run-command"} type="button" onClick={running ? onStop : onRun}>{running ? "Pause" : "Run"}</button>
         <details className="export-menu tools-menu">
-          <summary>Tools</summary>
+          <summary aria-label="More project actions">•••</summary>
           <div>
+            <button type="button" onClick={onNew}>New project</button>
+            <button type="button" onClick={onOpen}>Open project</button>
+            <button type="button" onClick={onSave}>Save as…</button>
+            <button type="button" onClick={onOpenCommands}>Command palette <kbd>⌘K</kbd></button>
+            {!studentMode && <button type="button" onClick={onBuild} disabled={running}>Build flowchart</button>}
+            {!studentMode && <button type="button" onClick={onAutoLayout} disabled={running}>Auto layout</button>}
+            {!studentMode && <button type="button" onClick={onImportPython}>Import Python</button>}
+            {!studentMode && <button type="button" onClick={onExportSvg}>Export SVG</button>}
+            {!studentMode && <button type="button" onClick={onExportPng}>Export PNG</button>}
+            {!studentMode && <button type="button" onClick={onCopyDiagram}>Copy for slides</button>}
+            {!studentMode && <button type="button" onClick={onExportJava}>Export Java</button>}
+            {!studentMode && <button type="button" onClick={onExportNotes}>Export notes</button>}
             <button type="button" onClick={onToggleStudentMode}>{studentMode ? "Switch to Teacher Mode" : "Switch to Student Mode"}</button>
             <button type="button" onClick={onPresentation}>Presentation Mode</button>
             <button type="button" onClick={onToggleTheme}>{theme === "light" ? "Dark appearance" : "Light appearance"}</button>
-            {!studentMode && <><button type="button" onClick={() => onConvert("all")}>Rebuild all views</button><button type="button" onClick={onImportPython}>Import Python</button></>}
+            {!studentMode && <button type="button" onClick={() => onConvert("all")}>Rebuild all views</button>}
           </div>
         </details>
       </div>

@@ -812,26 +812,6 @@ export function EditorWorkspace() {
 
         <section className="editor-workspace" aria-label="Project workspace">
           <div className="workspace-toolbar">
-            <div className="page-tabs" role="tablist" aria-label="Diagram pages">
-              {project.pages.map((page) => (
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={page.id === activePage.id}
-                  className={page.id === activePage.id ? "active" : ""}
-                  onClick={() => {
-                    setProject((current) => ({ ...current, activePageId: page.id }));
-                    setSelectedIds([]);
-                    setSelectedEdgeId(null);
-                    setConnectionSourceId(null);
-                  }}
-                  key={page.id}
-                >
-                  {page.name}
-                </button>
-              ))}
-              <button type="button" onClick={addPage} aria-label="Add page">＋</button>
-            </div>
             <div className="view-switcher" role="group" aria-label="Workspace view">
               {([
                 ["canvas", "Flowchart"],
@@ -850,33 +830,21 @@ export function EditorWorkspace() {
                 </button>
               ))}
             </div>
-            <div className="canvas-controls">
-              <button
-                type="button"
-                className={connectionMode ? "active connect-tool" : "connect-tool"}
-                aria-pressed={connectionMode}
-                onClick={() => {
-                  setConnectionMode((value) => !value);
-                  setConnectionSourceId(null);
-                }}
-                title="Connect two shapes"
-              >
-                ↗ Connect
-              </button>
-              <label className="zoom-select"><span className="sr-only">Canvas zoom</span><select value={zoom.toFixed(2)} onChange={(event) => setZoom(Number(event.target.value))} aria-label="Canvas zoom"><option value="0.50">50%</option><option value="0.78">78%</option><option value="1.00">100%</option><option value="1.50">150%</option></select></label>
-              <button type="button" onClick={() => setZoom(.78)}>Fit</button>
-            </div>
           </div>
 
-          <div className="canvas-runtime-bar" aria-label="Runtime controls">
+          {workspaceView !== "notes" && <div className="canvas-runtime-bar" aria-label="Runtime controls">
             {running ? <button className="stop-command" type="button" onClick={stop}>Pause</button> : <button className="run-command" type="button" onClick={run}>Run</button>}
             <button type="button" onClick={step} disabled={running || runtimeStatus === "waiting-for-input"}>Step</button>
-            <button type="button" onClick={resetRuntime} disabled={runtimeStatus === "idle" || runtimeStatus === "ready"}>Reset</button>
-            {!studentMode && <select value={runtimeSpeed} onChange={(event) => setRuntimeSpeed(event.target.value as RuntimeSpeed)} aria-label="Execution speed"><option value=".5">0.5×</option><option value="1">1×</option><option value="2">2×</option><option value="instant">Instant</option></select>}
+            <button type="button" onClick={resetRuntime} disabled={runtimeStatus === "idle" || runtimeStatus === "ready"}>{running ? "Stop" : "Reset"}</button>
             <span className={`runtime-status status-${runtimeStatus}`} role="status" aria-live="polite">{runtimeMessage}</span>
-            {runtimeNodeId && <span className="runtime-context">Step {Math.max(1, stepIndex + 1)} · {activePage.nodes.find((node) => node.id === runtimeNodeId)?.label ?? "Current node"}</span>}
-            <button className="focus-toggle" type="button" onClick={() => setFocusMode((value) => !value)}>{focusMode ? "Exit Focus" : "Focus"}</button>
-          </div>
+          </div>}
+
+          {(workspaceView === "canvas" || workspaceView === "split") && <div className="canvas-zoom-controls" aria-label="Canvas zoom controls">
+            <button type="button" onClick={() => setZoom((value) => Math.max(.35, value - .1))} aria-label="Zoom out">−</button>
+            <output aria-live="polite">{Math.round(zoom * 100)}%</output>
+            <button type="button" onClick={() => setZoom((value) => Math.min(2, value + .1))} aria-label="Zoom in">＋</button>
+            <button type="button" onClick={() => setZoom(.78)}>Fit</button>
+          </div>}
 
           <div className={`workspace-content view-${workspaceView}`}>
             {(workspaceView === "code" || workspaceView === "split") && (
@@ -1020,9 +988,6 @@ export function EditorWorkspace() {
           onDuplicate={duplicateSelected}
           onDelete={deleteSelected}
           onDeleteEdge={deleteSelectedEdge}
-          projectName={project.name}
-          snapToGrid={project.preferences.snapToGrid}
-          onToggleGrid={(snapToGrid) => commit((current) => ({ ...current, preferences: { ...current.preferences, snapToGrid } }))}
         />
       </div>
 
